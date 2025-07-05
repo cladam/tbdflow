@@ -62,3 +62,6 @@ let deleteLocalBranch (branchName: string) =
 
 let deleteRemoteBranch (branchName: string) =
     runGitCommand "push" $"origin --delete {branchName}"
+
+let getCurrentBranch () =
+    runGitCommand "rev-parse" "--abbrev-ref HEAD"

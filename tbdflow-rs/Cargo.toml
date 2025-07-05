@@ -1,6 +1,9 @@
 [package]
 name = "tbdflow-rs"
 version = "0.1.0"
+authors = ["Claes Adamsson <claes.adamsson@ingka.ikea.com>"]
+readme="README.md"
 edition = "2024"
 
 [dependencies]
+clap = { version = "4.5", features = ["derive"] }

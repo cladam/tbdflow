@@ -82,6 +82,9 @@ type CompleteOptions = {
 [<Verb("status", HelpText = "Shows the current git status.")>]
 type StatusOptions() = class end
 
+[<Verb("current-branch", HelpText = "Shows the current git branch name.")>]
+type CurrentBranchOptions() = class end
+
 /// Define Handlers using a Result-based workflow ///
 // Handler for the 'release' command
 let handleFeature (opts: FeatureOptions) =
@@ -209,11 +212,21 @@ let handleStatus (_: StatusOptions) =
         printColour ErrorMode $"Error running git status:\n{e}"
         1
 
+// Handler for the 'current-branch' command
+let handleCurrentBranch (_: CurrentBranchOptions) =
+    match getCurrentBranch () with
+    | Ok branchName ->
+        printColour Success $"Current branch is: {branchName}"
+        0
+    | Error e ->
+        printColour ErrorMode $"Error getting current branch:\n{e}"
+        1
+
 // Main function to parse command line arguments and execute the appropriate handler
 [<EntryPoint>]
 let main argv =
     let parser = Parser.Default
-    let result = parser.ParseArguments<FeatureOptions, ReleaseOptions, HotfixOptions, CommitOptions, CompleteOptions, StatusOptions>(argv)
+    let result = parser.ParseArguments<FeatureOptions, ReleaseOptions, HotfixOptions, CommitOptions, CompleteOptions, StatusOptions, CurrentBranchOptions>(argv)
     
     result.MapResult(
         (fun opts -> handleFeature opts |> int),
@@ -222,5 +235,6 @@ let main argv =
         (fun opts -> handleCommit opts |> int),
         (fun opts -> handleComplete opts |> int),
         (fun opts -> handleStatus opts |> int),
+        (fun opts -> handleCurrentBranch opts |> int),
         (fun _ -> printColour ErrorMode "Invalid command. Use --help for usage information."; 1)
     )
