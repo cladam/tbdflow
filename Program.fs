@@ -79,6 +79,9 @@ type CompleteOptions = {
     Name: string
 }
 
+[<Verb("status", HelpText = "Shows the current git status.")>]
+type StatusOptions() = class end
+
 /// Define Handlers using a Result-based workflow ///
 // Handler for the 'release' command
 let handleFeature (opts: FeatureOptions) =
@@ -195,12 +198,22 @@ let handleComplete (opts: CompleteOptions) =
     | Error e ->
         printColour ErrorMode $"\nWorkflow failed:\n{e}"
         1
+// Handler for the 'status' command
+let handleStatus (_: StatusOptions) =
+    printfn "--- Git Status ---"
+    match runGitCommand "status" "--porcelain" with
+    | Ok output ->
+        printColour Info output
+        0
+    | Error e ->
+        printColour ErrorMode $"Error running git status:\n{e}"
+        1
 
 // Main function to parse command line arguments and execute the appropriate handler
 [<EntryPoint>]
 let main argv =
     let parser = Parser.Default
-    let result = parser.ParseArguments<FeatureOptions, ReleaseOptions, HotfixOptions, CommitOptions, CompleteOptions>(argv)
+    let result = parser.ParseArguments<FeatureOptions, ReleaseOptions, HotfixOptions, CommitOptions, CompleteOptions, StatusOptions>(argv)
     
     result.MapResult(
         (fun opts -> handleFeature opts |> int),
@@ -208,5 +221,6 @@ let main argv =
         (fun opts -> handleHotfix opts |> int),
         (fun opts -> handleCommit opts |> int),
         (fun opts -> handleComplete opts |> int),
+        (fun opts -> handleStatus opts |> int),
         (fun _ -> printColour ErrorMode "Invalid command. Use --help for usage information."; 1)
     )
