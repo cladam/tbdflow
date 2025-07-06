@@ -1,7 +1,5 @@
 // This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
 
-use super::*; // Make parent's items available
-use std::io::{self, Write};
 use std::process::{Command, Stdio};
 
 // A type alias for our result type for cleaner code.
@@ -33,6 +31,16 @@ fn run_git_command(command: &str, args: &[&str]) -> CommandResult {
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     } else {
         Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+    }
+}
+
+/// Checks if the git working directory is clean.
+pub fn is_working_directory_clean() -> Result<(), String> {
+    let output = run_git_command("status", &["--porcelain"])?;
+    if output.is_empty() {
+        Ok(())
+    } else {
+        Err("You have unstaged changes. Please commit or stash them first.".to_string())
     }
 }
 

@@ -6,8 +6,8 @@ readme="README.md"
 edition = "2024"
 
 [dependencies]
-clap = { version = "4.5", features = ["derive"] }
-colored = "2.1"
+clap = { version = "4.5.40", features = ["derive"] }
+colored = "3.0.0"
 
 [lib]
 name = "tbdflow"
