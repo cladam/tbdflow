@@ -13,6 +13,18 @@ This tool is designed with a specific Trunk-Based Development philosophy in mind
 * **Automated Cleanup:** The `complete` command enforces the "short-lived" nature of branches by automating the merge-and-delete process, keeping your repository clean.
 * **Conventional Commits:** The tool encourages the use of Conventional Commits for clear, consistent commit messages.
 
+### Why Not Just Use Git Directly?
+
+This tool is **not** a replacement for Git. You will and should always use `git` directly for complex or uncommon tasks like interactive rebasing, cherry-picking, or running `git bisect`.
+
+The purpose of this CLI is to act as a **workflow encapsulator**. It codifies a specific, opinionated process to provide three key benefits:
+
+1.  **Consistency:** It ensures every developer on the team follows the exact same sequence of steps for common tasks. Every commit, every feature branch, and every release is handled identically, leading to a clean and predictable Git history.
+2.  **Reduced Cognitive Load:** You no longer have to remember the exact flags or command sequence for your workflow (e.g., `pull --rebase`, `merge --no-ff`, conventional commit syntax). The tool remembers the process for you, so you can focus on your code.
+3.  **The TBD Way:** The tool makes the right way the easy way. It creates a simple, safe, and efficient path for the 90% of daily development tasks, reducing the chance of errors.
+
+For the other 10% of tasks, drop down to raw `git`—that's what it's there for!
+
 ## Installation
 
 You need [Rust and Cargo](https://www.rust-lang.org/tools/install) installed.
