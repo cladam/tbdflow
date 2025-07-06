@@ -28,3 +28,6 @@ publish/
 *.nupkg
 .nuget/
 packages/
+
+# Rust
+tbdflow-rs/target/
