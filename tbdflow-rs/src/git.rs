@@ -103,7 +103,7 @@ pub fn create_branch(branch_name: &str, from_point: Option<&str>) -> CommandResu
 
 /// Show the current status of the repository.
 pub fn status() -> CommandResult {
-    run_git_command("status", &[])
+    run_git_command("status", &["--short"])
 }
 
 #[cfg(test)]

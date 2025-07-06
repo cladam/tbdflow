@@ -26,7 +26,6 @@ fn main() {
 
     match cli.command {
         Commands::Feature { name } => {
-            println!("--- Creating feature branch ---");
             let branch_name = format!("feature/{}", name);
             let result = || -> Result<String, String> {
                 git::is_working_directory_clean()?;
@@ -36,6 +35,18 @@ fn main() {
                 Ok(branch_name.clone())
             }();
             print_workflow_result(result, format!("Success! Switched to new feature branch: '{}'", branch_name));
+        }
+        Commands::Status => {
+            match git::status() {
+                Ok(output) => println!("{}", output.blue()),
+                Err(e) => println!("{}", format!("Error running git status:\n{}", e).red()),
+            }
+        }
+        Commands::CurrentBranch => {
+            match git::get_current_branch() {
+                Ok(branch_name) => println!("{}", format!("Current branch is: {}", branch_name).green()),
+                Err(e) => println!("{}", format!("Error getting current branch:\n{}", e).red()),
+            }
         }
         _ => {
             println!("Command not implemented yet.");
