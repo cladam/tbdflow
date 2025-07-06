@@ -13,24 +13,16 @@ This tool is designed with a specific Trunk-Based Development philosophy in mind
 * **Automated Cleanup:** The `complete` command enforces the "short-lived" nature of branches by automating the merge-and-delete process, keeping your repository clean.
 * **Conventional Commits:** The tool encourages the use of Conventional Commits for clear, consistent commit messages.
 
-## Installation & Publishing
+## Installation
 
-You can run the tool directly from the source code for development or publish it as a standalone executable for easy, system-wide use.
+You need [Rust and Cargo](https://www.rust-lang.org/tools/install) installed.
 
-### Running from Source
-1.  **Prerequisites:** You must have the [.NET SDK](https://dotnet.microsoft.com/download) installed.
-2.  **Clone the repository:** `git clone <your-repo-url>`
-3.  **Run the tool:** All commands are run from the project's root directory using `dotnet run --`.
-
-### Publishing an Executable
-To create a standalone executable that you can run from anywhere:
-
-1.  **Publish the application.** For an Apple Silicon Mac, use:
-    ```bash
-    dotnet publish -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true
-    ```
-2.  **Locate the executable.** It will be in the `bin/Release/net8.0/osx-arm64/publish/` directory.
-3.  **(Optional) Add to your PATH.** Copy the executable to a directory in your system's PATH (e.g., `/usr/local/bin`) to make it callable from any terminal session.
+**Build from source:**
+```bash
+git clone https://github.com/ingka-group-digital/tbdflow.git
+cd tbdflow
+cargo install --path .
+```
 
 ---
 
