@@ -1,6 +1,6 @@
 [package]
-name = "tbdflow-rs"
-version = "0.1.0"
+name = "tbdflow"
+version = "1.0.0"
 authors = ["Claes Adamsson <claes.adamsson@ingka.ikea.com>"]
 readme="README.md"
 edition = "2024"
@@ -8,6 +8,8 @@ edition = "2024"
 [dependencies]
 clap = { version = "4.5.40", features = ["derive"] }
 colored = "3.0.0"
+thiserror = "2.0.12"
+anyhow = "1.0.98"
 
 [lib]
 name = "tbdflow"

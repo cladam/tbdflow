@@ -1,9 +1,21 @@
 // This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
 
 use std::process::{Command, Stdio};
+use thiserror::Error;
+use anyhow::{Context, Result};
 
-// A type alias for our result type for cleaner code.
-type CommandResult = Result<String, String>;
+// --- Custom Error Type ---
+// Using `thiserror` as recommended by the code review to create
+// a structured error type for our application's domain.
+#[derive(Error, Debug)]
+pub enum GitError {
+    #[error("Git command failed: {0}")]
+    Git(String),
+    #[error("Working directory is not clean: {0}")]
+    DirectoryNotClean(String),
+    #[error("Invalid branch type: {0}. Use 'feature', 'release', or 'hotfix'.")]
+    InvalidBranchType(String),
+}
 
 /// Runs a Git command with the specified subcommand and arguments.
 ///
@@ -17,7 +29,7 @@ type CommandResult = Result<String, String>;
 /// * `Ok(String)` containing the trimmed standard output if the command succeeds.
 /// * `Err(String)` containing the trimmed standard error if the command fails.
 ///
-fn run_git_command(command: &str, args: &[&str]) -> CommandResult {
+fn run_git_command(command: &str, args: &[&str]) -> Result<String> {
     println!("[RUNNING] git {} {}", command, args.join(" "));
     let output = Command::new("git")
         .arg(command)
@@ -25,22 +37,25 @@ fn run_git_command(command: &str, args: &[&str]) -> CommandResult {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
-        .map_err(|e| e.to_string())?;
+        .with_context(|| format!("Failed to execute 'git {}'", command))?;
 
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     } else {
-        Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+        Err(GitError::Git(String::from_utf8_lossy(&output.stderr).trim().to_string()).into())
     }
 }
 
 /// Checks if the git working directory is clean.
-pub fn is_working_directory_clean() -> Result<(), String> {
+pub fn is_working_directory_clean() -> Result<()> {
     let output = run_git_command("status", &["--porcelain"])?;
     if output.is_empty() {
         Ok(())
     } else {
-        Err("You have unstaged changes. Please commit or stash them first.".to_string())
+        Err(GitError::DirectoryNotClean(
+            "You have unstaged changes. Please commit or stash them first.".to_string()
+        ).into())
+        //Err("You have unstaged changes. Please commit or stash them first.".to_string())
     }
 }
 
@@ -48,52 +63,52 @@ pub fn is_working_directory_clean() -> Result<(), String> {
 // These functions provide a high-level interface to common Git operations.
 
 /// Check out the main branch.
-pub fn checkout_main() -> CommandResult {
+pub fn checkout_main() -> Result<String> {
     run_git_command("checkout", &["main"])
 }
 
 /// Pull the latest changes with rebase.
-pub fn pull_latest_with_rebase() -> CommandResult {
+pub fn pull_latest_with_rebase() -> Result<String> {
     run_git_command("pull", &["--rebase"])
 }
 
 /// Add all changes to the staging area.
-pub fn add_all() -> CommandResult {
+pub fn add_all() -> Result<String> {
     run_git_command("add", &["."])
 }
 
 /// Commit changes with a message.
-pub fn commit(message: &str) -> CommandResult {
+pub fn commit(message: &str) -> Result<String> {
     run_git_command("commit", &["-m", message])
 }
 
 /// Push changes to the remote repository.
-pub fn push() -> CommandResult {
+pub fn push() -> Result<String> {
     run_git_command("push", &[])
 }
 
 /// Merge the current branch with another branch.
-pub fn merge_branch(branch_name: &str) -> CommandResult {
+pub fn merge_branch(branch_name: &str) -> Result<String> {
     run_git_command("merge", &["--no-ff", branch_name])
 }
 
 /// Delete a local short-lived branch.
-pub fn delete_local_branch(branch_name: &str) -> CommandResult {
+pub fn delete_local_branch(branch_name: &str) -> Result<String> {
     run_git_command("branch", &["-d", branch_name])
 }
 
 /// Delete a remote branch.
-pub fn delete_remote_branch(branch_name: &str) -> CommandResult {
+pub fn delete_remote_branch(branch_name: &str) -> Result<String> {
     run_git_command("push", &["origin", "--delete", branch_name])
 }
 
 /// Get the current branch name.
-pub fn get_current_branch() -> CommandResult {
+pub fn get_current_branch() -> Result<String> {
     run_git_command("rev-parse", &["--abbrev-ref", "HEAD"])
 }
 
 /// Create a new branch from the current HEAD or a specified point.
-pub fn create_branch(branch_name: &str, from_point: Option<&str>) -> CommandResult {
+pub fn create_branch(branch_name: &str, from_point: Option<&str>) -> Result<String> {
     let mut args = vec!["-b", branch_name];
     if let Some(point) = from_point {
         args.push(point);
@@ -102,7 +117,7 @@ pub fn create_branch(branch_name: &str, from_point: Option<&str>) -> CommandResu
 }
 
 /// Show the current status of the repository.
-pub fn status() -> CommandResult {
+pub fn status() -> Result<String> {
     run_git_command("status", &["--short"])
 }
 
