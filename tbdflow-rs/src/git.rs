@@ -5,8 +5,7 @@ use thiserror::Error;
 use anyhow::{Context, Result};
 
 // --- Custom Error Type ---
-// Using `thiserror` as recommended by the code review to create
-// a structured error type for our application's domain.
+// Using `thiserror` to create a structured error type.
 #[derive(Error, Debug)]
 pub enum GitError {
     #[error("Git command failed: {0}")]
@@ -21,13 +20,16 @@ pub enum GitError {
 ///
 /// # Arguments
 ///
-/// * `command` - The Git subcommand to execute (e.g., `"checkout"`, `"status"`).
+/// * `command` - The Git subcommand to execute (e.g. `"checkout"`, `"status"`).
 /// * `args` - A slice of argument strings to pass to the Git command.
 ///
 /// # Returns
 ///
-/// * `Ok(String)` containing the trimmed standard output if the command succeeds.
-/// * `Err(String)` containing the trimmed standard error if the command fails.
+/// A `Result<String>` containing the command's output if successful, or an error if the command fails.
+///
+/// # Errors
+///
+/// If the command fails, it returns a `GitError` with the error message from Git.
 ///
 fn run_git_command(command: &str, args: &[&str]) -> Result<String> {
     println!("[RUNNING] git {} {}", command, args.join(" "));
