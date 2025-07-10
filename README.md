@@ -1,48 +1,34 @@
 # Trunk-Based Development CLI
 
-A simple, powerful command-line interface (CLI) to streamline your Git workflow, especially for teams practicing Trunk-Based Development (TBD).
+A simple yet powerful command-line tool to streamline Git workflows, especially for teams working with Trunk-Based Development (TBD).
 
-This tool provides automated commands for both the primary "commit-to-main" workflow and the structured management of short-lived branches for features, releases, and hotfixes.
+This CLI supports both the default commit-to-main workflow and the structured handling of short-lived branches for features, releases, and hotfixes.
 
 ## Philosophy
 
-This tool is designed with a specific Trunk-Based Development philosophy in mind:
+This tool is built around a specific philosophy of Trunk-Based Development:
 
-* **Commit to Main is the Default:** The primary `commit` command is your day-to-day workhorse. It automates the process of pulling the latest changes, committing, and pushing directly to the `main` branch, encouraging small, frequent integrations.
-* **Branches are Exceptions, Not the Rule:** Branches are supported but are treated as short-lived exceptions for specific scenarios (larger features, release stabilization, hotfixes).
-* **Automated Cleanup:** The `complete` command enforces the "short-lived" nature of branches by automating the merge-and-delete process, keeping your repository clean.
-* **Conventional Commits:** The tool encourages the use of Conventional Commits for clear, consistent commit messages.
+* **Main is the default.** The `commit` command is your everyday go-to. It automates pulling the latest changes, committing, and pushing directly to `main`, promoting small, frequent integrations.
+* **Branches are the exception.** While feature, release, and hotfix branches are supported, they’re treated as short-lived exceptions — not the norm.
+* **Clean-up is automatic.** The `complete` command enforces branch short-livedness by merging and deleting completed branches, helping keep your repo tidy.
+* **Conventional Commits encouraged.** Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) for clarity and consistency.
 
-### Why Not Just Use Git Directly?
+### Why not just use Git?
 
-This tool is **not** a replacement for Git. You will and should always use `git` directly for complex or uncommon tasks like interactive rebasing, cherry-picking, or running `git bisect`.
+This CLI isn’t a replacement for Git. You’ll still reach for raw `git` when doing advanced work like rebasing, cherry-picking, or running `git bisect`.
 
-The purpose of this CLI is to act as a **workflow encapsulator**. It codifies a specific, opinionated process to provide three key benefits:
+This tool is as a **workflow assistant**, `tbdflow` encapsulates a repeatable, opinionated process to support your day-to-day development.
 
-1.  **Consistency:** It ensures every developer on the team follows the exact same sequence of steps for common tasks. Every commit, every feature branch, and every release is handled identically, leading to a clean and predictable Git history.
-2.  **Reduced Cognitive Load:** You no longer have to remember the exact flags or command sequence for your workflow (e.g., `pull --rebase`, `merge --no-ff`, conventional commit syntax). The tool remembers the process for you, so you can focus on your code.
-3.  **The TBD Way:** The tool makes the right way the easy way. It creates a simple, safe, and efficient path for the 90% of daily development tasks, reducing the chance of errors.
+It offers three main benefits:
 
-For the other 10% of tasks, drop down to raw `git`—that's what it's there for!
+1. **Consistency across the team**
+   Everyone follows the same steps for common tasks. Commits, branches, and releases are handled the same way every time, keeping your Git history clean and predictable.
 
-## Installation & Publishing
+2. **Less to remember**
+   No need to recall the exact flags or sequences (like `pull --rebase`, `merge --no-ff`, or commit message formats). The CLI handles that, so you can stay focused on writing code.
 
-You can run the tool directly from the source code for development or publish it as a standalone executable for easy, system-wide use.
-
-### Running from Source
-1.  **Prerequisites:** You must have the [.NET SDK](https://dotnet.microsoft.com/download) installed.
-2.  **Clone the repository:** `git clone <your-repo-url>`
-3.  **Run the tool:** All commands are run from the project's root directory using `dotnet run --`.
-
-### Publishing an Executable
-To create a standalone executable that you can run from anywhere:
-
-1.  **Publish the application.** For an Apple Silicon Mac, use:
-    ```bash
-    dotnet publish -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true
-    ```
-2.  **Locate the executable.** It will be in the `bin/Release/net8.0/osx-arm64/publish/` directory.
-3.  **(Optional) Add to your PATH.** Copy the executable to a directory in your system's PATH (e.g., `/usr/local/bin`) to make it callable from any terminal session.
+3. **It supports "the TBD way"**
+   This tool makes the preferred approach easy — smooth, safe, and efficient for 80% of everyday tasks. And for the other 20%? Drop down to Git. That’s what it’s there for.
 
 ---
 
@@ -87,7 +73,7 @@ tbdflow <feature|hotfix> --name <branch-name>
 tbdflow release --version <version-number> [options]
 ```
 
-`release` ** Command Options:**
+**Options (release):**
 
 | Flag | Option        | Description                                    | Required |
 |------|---------------|------------------------------------------------|----------|
@@ -102,6 +88,9 @@ tbdflow feature -n "user-profile-page"
 
 # Create a release branch
 tbdflow release -v "2.1.0"
+
+# Create a release branch from a specific commit
+tbdflow release -v "2.1.0" -f "39b68b5"
 
 # Create a hotfix branch
 tbdflow hotfix -n "critical-auth-bug"
