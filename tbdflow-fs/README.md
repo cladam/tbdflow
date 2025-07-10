@@ -4,7 +4,7 @@ You can run the tool directly from the source code for development or publish it
 
 ### Running from Source
 1.  **Prerequisites:** You must have the [.NET SDK](https://dotnet.microsoft.com/download) installed.
-2.  **Clone the repository:** `git clone <your-repo-url>`
+2.  **Clone the repository:** `git clone https://github.com/cladam/tbdflow.git`
 3.  **Run the tool:** All commands are run from the project's root directory using `dotnet run --`.
 
 ### Publishing an Executable
