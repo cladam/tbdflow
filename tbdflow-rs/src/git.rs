@@ -135,4 +135,18 @@ mod tests {
         let output = result.unwrap();
         assert!(output.contains("git version"), "Output was: {}", output);
     }
+
+    /// Test the status function
+    #[test]
+    fn test_status() {
+        let result = status();
+        assert!(result.is_ok(), "Expected Ok, got {:?}", result);
+        let output = result.unwrap();
+        // Accept any output (including empty if clean)
+        assert!(
+            output.is_empty() || output.contains("M ") || output.contains("A ") || output.contains("D "),
+            "Unexpected status output: {}",
+            output
+        );
+    }
 }

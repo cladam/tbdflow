@@ -6,5 +6,5 @@ You need [Rust and Cargo](https://www.rust-lang.org/tools/install) installed.
 ```bash
 git clone https://github.com/cladam/tbdflow.git
 cd tbdflow
-cargo install --path .
+sudo cargo install --path . --root /usr/local
 ```
