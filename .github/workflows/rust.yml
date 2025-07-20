@@ -25,6 +25,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Set git default branch to main
+      run: git config --global init.defaultBranch main
+
     - name: Build
       run: cargo build --verbose
       # This is the key change: specify the working directory
