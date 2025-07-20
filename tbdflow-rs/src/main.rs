@@ -98,6 +98,7 @@ fn main() -> anyhow::Result<()> {
             println!("{}", output.blue());
         }
         Commands::CurrentBranch => {
+            println!("--- Current Branch ---");
             let branch_name = git::get_current_branch()?;
             println!("{}", format!("Current branch is: {}", branch_name).green());
         }
