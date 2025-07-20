@@ -23,6 +23,7 @@ fn main() -> anyhow::Result<()> {
             git::checkout_main()?;
             git::pull_latest_with_rebase()?;
             git::create_branch(&branch_name, None)?;
+            git::push_set_upstream(&branch_name)?;
             println!("\n{}", format!("Success! Switched to new feature branch: '{}'", branch_name).green());
         }
         Commands::Release { version, from_commit } => {
@@ -32,6 +33,7 @@ fn main() -> anyhow::Result<()> {
             git::checkout_main()?;
             git::pull_latest_with_rebase()?;
             git::create_branch(&branch_name, from_commit.as_deref())?;
+            git::push_set_upstream(&branch_name)?;
             println!("\n{}", format!("Success! Switched to new release branch: '{}'", branch_name).green());
         }
         Commands::Hotfix { name } => {
@@ -41,10 +43,10 @@ fn main() -> anyhow::Result<()> {
             git::checkout_main()?;
             git::pull_latest_with_rebase()?;
             git::create_branch(&branch_name, None)?;
+            git::push_set_upstream(&branch_name)?;
             println!("\n{}", format!("Success! Switched to new hotfix branch: '{}'", branch_name).green());
         }
         Commands::Commit { r#type, scope, message, breaking } => {
-            println!("--- Committing directly to main branch ---");
             let scope_part = scope.map_or("".to_string(), |s| format!("({})", s));
             let breaking_part = if breaking { "!" } else { "" };
             let header = format!("{}{}{}: {}", r#type, scope_part, breaking_part, message);
@@ -53,10 +55,25 @@ fn main() -> anyhow::Result<()> {
 
             println!("{}", format!("Commit message will be:\n---\n{}\n---", commit_message).blue());
 
+            // Stage changes first, before any other operations.
             git::add_all()?;
-            git::commit(&commit_message)?;
-            git::push()?;
-            println!("\n{}", "Successfully committed and pushed changes to main.".green());
+
+            let current_branch = git::get_current_branch()?;
+
+            if current_branch == "main" {
+                println!("--- Committing directly to main branch ---");
+                // Now that changes are staged, `pull --rebase --autostash` will work correctly.
+                git::pull_latest_with_rebase()?;
+                git::commit(&commit_message)?;
+                git::push()?;
+                println!("\n{}", "Successfully committed and pushed changes to main.".green());
+            } else {
+                println!("--- Committing to feature branch '{}' ---", current_branch);
+                // For feature branches, we just commit and push the staged changes.
+                git::commit(&commit_message)?;
+                git::push()?;
+                println!("\n{}", format!("Successfully pushed changes to '{}'.", current_branch).green());
+            }
         }
         Commands::Complete { r#type, name } => {
             println!("--- Completing short-lived branch ---");

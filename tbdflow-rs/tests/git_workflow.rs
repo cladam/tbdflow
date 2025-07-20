@@ -1,25 +1,14 @@
-use tempfile::{tempdir, TempDir};
-use std::fs::{File, write};
+use serial_test::serial;
+use std::fs::write;
 use std::env;
-use std::process::Command;
 use tbdflow::git;
-
-fn setup_temp_git_repo() -> (TempDir, std::path::PathBuf) {
-    let dir = tempdir().expect("create temp dir");
-    let repo_path = dir.path().to_path_buf();
-    Command::new("git").arg("init").current_dir(&repo_path).output().unwrap();
-    Command::new("git").args(&["config", "user.email", "test@example.com"]).current_dir(&repo_path).output().unwrap();
-    Command::new("git").args(&["config", "user.name", "Test"]).current_dir(&repo_path).output().unwrap();
-    let file_path = repo_path.join("README.md");
-    write(&file_path, "test").unwrap();
-    Command::new("git").args(&["add", "."]).current_dir(&repo_path).output().unwrap();
-    Command::new("git").args(&["commit", "-m", "init"]).current_dir(&repo_path).output().unwrap();
-    (dir, repo_path)
-}
+mod util;
+use util::setup_temp_git_repo;
 
 #[test]
+#[serial]
 fn test_clean_working_directory() {
-    let (_dir, repo_path) = setup_temp_git_repo();
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
     let old_dir = env::current_dir().unwrap();
     env::set_current_dir(&repo_path).unwrap();
 
@@ -30,16 +19,21 @@ fn test_clean_working_directory() {
 }
 
 #[test]
+#[serial]
 fn test_dirty_working_directory() {
-    let (_dir, repo_path) = setup_temp_git_repo();
-    let old_dir = std::env::current_dir().unwrap();
-    std::env::set_current_dir(&repo_path).unwrap();
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    let old_dir = env::current_dir().unwrap();
+    env::set_current_dir(&repo_path).unwrap();
 
     let file_path = repo_path.join("README.md");
-    std::fs::write(&file_path, "changed").unwrap();
+    write(&file_path, "changed").unwrap();
+
+    // print contents of README.md to verify change
+    let contents = std::fs::read_to_string(&file_path).unwrap();
+    println!("Contents of README.md: {}", contents);
 
     let result = git::is_working_directory_clean();
     assert!(result.is_err(), "Expected Err, got {:?}", result);
 
-    std::env::set_current_dir(old_dir).unwrap();
+    env::set_current_dir(old_dir).unwrap();
 }

@@ -71,7 +71,8 @@ pub fn checkout_main() -> Result<String> {
 
 /// Pull the latest changes with rebase.
 pub fn pull_latest_with_rebase() -> Result<String> {
-    run_git_command("pull", &["--rebase"])
+    // Using --autostash to safely handle local changes before pulling.
+    run_git_command("pull", &["--rebase", "--autostash"])
 }
 
 /// Add all changes to the staging area.
@@ -118,6 +119,10 @@ pub fn create_branch(branch_name: &str, from_point: Option<&str>) -> Result<Stri
     run_git_command("checkout", &args)
 }
 
+pub fn push_set_upstream(branch_name: &str) -> Result<String> {
+    run_git_command("push", &["--set-upstream", "origin", branch_name])
+}
+
 /// Show the current status of the repository.
 pub fn status() -> Result<String> {
     run_git_command("status", &["--short"])
@@ -126,6 +131,17 @@ pub fn status() -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_git_is_installed() {
+        let result = std::process::Command::new("git")
+            .arg("--version")
+            .output();
+        assert!(result.is_ok(), "Git is not installed or not in PATH");
+        let output = result.unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("git version"), "Unexpected output: {}", stdout);
+    }
 
     /// Test the run_git_command function with a simple command
     #[test]
