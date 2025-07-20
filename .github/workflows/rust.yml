@@ -1,0 +1,36 @@
+# GitHub Actions workflow for building and testing the Rust CLI
+name: Rust CI
+
+on:
+  push:
+    branches: [ "main" ]
+    # Only run this workflow if changes are made within the tbdflow-rs directory
+    paths:
+      - 'tbdflow-rs/**'
+  pull_request:
+    branches: [ "main" ]
+    # Only run this workflow if changes are made within the tbdflow-rs directory
+    paths:
+      - 'tbdflow-rs/**'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Build
+      run: cargo build --verbose
+      # This is the key change: specify the working directory
+      working-directory: ./tbdflow-rs
+
+    - name: Run tests
+      run: cargo test --verbose
+      # Also specify the working directory for the test command
+      working-directory: ./tbdflow-rs
