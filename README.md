@@ -1,8 +1,14 @@
-# Trunk-Based Development CLI
+# tbdflow, a Trunk-Based Development CLI
 
 A simple yet powerful command-line tool to streamline Git workflows, especially for teams working with Trunk-Based Development (TBD).
 
 This CLI supports both the default commit-to-main workflow and the structured handling of short-lived branches for features, releases, and hotfixes.
+
+## Status & history
+
+This project is the result of an iterative development journey. It began as an F# application (`tbdflow-fs`) which served as a fantastic learning exercise in functional programming.
+
+The current and actively developed version is the Rust implementation (`tbdflow-rs`). It was ported to Rust to create a leaner, faster, and more portable single-binary executable, making it easier for others to use and contribute to. The F# version is no longer maintained but remains in the repository as a functional prototype.
 
 ## Philosophy
 
@@ -36,7 +42,12 @@ It offers three main benefits:
 
 ### 1. `commit`
 
-Commits staged changes directly to the `main` branch with a Conventional Commits message. This is the primary command for daily work.
+This is the primary command for daily work.
+
+Commits staged changes using a Conventional Commits message. This command is context-aware:
+* **On `main`:** It runs the full TBD workflow: pulls the latest changes with rebase, commits, and pushes.
+* **On any other branch:** It simply commits and pushes, allowing you to save work-in-progress.
+
 
 **Usage:**
 ```bash
