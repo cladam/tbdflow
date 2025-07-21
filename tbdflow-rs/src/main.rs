@@ -47,6 +47,7 @@ fn main() -> anyhow::Result<()> {
             println!("\n{}", format!("Success! Switched to new hotfix branch: '{}'", branch_name).green());
         }
         Commands::Commit { r#type, scope, message, breaking } => {
+            println!("--- Committing changes ---");
             let scope_part = scope.map_or("".to_string(), |s| format!("({})", s));
             let breaking_part = if breaking { "!" } else { "" };
             let header = format!("{}{}{}: {}", r#type, scope_part, breaking_part, message);
