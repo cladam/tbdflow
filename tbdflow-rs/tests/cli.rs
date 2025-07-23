@@ -122,3 +122,55 @@ fn test_complete_feature_branch_command() {
         .success()
         .stdout(contains("Branch to complete: feature/new-feature"));
 }
+
+#[test]
+#[serial]
+fn test_sync_command() {
+    let (_dir, bare_dir, repo_path) = setup_temp_git_repo();
+
+    // Simulate a team member pushing changes to the remote
+    let remote_repo_url = bare_dir.path().to_str().unwrap();
+    let second_clone_dir = tempfile::tempdir().unwrap();
+    std::process::Command::new("git")
+        .args(&["clone", remote_repo_url, "."])
+        .current_dir(second_clone_dir.path())
+        .output()
+        .unwrap();
+
+    std::fs::write(second_clone_dir.path().join("REMOTE.md"), "remote change").unwrap();
+
+    std::process::Command::new("git")
+        .args(&["config", "user.email", "teammate@example.com"])
+        .current_dir(second_clone_dir.path())
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["config", "user.name", "Teammate"])
+        .current_dir(second_clone_dir.path())
+        .output()
+        .unwrap();
+
+    std::process::Command::new("git")
+        .args(&["add", "."])
+        .current_dir(second_clone_dir.path())
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["commit", "-m", "feat: add remote file"])
+        .current_dir(second_clone_dir.path())
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["push"])
+        .current_dir(second_clone_dir.path())
+        .output()
+        .unwrap();
+    
+    // Now run the sync command
+    std::env::set_current_dir(&repo_path).unwrap();
+    let mut cmd = Command::cargo_bin("tbdflow").unwrap();
+    cmd.arg("sync");
+    cmd.assert()
+        .success()
+        .stdout(contains("Syncing branches with remote"));
+}

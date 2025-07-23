@@ -15,7 +15,7 @@ The current and actively developed version is the Rust implementation (`tbdflow-
 This tool is built around a specific philosophy of Trunk-Based Development:
 
 * **Main is the default.** The `commit` command is your everyday go-to. It automates pulling the latest changes, committing, and pushing directly to `main`, promoting small, frequent integrations.
-* **Branches are the exception.** While feature, release, and hotfix branches are supported, they’re treated as short-lived exceptions — not the norm.
+* **Branches are the exception.** While feature, release, and hotfix branches are supported, they’re treated as short-lived exceptions and not the norm.
 * **Clean-up is automatic.** The `complete` command enforces branch short-livedness by merging and deleting completed branches, helping keep your repo tidy.
 * **Conventional Commits encouraged.** Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) for clarity and consistency.
 
@@ -34,7 +34,7 @@ It offers three main benefits:
    No need to recall the exact flags or sequences (like `pull --rebase`, `merge --no-ff`, or commit message formats). The CLI handles that, so you can stay focused on writing code.
 
 3. **It supports "the TBD way"**
-   This tool makes the preferred approach easy — smooth, safe, and efficient for 80% of everyday tasks. And for the other 20%? Drop down to Git. That’s what it’s there for.
+   This tool makes the preferred approach easy by providing a smooth, safe, and efficient path for 80% of everyday tasks. For the other 20%, you can always use Git directly.
 
 ---
 
@@ -131,3 +131,21 @@ tbdflow complete -t "feature" -n "user-profile-page"
 # Complete a release branch
 tbdflow complete -t "release" -n "2.1.0"
 ```
+
+### 4. Misc commands
+
+`tbdflow` has a couple of commands that can be beneficial to use but they are not part of the main workflow.
+
+**Examples:**
+
+```bash
+# Does a pull and shows latest changes to main branch
+tbdflow sync
+
+# Checks the status of the working dir
+tbdflow status
+
+# Shows the current branch name
+tbdflow current-branch
+```
+
