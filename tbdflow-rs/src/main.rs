@@ -103,6 +103,9 @@ fn main() -> anyhow::Result<()> {
             let branch_name = git::get_current_branch()?;
             println!("{}", format!("Current branch is: {}", branch_name).green());
         }
+        Commands::Sync => {
+            todo!()
+        }
     }
 
     Ok(())

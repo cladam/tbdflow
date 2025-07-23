@@ -128,6 +128,11 @@ pub fn status() -> Result<String> {
     run_git_command("status", &["--short"])
 }
 
+/// Show recent commits in the repository, 15 by default.
+pub fn log_graph() -> Result<String> {
+    run_git_command("log", &["--graph", "--oneline", "-n", "15"])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

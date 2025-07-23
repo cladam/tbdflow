@@ -134,7 +134,7 @@ tbdflow complete -t "release" -n "2.1.0"
 
 ### 4. Misc commands
 
-`tbdflow` has a couple of commands that can be beneficial to use but they are not part of the main workflow.
+`tbdflow` has a couple of commands that can be beneficial to use but they are not part of the workflow, they are for inspecting the state of the repository. 
 
 **Examples:**
 

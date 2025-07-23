@@ -1,5 +1,5 @@
 // This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
-// It provides commands to initialize, show, and run operations in the context of tbdflow.
+// It provides commands to initialise, show, and run operations in the context of tbdflow.
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
@@ -13,7 +13,7 @@ pub struct Cli {
 pub enum Commands {
     /// Creates a new short-lived feature branch from 'main'.
     Feature {
-        /// Name of the feature (e.g., 'add-login-page').
+        /// Name of the feature (e.g. 'add-login-page').
         #[arg(short, long)]
         name: String,
     },
@@ -61,4 +61,6 @@ pub enum Commands {
     /// Shows the current git branch name.
     #[command(name = "current-branch")]
     CurrentBranch,
+    /// Pulls the latest changes and shows the recent git log.
+    Sync,
 }
