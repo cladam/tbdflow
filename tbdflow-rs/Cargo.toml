@@ -3,6 +3,7 @@ name = "tbdflow"
 version = "1.0.0"
 authors = ["Claes Adamsson <claes.adamsson@gmail.com>"]
 readme="README.md"
+license = "MIT"
 description = "A CLI tool for Trunk-Based Development (TBD) workflows"
 keywords = ["git", "cli", "workflow", "tbd"]
 categories = ["command-line-utilities"]

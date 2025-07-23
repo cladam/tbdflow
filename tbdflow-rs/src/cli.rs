@@ -3,7 +3,12 @@
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(
+    name = "tbdflow",
+    author = "Claes Adamsson @cladam",
+    version = "1.0.0",
+    about = "A CLI tool for Trunk-Based Development (TBD) workflows",
+    long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
