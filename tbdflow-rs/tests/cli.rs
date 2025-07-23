@@ -165,12 +165,12 @@ fn test_sync_command() {
         .current_dir(second_clone_dir.path())
         .output()
         .unwrap();
-    
+
     // Now run the sync command
     std::env::set_current_dir(&repo_path).unwrap();
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
     cmd.arg("sync");
     cmd.assert()
         .success()
-        .stdout(contains("Syncing branches with remote"));
+        .stdout(contains("Syncing with remote"));
 }

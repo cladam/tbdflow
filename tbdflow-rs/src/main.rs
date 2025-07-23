@@ -10,7 +10,7 @@ use clap::Parser;
 use colored::Colorize;
 use tbdflow::{cli, git};
 use tbdflow::cli::Commands;
-use tbdflow::git::GitError;
+use tbdflow::git::{get_current_branch, GitError};
 
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
@@ -100,11 +100,29 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::CurrentBranch => {
             println!("--- Current Branch ---");
-            let branch_name = git::get_current_branch()?;
+            let branch_name = get_current_branch()?;
             println!("{}", format!("Current branch is: {}", branch_name).green());
         }
         Commands::Sync => {
-            todo!()
+            println!("--- Syncing with remote and showing history ---");
+            if get_current_branch()? != "main" {
+                git::checkout_main()?;
+            }
+            git::pull_latest_with_rebase()?;
+
+            // Add the status check to the sync workflow
+            println!("\n{}", "Current status:".bold());
+            let status_output = git::status()?;
+            if status_output.is_empty() {
+                println!("{}", "Working directory is clean.".green());
+            } else {
+                // Show local changes in yellow to draw attention to them.
+                println!("{}", status_output.yellow());
+            }
+
+            let log_output = git::log_graph()?;
+            println!("\n{}", "Recent activity on main:".bold());
+            println!("{}", log_output.cyan());
         }
     }
 
