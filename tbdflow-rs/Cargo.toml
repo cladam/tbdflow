@@ -1,8 +1,11 @@
 [package]
 name = "tbdflow"
 version = "1.0.0"
-authors = ["Claes Adamsson <claes.adamsson@ingka.ikea.com>"]
+authors = ["Claes Adamsson <claes.adamsson@gmail.com>"]
 readme="README.md"
+description = "A CLI tool for Trunk-Based Development (TBD) workflows"
+keywords = ["git", "cli", "workflow", "tbd"]
+categories = ["command-line-utilities"]
 edition = "2024"
 
 [dependencies]
