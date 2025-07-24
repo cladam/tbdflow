@@ -139,7 +139,7 @@ tbdflow complete -t "release" -n "2.1.0"
 **Examples:**
 
 ```bash
-# Does a pull and shows latest changes to main branch
+# Does a pull, shows latest changes to main branch, and warns about stale branches.
 tbdflow sync
 
 # Checks the status of the working dir
@@ -147,5 +147,8 @@ tbdflow status
 
 # Shows the current branch name
 tbdflow current-branch
+
+# Explicitly checks for local branches older than one day.
+tbdflow check-branches
 ```
 
