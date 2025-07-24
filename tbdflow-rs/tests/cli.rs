@@ -132,6 +132,36 @@ fn test_complete_feature_branch_command() {
         .stdout(contains("Branch to complete: feature/new-feature"));
 }
 
+/// Tests that completing a release branch called "1.0.0" works correctly.
+#[test]
+#[serial]
+fn test_complete_release_branch_command() {
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    // Create the release branch first
+    let mut create_cmd = Command::cargo_bin("tbdflow").unwrap();
+    create_cmd.arg("release").arg("--version").arg("1.0.0");
+    create_cmd.assert().success();
+
+    let mut cmd = Command::cargo_bin("tbdflow").unwrap();
+    cmd.arg("complete")
+        .arg("--type").arg("release")
+        .arg("--name").arg("1.0.0");
+    cmd.assert()
+        .success()
+        .stdout(contains("Branch to complete: release/1.0.0"));
+
+    // Check that the tag exists
+    let output = std::process::Command::new("git")
+        .arg("tag")
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    let tags = String::from_utf8_lossy(&output.stdout);
+    assert!(tags.contains("v1.0.0"), "Expected tag v1.0.0 not found. Tags: {}", tags);
+}
+
 /// Testing the synch command to ensure it pulls changes from the remote repository
 /// We will simulate a remote change by pushing to a bare repository and then running the sync command.
 #[test]

@@ -88,6 +88,30 @@ fn main() -> anyhow::Result<()> {
             git::checkout_main()?;
             git::pull_latest_with_rebase()?;
             git::merge_branch(&branch_name)?;
+
+            let mut should_push_tags = false;
+            match r#type.as_str() {
+                "release" => {
+                    let tag_name = format!("v{}", name);
+                    let merge_commit_hash = git::get_head_commit_hash()?;
+                    git::create_tag(&tag_name, &format!("Release {}", name), &merge_commit_hash)?;
+                    println!("{}", format!("Created tag '{}' on merge commit.", tag_name).green());
+                    should_push_tags = true;
+                }
+                "hotfix" => {
+                    let tag_name = format!("hotfix/{}", name);
+                    let merge_commit_hash = git::get_head_commit_hash()?;
+                    git::create_tag(&tag_name, &format!("Hotfix {}", name), &merge_commit_hash)?;
+                    println!("{}", format!("Created tag '{}' on merge commit.", tag_name).green());
+                    should_push_tags = true;
+                }
+                _ => {} // Do nothing for feature branches
+            }
+
+            git::push()?;
+            if should_push_tags {
+                git::push_tags()?;
+            }
             git::push()?;
             git::delete_local_branch(&branch_name)?;
             git::delete_remote_branch(&branch_name)?;

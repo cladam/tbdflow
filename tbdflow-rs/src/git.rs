@@ -105,6 +105,10 @@ pub fn push() -> Result<String> {
     run_git_command("push", &[])
 }
 
+pub fn push_tags() -> Result<String> {
+    run_git_command("push", &["--tags"])
+}
+
 /// Merge the current branch with another branch.
 pub fn merge_branch(branch_name: &str) -> Result<String> {
     run_git_command("merge", &["--no-ff", branch_name])
@@ -132,6 +136,14 @@ pub fn create_branch(branch_name: &str, from_point: Option<&str>) -> Result<Stri
         args.push(point);
     }
     run_git_command("checkout", &args)
+}
+
+pub fn get_head_commit_hash() -> Result<String> {
+    run_git_command("rev-parse", &["HEAD"])
+}
+
+pub fn create_tag(tag_name: &str, message: &str, commit_hash: &str) -> Result<String> {
+    run_git_command("tag", &["-a", tag_name, "-m", message, commit_hash])
 }
 
 pub fn push_set_upstream(branch_name: &str) -> Result<String> {
