@@ -1,3 +1,7 @@
+<div align="center">
+    ..
+</div>
+
 # tbdflow, a Trunk-Based Development CLI
 
 A simple yet powerful command-line tool to streamline Git workflows, especially for teams working with Trunk-Based Development (TBD).
@@ -16,7 +20,7 @@ This tool is built around a specific philosophy of Trunk-Based Development:
 
 * **Main is the default.** The `commit` command is your everyday go-to. It automates pulling the latest changes, committing, and pushing directly to `main`, promoting small, frequent integrations.
 * **Branches are the exception.** While feature, release, and hotfix branches are supported, they’re treated as short-lived exceptions and not the norm.
-* **Clean-up is automatic.** The `complete` command enforces branch short-livedness by merging and deleting completed branches, helping keep your repo tidy.
+* **Cleanup is automatic.** The complete command enforces branch short-livedness by merging and automatically tagging (release/hotfix) and deleting completed branches, helping keep your repo tidy.
 * **Conventional Commits encouraged.** Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) for clarity and consistency.
 
 ### Why not just use Git?
@@ -55,12 +59,13 @@ tbdflow commit [options]
 ```
 **Options:**
 
-| Flag | Option      | Description                                   | Required |
-|------|-------------|-----------------------------------------------|----------|
-| -t   | --type      | The type of commit (e.g., feat, fix, chore).  | Yes      |
-| -s   | --scope     | The scope of the changes (e.g., api, ui).     | No       |
-| -m   | --message   | The descriptive commit message.               | Yes      |
-| -b   | --breaking  | Mark the commit as a breaking change.         | No       |
+| Flag | Option      | Description                                              | Required |
+|------|-------------|----------------------------------------------------------|----------|
+| -t   | --type      | The type of commit (e.g., feat, fix, chore).             | Yes      |
+| -s   | --scope     | The scope of the changes (e.g., api, ui).                | No       |
+| -m   | --message   | The descriptive commit message.                          | Yes      |
+| -b   | --breaking  | Mark the commit as a breaking change.                    | No       |
+|      | --tag       | Optionally add and push an annotated tag to this commit. | No.      |
 
 **Example:**
 ```bash
@@ -69,6 +74,9 @@ tbdflow commit -t "feat" -s "auth" -m "Add password reset endpoint"
 
 # A bug fix with a breaking change
 tbdflow commit -t "fix" -m "Correct user permission logic" -b
+
+# A bug fix with a new tag
+tbdflow commit -t "fix" -m "Correct user permission logic" --tag "v1.1.1"
 ```
 
 ### 2.`feature` / `release` / `hotfix`
@@ -111,6 +119,11 @@ tbdflow hotfix -n "critical-auth-bug"
 
 Merges a short-lived branch back into main, then deletes the local and remote copies of the branch.
 
+**Automatic Tagging:**
+
+* When completing a release branch, a tag (e.g., v1.2.0) is automatically created and pushed.
+* When completing a hotfix branch, a tag (e.g., hotfix/name-of-fix) is automatically created and pushed.
+
 **Usage:**
 ```bash
 tbdflow complete --type <branch-type> --name <branch-name>
@@ -128,7 +141,7 @@ tbdflow complete --type <branch-type> --name <branch-name>
 # Complete a feature branch
 tbdflow complete -t "feature" -n "user-profile-page"
 
-# Complete a release branch
+# Complete a release branch (this will be tagged v2.1.0)
 tbdflow complete -t "release" -n "2.1.0"
 ```
 
