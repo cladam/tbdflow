@@ -68,4 +68,7 @@ pub enum Commands {
     CurrentBranch,
     /// Pulls the latest changes and shows the recent git log.
     Sync,
+    /// Checks the age of branches in the repository.
+    #[command(name = "check-branches")]
+    CheckBranches,
 }

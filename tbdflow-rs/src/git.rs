@@ -3,6 +3,9 @@
 use std::process::{Command, Stdio};
 use thiserror::Error;
 use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
+use colored::Colorize;
+use crate::git;
 
 // --- Custom Error Type ---
 // Using `thiserror` to create a structured error type.
@@ -59,6 +62,18 @@ pub fn is_working_directory_clean() -> Result<()> {
         ).into())
         //Err("You have unstaged changes. Please commit or stash them first.".to_string())
     }
+}
+
+// Helper function to perform and display the stale branch check
+pub fn check_and_warn_for_stale_branches() -> Result<(), anyhow::Error> {
+    let stale_branches = git::get_stale_branches()?;
+    if !stale_branches.is_empty() {
+        println!("\n{}", "Warning: The following branches may be stale:".bold().yellow());
+        for (branch, days) in stale_branches {
+            println!("{}", format!("  - {} (last commit {} days ago)", branch, days).yellow());
+        }
+    }
+    Ok(())
 }
 
 // -- Public Git workflow functions --
@@ -131,6 +146,35 @@ pub fn status() -> Result<String> {
 /// Show recent commits in the repository, 15 by default.
 pub fn log_graph() -> Result<String> {
     run_git_command("log", &["--graph", "--oneline", "-n", "15"])
+}
+
+/// Check for stale branches in the repository.
+pub fn get_stale_branches() -> Result<Vec<(String, i64)>> {
+    let now = Utc::now();
+    let day_in_seconds = 24 * 60 * 60;
+
+    let output = run_git_command("for-each-ref", &["--format", "%(refname:short)|%(committerdate:iso8601-strict)", "refs/heads/"])?;
+    let stale_branches = output
+        .lines()
+        .filter_map(|line| {
+            let parts: Vec<&str> = line.split('|').collect();
+            if parts.len() == 2 {
+                let branch_name = parts[0].to_string();
+                if branch_name == "main" {
+                    return None; // Skip the main branch
+                }
+                if let Ok(date) = DateTime::parse_from_rfc3339(parts[1]) {
+                    let duration = now.signed_duration_since(date);
+                    if duration.num_seconds() > day_in_seconds {
+                        return Some(Ok((branch_name, duration.num_days())));
+                    }
+                }
+            }
+            None
+        })
+        .collect::<Result<Vec<_>, anyhow::Error>>()?;
+
+    Ok(stale_branches)
 }
 
 #[cfg(test)]

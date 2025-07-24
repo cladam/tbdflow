@@ -123,6 +123,14 @@ fn main() -> anyhow::Result<()> {
             let log_output = git::log_graph()?;
             println!("\n{}", "Recent activity on main:".bold());
             println!("{}", log_output.cyan());
+
+            // Adding the stale branch check to the sync workflow
+            println!("\n{}", "Checking for stale branches:".bold());
+            git::check_and_warn_for_stale_branches()?;
+        }
+        Commands::CheckBranches => {
+            println!("--- Checking for stale branches ---");
+            git::check_and_warn_for_stale_branches()?;
         }
     }
 

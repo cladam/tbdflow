@@ -2,6 +2,7 @@ use tempfile::{tempdir, TempDir};
 use std::fs::write;
 use std::process::Command;
 
+/// Sets up a temporary Git repository for testing purposes.
 pub fn setup_temp_git_repo() -> (TempDir, TempDir, std::path::PathBuf) {
     let dir = tempdir().expect("create temp dir");
     let repo_path = dir.path().to_path_buf();

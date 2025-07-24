@@ -198,11 +198,11 @@ fn test_check_branches_command() {
     create_cmd.arg("feature").arg("--name").arg("stale-feature");
     create_cmd.assert().success();
 
-    let old_date = (Utc::now() - Duration::hours(25)).to_rfc2822();
+    let old_date = (Utc::now() - Duration::hours(25)).to_rfc3339();
 
     std::process::Command::new("git")
-        .args(&["commit", "--allow-empty", "-m", "stale commit", "--date"])
-        .arg(&old_date)
+        .args(&["commit", "--allow-empty", "-m", "stale commit"])
+        .env("GIT_COMMITTER_DATE", &old_date) // Set the committer date
         .current_dir(&repo_path)
         .output()
         .unwrap();
@@ -211,6 +211,6 @@ fn test_check_branches_command() {
     cmd.arg("check-branches");
     cmd.assert()
         .success()
-        .stdout(contains("Stale branches found:"))
-        .stdout(contains("stale-feature"));
+        .stdout(contains("Warning: The following branches may be stale:"))
+        .stdout(contains("feature/stale-feature"));
 }
