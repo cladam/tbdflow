@@ -46,7 +46,7 @@ fn main() -> anyhow::Result<()> {
             git::push_set_upstream(&branch_name)?;
             println!("\n{}", format!("Success! Switched to new hotfix branch: '{}'", branch_name).green());
         }
-        Commands::Commit { r#type, scope, message, breaking } => {
+        Commands::Commit { r#type, scope, message, breaking, tag } => {
             println!("--- Committing changes ---");
             let scope_part = scope.map_or("".to_string(), |s| format!("({})", s));
             let breaking_part = if breaking { "!" } else { "" };
@@ -74,6 +74,13 @@ fn main() -> anyhow::Result<()> {
                 git::commit(&commit_message)?;
                 git::push()?;
                 println!("\n{}", format!("Successfully pushed changes to '{}'.", current_branch).green());
+            }
+
+            if let Some(tag_name) = tag {
+                let commit_hash = git::get_head_commit_hash()?;
+                git::create_tag(&tag_name, &commit_message, &commit_hash)?;
+                git::push_tags()?;
+                println!("{}", format!("Success! Created and pushed tag '{}'", tag_name).green());
             }
         }
         Commands::Complete { r#type, name } => {

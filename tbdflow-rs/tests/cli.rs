@@ -105,10 +105,20 @@ fn test_commit_command() {
         .arg("--type").arg("feat")
         .arg("--scope").arg("ui")
         .arg("--message").arg("Add new button")
-        .arg("--breaking");
+        .arg("--breaking")
+        .arg("--tag").arg("button-v1");
     cmd.assert()
         .success()
         .stdout(contains("Successfully committed and pushed changes to main."));
+
+    // Check that the tag exists
+    let output = std::process::Command::new("git")
+        .arg("tag")
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    let tags = String::from_utf8_lossy(&output.stdout);
+    assert!(tags.contains("button-v1"), "Expected tag button-v1 not found. Tags: {}", tags);
 }
 
 /// Tests that completing a feature branch called "new-feature" works correctly.

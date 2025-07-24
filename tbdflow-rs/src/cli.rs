@@ -51,6 +51,9 @@ pub enum Commands {
         /// Mark this commit as a breaking change.
         #[arg(short, long)]
         breaking: bool,
+        /// Optionally add and push an annotated tag to this commit.
+        #[arg(long)]
+        tag: Option<String>,
     },
     /// Merges a short-lived branch into 'main' and deletes it.
     Complete {
