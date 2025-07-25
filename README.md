@@ -1,19 +1,18 @@
 <div align="center">
 
-# tbdflow, a Trunk-Based Development CLI
+# tbdflow
 
-[![Documentation](https://docs.rs/tbdflow/badge.svg)][documentation]
+[![Documentation](https://docs.rs/tbdflow/badge.svg)]
 [![Crates.io](https://img.shields.io/crates/v/tbdflow.svg)](https://crates.io/crates/tbdflow)
-[![License](https://img.shields.io/crates/l/tbdflow.svg)](https://github.com/cladam/tbdflow/blob/main/LICENSE)
 [![Downloads](https://img.shields.io/crates/d/tbdflow.svg)](https://crates.io/crates/tbdflow)
 
+</div>
+
+## tbdflow, a Trunk-Based Development CLI
 
 A simple yet powerful command-line tool to streamline Git workflows, especially for teams working with Trunk-Based Development (TBD).
 
 This CLI supports both the default commit-to-main workflow and the structured handling of short-lived branches for features, releases, and hotfixes.
-
-</div>
-
 
 ## Status & history
 
