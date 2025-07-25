@@ -1,0 +1,65 @@
+# This workflow first builds and tests the crate, then publishes it to crates.io when a new tag is pushed.
+name: Rust CI & Publish
+
+on:
+  push:
+    branches: [ "main" ]
+    # Also trigger on version tags
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'tbdflow-rs/**'
+  
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build_and_test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Set git default branch to main
+        run: git config --global init.defaultBranch main
+      
+      - name: Build
+        working-directory: ./tbdflow-rs
+        run: cargo build --verbose
+      
+      - name: Run tests
+        working-directory: ./tbdflow-rs
+        run: cargo test --verbose
+
+  publish:
+    name: Publish to crates.io
+    # This job will only run if the 'build_and_test' job succeeds
+    needs: build_and_test
+    # This condition ensures the job only runs on git tags, not on every push to main
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Copy root README to crate folder
+        run: cp README.md tbdflow-rs/README.md
+      
+      - name: Publish to crates.io
+        working-directory: ./tbdflow-rs
+        # Add the --allow-dirty flag to permit the uncommitted README.md file
+        run: cargo publish --allow-dirty --token ${{ secrets.CRATES_TOKEN }}
+        env:
+          # The token is stored in your repository's secrets
+          CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
