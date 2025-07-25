@@ -2,7 +2,6 @@
 
 # tbdflow
 
-[![Documentation](https://docs.rs/tbdflow/badge.svg)]
 [![Crates.io](https://img.shields.io/crates/v/tbdflow.svg)](https://crates.io/crates/tbdflow)
 [![Downloads](https://img.shields.io/crates/d/tbdflow.svg)](https://crates.io/crates/tbdflow)
 
