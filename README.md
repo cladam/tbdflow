@@ -64,13 +64,14 @@ tbdflow commit [options]
 ```
 **Options:**
 
-| Flag | Option      | Description                                              | Required |
-|------|-------------|----------------------------------------------------------|----------|
-| -t   | --type      | The type of commit (e.g., feat, fix, chore).             | Yes      |
-| -s   | --scope     | The scope of the changes (e.g., api, ui).                | No       |
-| -m   | --message   | The descriptive commit message.                          | Yes      |
-| -b   | --breaking  | Mark the commit as a breaking change.                    | No       |
-|      | --tag       | Optionally add and push an annotated tag to this commit. | No.      |
+| Flag | Option                  | Description                                              | Required |
+|------|-------------------------|----------------------------------------------------------|----------|
+| -t   | --type                  | The type of commit (e.g., feat, fix, chore).             | Yes      |
+| -s   | --scope                 | The scope of the changes (e.g., api, ui).                | No       |
+| -m   | --message               | The descriptive commit message.                          | Yes      |
+| -b   | --breaking              | Mark the commit as a breaking change.                    | No       |
+|      | --breaking-description  | Provide a description for the BREAKING CHANGE: footer.   | No       |
+|      | --tag                   | Optionally add and push an annotated tag to this commit. | No.      |
 
 **Example:**
 ```bash
@@ -79,6 +80,7 @@ tbdflow commit -t "feat" -s "auth" -m "Add password reset endpoint"
 
 # A bug fix with a breaking change
 tbdflow commit -t "fix" -m "Correct user permission logic" -b
+tbdflow commit -t "refactor" -m "Rename internal API" --breaking --breaking-description "The `getUser` function has been renamed to `fetchUser`."
 
 # A bug fix with a new tag
 tbdflow commit -t "fix" -m "Correct user permission logic" --tag "v1.1.1"
