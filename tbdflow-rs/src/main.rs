@@ -6,11 +6,33 @@
 // Author: Claes Adamsson @cladam
 // ===============================================================
 
-use clap::Parser;
+use std::io::Write;
+use clap::{Command, CommandFactory, Parser};
 use colored::Colorize;
 use tbdflow::{cli, git};
 use tbdflow::cli::Commands;
 use tbdflow::git::{get_current_branch, GitError};
+
+fn render_manpage_section(cmd: &Command, buffer: &mut Vec<u8>) -> Result<(), anyhow::Error> {
+    let man = clap_mangen::Man::new(cmd.clone());
+    // Render the command's sections into the buffer
+    man.render_name_section(buffer)?;
+    man.render_synopsis_section(buffer)?;
+    man.render_description_section(buffer)?;
+    man.render_options_section(buffer)?;
+
+    // Only add SUBCOMMANDS header if there are subcommands
+    if cmd.has_subcommands() {
+        use std::io::Write;
+        writeln!(buffer, "\nSUBCOMMANDS\n")?;
+        let mut cmd_mut = cmd.clone();
+        for sub in cmd_mut.get_subcommands_mut() {
+            render_manpage_section(sub, buffer)?;
+        }
+    }
+
+    Ok(())
+}
 
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
@@ -46,12 +68,16 @@ fn main() -> anyhow::Result<()> {
             git::push_set_upstream(&branch_name)?;
             println!("\n{}", format!("Success! Switched to new hotfix branch: '{}'", branch_name).green());
         }
-        Commands::Commit { r#type, scope, message, breaking, tag } => {
+        Commands::Commit { r#type, scope, message, breaking, breaking_description, tag } => {
             println!("--- Committing changes ---");
             let scope_part = scope.map_or("".to_string(), |s| format!("({})", s));
             let breaking_part = if breaking { "!" } else { "" };
             let header = format!("{}{}{}: {}", r#type, scope_part, breaking_part, message);
-            let footer = if breaking { format!("\n\nBREAKING CHANGE: {}", message) } else { "".to_string() };
+            let footer = if let Some(desc) = breaking_description {
+                format!("\n\nBREAKING CHANGE: {}", desc)
+            } else {
+                "".to_string()
+            };
             let commit_message = format!("{}{}", header, footer);
 
             println!("{}", format!("Commit message will be:\n---\n{}\n---", commit_message).blue());
@@ -162,6 +188,20 @@ fn main() -> anyhow::Result<()> {
         Commands::CheckBranches => {
             println!("--- Checking for stale branches ---");
             git::check_and_warn_for_stale_branches()?;
+        }
+        Commands::GenerateManPage => {
+            let mut cmd = cli::Cli::command();
+            let mut buffer: Vec<u8> = Default::default();
+            // Render the main command sections
+            let man = clap_mangen::Man::new(cmd.clone());
+            man.render(&mut buffer)?;
+            writeln!(buffer, "\n--------------------------------------------------------------------------------\n")?;
+
+            // Manually render each subcommand's details into the same buffer
+            for sub in cmd.get_subcommands_mut() {
+                render_manpage_section(sub, &mut buffer)?;
+            }
+            std::io::stdout().write_all(&buffer)?;
         }
     }
 
