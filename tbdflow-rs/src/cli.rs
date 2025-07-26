@@ -28,7 +28,7 @@ pub enum Commands {
     /// Creates a new short-lived release branch from 'main'.
     #[command(after_help = "EXAMPLES:\n  \
     tbdflow release --version \"2.1.0\"\n  \
-    tbdflow release -v \"2.1.0\" -f \"39b68b5\"")]
+    tbdflow release -v \"2.1.0\" -f \"39b68b5\"", disable_version_flag = true)]
     Release {
         /// Version for the release branch (e.g. '1.0.0').
         #[arg(short, long)]
