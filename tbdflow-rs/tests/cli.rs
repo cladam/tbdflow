@@ -38,7 +38,7 @@ fn test_create_feature_branch_command() {
     cmd.arg("feature").arg("--name").arg("new-feature");
     cmd.assert()
         .success()
-        .stdout(contains("Success! Switched to new feature branch: 'feature/new-feature'"));
+        .stdout(contains("Success! Switched to new feature branch: 'feature_new-feature'"));
 }
 
 /// Tests that creating a new release branch called "1.0.0" works correctly.
@@ -51,7 +51,7 @@ fn test_create_release_branch_command() {
     cmd.arg("release").arg("--version").arg("1.0.0");
     cmd.assert()
         .success()
-        .stdout(contains("Success! Switched to new release branch: 'release/1.0.0'"));
+        .stdout(contains("Success! Switched to new release branch: 'release_1.0.0'"));
 }
 
 /// Tests that creating a new hotfix branch called "urgent-fix" works correctly.
@@ -64,7 +64,7 @@ fn test_create_hotfix_branch_command() {
     cmd.arg("hotfix").arg("--name").arg("urgent-fix");
     cmd.assert()
         .success()
-        .stdout(contains("Success! Switched to new hotfix branch: 'hotfix/urgent-fix'"));
+        .stdout(contains("Success! Switched to new hotfix branch: 'hotfix_urgent-fix'"));
 }
 
 /// Tests that adding a new file and committing it with the commit command works correctly.
@@ -139,7 +139,7 @@ fn test_complete_feature_branch_command() {
         .arg("--name").arg("new-feature");
     cmd.assert()
         .success()
-        .stdout(contains("Branch to complete: feature/new-feature"));
+        .stdout(contains("Branch to complete: feature_new-feature"));
 }
 
 /// Tests that completing a release branch called "1.0.0" works correctly.
@@ -161,7 +161,7 @@ fn test_complete_release_branch_command() {
         .arg("--name").arg("1.0.0");
     cmd.assert()
         .success()
-        .stdout(contains("Branch to complete: release/1.0.0"));
+        .stdout(contains("Branch to complete: release_1.0.0"));
 
     // Check that the tag exists
     let output = std::process::Command::new("git")
@@ -259,5 +259,5 @@ fn test_check_branches_command() {
     cmd.assert()
         .success()
         .stdout(contains("Warning: The following branches may be stale:"))
-        .stdout(contains("feature/stale-feature"));
+        .stdout(contains("feature_stale-feature"));
 }

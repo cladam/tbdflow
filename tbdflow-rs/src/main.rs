@@ -15,9 +15,10 @@ use tbdflow::{cli, git};
 use tbdflow::cli::Commands;
 use tbdflow::git::{get_current_branch, GitError};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 struct DodConfig {
     issue_reference_required: Option<bool>,
+    #[serde(default)]
     checklist: Vec<String>,
 }
 
@@ -54,15 +55,18 @@ fn read_dod_config() -> anyhow::Result<DodConfig> {
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
     let verbose = cli.verbose;
-    let config = read_dod_config()?;
-    if config.checklist.is_empty() {
-        println!("{}", "No checklist items defined.".yellow());
+    let config = read_dod_config().unwrap_or_else(|e| {
+        println!("{}", format!("Warning: {}. Proceeding without DoD checks.", e).yellow());
+        DodConfig::default()
+    });
+    if std::path::Path::new(".dod.yml").exists() && config.checklist.is_empty() {
+        println!("{}", "Warning: .dod.yml found, but contains no checklist items.".yellow());
     }
 
     match cli.command {
         Commands::Feature { name } => {
             println!("{}", "--- Creating feature branch ---".to_string().blue());
-            let branch_name = format!("feature/{}", name);
+            let branch_name = format!("feature_{}", name);
             git::is_working_directory_clean(verbose)?;
             git::checkout_main(verbose)?;
             git::pull_latest_with_rebase(verbose)?;
@@ -72,7 +76,7 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Release { version, from_commit } => {
             println!("{}", "--- Creating release branch ---".to_string().blue());
-            let branch_name = format!("release/{}", version);
+            let branch_name = format!("release_{}", version);
             git::is_working_directory_clean(verbose)?;
             git::checkout_main(verbose)?;
             git::pull_latest_with_rebase(verbose)?;
@@ -82,7 +86,7 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Hotfix { name } => {
             println!("{}", "--- Creating hotfix branch ---".to_string().blue());
-            let branch_name = format!("hotfix/{}", name);
+            let branch_name = format!("hotfix_{}", name);
             git::is_working_directory_clean(verbose)?;
             git::checkout_main(verbose)?;
             git::pull_latest_with_rebase(verbose)?;
@@ -134,7 +138,7 @@ fn main() -> anyhow::Result<()> {
         Commands::Complete { r#type, name } => {
             println!("{}", "--- Completing short-lived branch ---".to_string().blue());
             let branch_name = match r#type.as_str() {
-                "feature" | "hotfix" | "release" => format!("{}/{}", r#type, name),
+                "feature" | "hotfix" | "release" => format!("{}_{}", r#type, name),
                 _ => return Err(GitError::InvalidBranchType(r#type).into()),
             };
             println!("{}", format!("Branch to complete: {}", branch_name).blue());
