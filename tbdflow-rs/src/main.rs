@@ -7,11 +7,19 @@
 // ===============================================================
 
 use std::io::Write;
+use anyhow::Context;
 use clap::{Command, CommandFactory, Parser};
 use colored::Colorize;
+use serde::Deserialize;
 use tbdflow::{cli, git};
 use tbdflow::cli::Commands;
 use tbdflow::git::{get_current_branch, GitError};
+
+#[derive(Debug, Deserialize)]
+struct DodConfig {
+    issue_reference_required: Option<bool>,
+    checklist: Vec<String>,
+}
 
 fn render_manpage_section(cmd: &Command, buffer: &mut Vec<u8>) -> Result<(), anyhow::Error> {
     let man = clap_mangen::Man::new(cmd.clone());
@@ -34,9 +42,22 @@ fn render_manpage_section(cmd: &Command, buffer: &mut Vec<u8>) -> Result<(), any
     Ok(())
 }
 
+/// Reads the DoD configuration from `.dod.yml` file in the current directory (root of the git repository).
+fn read_dod_config() -> anyhow::Result<DodConfig> {
+    let content = std::fs::read_to_string(".dod.yml")
+        .context("Failed to read .dod.yml")?;
+    let config: DodConfig = serde_yaml::from_str(&content)
+        .context("Failed to parse .dod.yml")?;
+    Ok(config)
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
     let verbose = cli.verbose;
+    let config = read_dod_config()?;
+    if config.checklist.is_empty() {
+        println!("{}", "No checklist items defined.".yellow());
+    }
 
     match cli.command {
         Commands::Feature { name } => {
