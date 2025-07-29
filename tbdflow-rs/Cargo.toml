@@ -1,6 +1,6 @@
 [package]
 name = "tbdflow"
-version = "0.4.2"
+version = "0.4.3"
 authors = ["Claes Adamsson <claes.adamsson@gmail.com>"]
 repository = "https://github.com/cladam/tbdflow"
 readme="README.md"
@@ -12,7 +12,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.41", features = ["derive"] }
-clap_mangen = "0.2.28"
+clap_mangen = "0.2.29"
 colored = "3.0.0"
 thiserror = "2.0.12"
 anyhow = "1.0.98"
