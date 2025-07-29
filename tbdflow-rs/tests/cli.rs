@@ -10,10 +10,10 @@ use util::setup_temp_git_repo;
 #[test]
 fn test_status_command() {
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
-    cmd.arg("status");
+    cmd.arg("--verbose").arg("status");
     cmd.assert()
         .success()
-        .stdout(contains("Git Status"));
+        .stdout(contains("Checking status"));
 }
 
 /// Tests that the current branch command outputs the expected branch name.
@@ -151,11 +151,12 @@ fn test_complete_release_branch_command() {
 
     // Create the release branch first
     let mut create_cmd = Command::cargo_bin("tbdflow").unwrap();
-    create_cmd.arg("release").arg("--version").arg("1.0.0");
+    create_cmd.arg("--verbose").arg("release").arg("--version").arg("1.0.0");
     create_cmd.assert().success();
 
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
-    cmd.arg("complete")
+    cmd.arg("--verbose")
+        .arg("complete")
         .arg("--type").arg("release")
         .arg("--name").arg("1.0.0");
     cmd.assert()

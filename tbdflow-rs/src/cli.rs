@@ -13,6 +13,9 @@ use clap::{Parser, Subcommand};
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
+    /// Enable verbose output for debugging. Use this to troubleshoot issues or understand the flow better.
+    #[arg(long)]
+    pub verbose: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -78,6 +81,12 @@ pub enum Commands {
         /// Optionally add and push an annotated tag to this commit.
         #[arg(long)]
         tag: Option<String>,
+        /// Optional flag to skip verification of the checklist.
+        #[arg(long, default_value_t = false)]
+        no_verify: bool,
+        /// Optional flag for an issue reference.
+        #[arg(long)]
+        issue: Option<String>,
     },
     /// Merges a short-lived branch into 'main' and deletes it.
     #[command(after_help = "EXAMPLES:\n  \

@@ -5,7 +5,6 @@ use thiserror::Error;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
-use crate::git;
 
 // --- Custom Error Type ---
 // Using `thiserror` to create a structured error type.
@@ -36,8 +35,10 @@ pub enum GitError {
 ///
 /// If the command fails, it returns a `GitError` with the error message from Git.
 ///
-fn run_git_command(command: &str, args: &[&str]) -> Result<String> {
-    println!("[RUNNING] git {} {}", command, args.join(" "));
+fn run_git_command(command: &str, args: &[&str], verbose: bool) -> Result<String> {
+    if verbose {
+        println!("{} git {} {}", "[RUNNING] ".cyan(), command, args.join(" "));
+    }
     let output = Command::new("git")
         .arg(command)
         .args(args)
@@ -54,21 +55,20 @@ fn run_git_command(command: &str, args: &[&str]) -> Result<String> {
 }
 
 /// Checks if the git working directory is clean.
-pub fn is_working_directory_clean() -> Result<()> {
-    let output = run_git_command("status", &["--porcelain"])?;
+pub fn is_working_directory_clean(verbose: bool) -> Result<()> {
+    let output = run_git_command("status", &["--porcelain"], verbose)?;
     if output.is_empty() {
         Ok(())
     } else {
         Err(GitError::DirectoryNotClean(
             "You have unstaged changes. Please commit or stash them first.".to_string()
         ).into())
-        //Err("You have unstaged changes. Please commit or stash them first.".to_string())
     }
 }
 
 // Helper function to perform and display the stale branch check
-pub fn check_and_warn_for_stale_branches() -> Result<(), anyhow::Error> {
-    let stale_branches = git::get_stale_branches()?;
+pub fn check_and_warn_for_stale_branches(verbose: bool) -> Result<(), anyhow::Error> {
+    let stale_branches = get_stale_branches(verbose)?;
     if !stale_branches.is_empty() {
         println!("\n{}", "Warning: The following branches may be stale:".bold().yellow());
         for (branch, days) in stale_branches {
@@ -82,92 +82,92 @@ pub fn check_and_warn_for_stale_branches() -> Result<(), anyhow::Error> {
 // These functions provide a high-level interface to common Git operations.
 
 /// Check out the main branch.
-pub fn checkout_main() -> Result<String> {
-    run_git_command("checkout", &["main"])
+pub fn checkout_main(verbose: bool) -> Result<String> {
+    run_git_command("checkout", &["main"], verbose)
 }
 
 /// Pull the latest changes with rebase.
-pub fn pull_latest_with_rebase() -> Result<String> {
+pub fn pull_latest_with_rebase(verbose: bool) -> Result<String> {
     // Using --autostash to safely handle local changes before pulling.
-    run_git_command("pull", &["--rebase", "--autostash"])
+    run_git_command("pull", &["--rebase", "--autostash"], verbose)
 }
 
 /// Add all changes to the staging area.
-pub fn add_all() -> Result<String> {
-    run_git_command("add", &["."])
+pub fn add_all(verbose: bool) -> Result<String> {
+    run_git_command("add", &["."], verbose)
 }
 
 /// Commit changes with a message.
-pub fn commit(message: &str) -> Result<String> {
-    run_git_command("commit", &["-m", message])
+pub fn commit(message: &str, verbose: bool) -> Result<String> {
+    run_git_command("commit", &["-m", message], verbose)
 }
 
 /// Push changes to the remote repository.
-pub fn push() -> Result<String> {
-    run_git_command("push", &[])
+pub fn push(verbose: bool) -> Result<String> {
+    run_git_command("push", &[], verbose)
 }
 
-pub fn push_tags() -> Result<String> {
-    run_git_command("push", &["--tags"])
+pub fn push_tags(verbose: bool) -> Result<String> {
+    run_git_command("push", &["--tags"], verbose)
 }
 
 /// Merge the current branch with another branch.
-pub fn merge_branch(branch_name: &str) -> Result<String> {
-    run_git_command("merge", &["--no-ff", branch_name])
+pub fn merge_branch(branch_name: &str, verbose: bool) -> Result<String> {
+    run_git_command("merge", &["--no-ff", branch_name], verbose)
 }
 
 /// Delete a local short-lived branch.
-pub fn delete_local_branch(branch_name: &str) -> Result<String> {
-    run_git_command("branch", &["-d", branch_name])
+pub fn delete_local_branch(branch_name: &str, verbose: bool) -> Result<String> {
+    run_git_command("branch", &["-d", branch_name], verbose)
 }
 
 /// Delete a remote branch.
-pub fn delete_remote_branch(branch_name: &str) -> Result<String> {
-    run_git_command("push", &["origin", "--delete", branch_name])
+pub fn delete_remote_branch(branch_name: &str, verbose: bool) -> Result<String> {
+    run_git_command("push", &["origin", "--delete", branch_name], verbose)
 }
 
 /// Get the current branch name.
-pub fn get_current_branch() -> Result<String> {
-    run_git_command("rev-parse", &["--abbrev-ref", "HEAD"])
+pub fn get_current_branch(verbose: bool) -> Result<String> {
+    run_git_command("rev-parse", &["--abbrev-ref", "HEAD"], verbose)
 }
 
 /// Create a new branch from the current HEAD or a specified point.
-pub fn create_branch(branch_name: &str, from_point: Option<&str>) -> Result<String> {
+pub fn create_branch(branch_name: &str, from_point: Option<&str>, verbose: bool) -> Result<String> {
     let mut args = vec!["-b", branch_name];
     if let Some(point) = from_point {
         args.push(point);
     }
-    run_git_command("checkout", &args)
+    run_git_command("checkout", &args, verbose)
 }
 
-pub fn get_head_commit_hash() -> Result<String> {
-    run_git_command("rev-parse", &["HEAD"])
+pub fn get_head_commit_hash(verbose: bool) -> Result<String> {
+    run_git_command("rev-parse", &["HEAD"], verbose)
 }
 
-pub fn create_tag(tag_name: &str, message: &str, commit_hash: &str) -> Result<String> {
-    run_git_command("tag", &["-a", tag_name, "-m", message, commit_hash])
+pub fn create_tag(tag_name: &str, message: &str, commit_hash: &str, verbose: bool) -> Result<String> {
+    run_git_command("tag", &["-a", tag_name, "-m", message, commit_hash], verbose)
 }
 
-pub fn push_set_upstream(branch_name: &str) -> Result<String> {
-    run_git_command("push", &["--set-upstream", "origin", branch_name])
+pub fn push_set_upstream(branch_name: &str, verbose: bool) -> Result<String> {
+    run_git_command("push", &["--set-upstream", "origin", branch_name], verbose)
 }
 
 /// Show the current status of the repository.
-pub fn status() -> Result<String> {
-    run_git_command("status", &["--short"])
+pub fn status(verbose: bool) -> Result<String> {
+    run_git_command("status", &["--short"], verbose)
 }
 
 /// Show recent commits in the repository, 15 by default.
-pub fn log_graph() -> Result<String> {
-    run_git_command("log", &["--graph", "--oneline", "-n", "15"])
+pub fn log_graph(verbose: bool) -> Result<String> {
+    run_git_command("log", &["--graph", "--oneline", "-n", "15"], verbose)
 }
 
 /// Check for stale branches in the repository.
-pub fn get_stale_branches() -> Result<Vec<(String, i64)>> {
+pub fn get_stale_branches(verbose: bool) -> Result<Vec<(String, i64)>> {
     let now = Utc::now();
     let day_in_seconds = 24 * 60 * 60;
 
-    let output = run_git_command("for-each-ref", &["--format", "%(refname:short)|%(committerdate:iso8601-strict)", "refs/heads/"])?;
+    let output = run_git_command("for-each-ref", &["--format", "%(refname:short)|%(committerdate:iso8601-strict)", "refs/heads/"], verbose)?;
     let stale_branches = output
         .lines()
         .filter_map(|line| {
@@ -209,7 +209,8 @@ mod tests {
     /// Test the run_git_command function with a simple command
     #[test]
     fn test_run_git_command_version() {
-        let result = run_git_command("--version", &[]);
+        let verbose = true;
+        let result = run_git_command("--version", &[], verbose);
         assert!(result.is_ok(), "Expected Ok, got {:?}", result);
         let output = result.unwrap();
         assert!(output.contains("git version"), "Output was: {}", output);
@@ -218,7 +219,8 @@ mod tests {
     /// Test the status function
     #[test]
     fn test_status() {
-        let result = status();
+        let verbose = true;
+        let result = status(verbose);
         assert!(result.is_ok(), "Expected Ok, got {:?}", result);
         let output = result.unwrap();
         // Accept any output (including empty if clean)
