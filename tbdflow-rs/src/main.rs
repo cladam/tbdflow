@@ -187,6 +187,10 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::CheckBranches => {
             println!("--- Checking for stale branches ---");
+            let current_branch = get_current_branch()?;
+            if current_branch != "main" {
+                return Err(GitError::NotOnMainBranch(current_branch).into());
+            }
             git::check_and_warn_for_stale_branches()?;
         }
         Commands::GenerateManPage => {

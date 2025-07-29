@@ -17,6 +17,8 @@ pub enum GitError {
     DirectoryNotClean(String),
     #[error("Invalid branch type: {0}. Use 'feature', 'release', or 'hotfix'.")]
     InvalidBranchType(String),
+    #[error("Not on main branch: {0}")]
+    NotOnMainBranch(String),
 }
 
 /// Runs a Git command with the specified subcommand and arguments.
