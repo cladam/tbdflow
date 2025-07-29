@@ -50,7 +50,7 @@ It offers three main benefits:
 ## Global options
 
 | Flag        | Description                                              | Required |
-|-------------|-------------------------|--------------------------------|----------|
+|-------------|----------------------------------------------------------|----------|
 | --verbose   | Prints the underlying Git commands as they are executed. | No       |
 
 ## Commands
