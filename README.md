@@ -9,7 +9,7 @@
 
 ## tbdflow, a Trunk-Based Development CLI
 
-A simple yet powerful command-line tool to streamline Git workflows, especially for teams working with Trunk-Based Development (TBD).
+A simple yet powerful command-line tool to streamline Git workflows, especially for teams (and individuals) working with Trunk-Based Development (TBD).
 
 This CLI supports both the default commit-to-main workflow and the structured handling of short-lived branches for features, releases, and hotfixes.
 
@@ -47,6 +47,12 @@ It offers three main benefits:
 
 ---
 
+## Global options
+
+| Flag        | Description                                              | Required |
+|-------------|-------------------------|--------------------------------|----------|
+| --verbose   | Prints the underlying Git commands as they are executed. | No       |
+
 ## Commands
 
 ### 1. `commit`
@@ -59,9 +65,11 @@ Commits staged changes using a Conventional Commits message. This command is con
 
 
 **Usage:**
+
 ```bash
 tbdflow commit [options]
 ```
+
 **Options:**
 
 | Flag | Option                  | Description                                              | Required |
@@ -74,6 +82,7 @@ tbdflow commit [options]
 |      | --tag                   | Optionally add and push an annotated tag to this commit. | No.      |
 
 **Example:**
+
 ```bash
 # A new feature
 tbdflow commit -t "feat" -s "auth" -m "Add password reset endpoint"
@@ -91,6 +100,7 @@ tbdflow commit -t "fix" -m "Correct user permission logic" --tag "v1.1.1"
 Creates a new, short-lived branch from the latest version of `main.
 
 **Usage:**
+
 ```bash
 # For features or hotfixes
 tbdflow <feature|hotfix> --name <branch-name>
@@ -132,6 +142,7 @@ Merges a short-lived branch back into main, then deletes the local and remote co
 * When completing a hotfix branch, a tag (e.g., hotfix/name-of-fix) is automatically created and pushed.
 
 **Usage:**
+
 ```bash
 tbdflow complete --type <branch-type> --name <branch-name>
 ```
@@ -144,6 +155,7 @@ tbdflow complete --type <branch-type> --name <branch-name>
 | -n   | --name   | The name or version of the branch to complete.          | Yes      |
 
 **Examples:**
+
 ```bash
 # Complete a feature branch
 tbdflow complete -t "feature" -n "user-profile-page"
