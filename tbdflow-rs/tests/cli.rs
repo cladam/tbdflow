@@ -246,6 +246,12 @@ fn test_check_branches_command() {
         .current_dir(&repo_path)
         .output()
         .unwrap();
+    // Switch to main branch to ensure the stale branch is not the current one
+    std::process::Command::new("git")
+        .args(&["checkout", "main"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
 
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
     cmd.arg("check-branches");
