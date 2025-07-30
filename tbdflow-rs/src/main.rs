@@ -10,6 +10,7 @@ use std::io::Write;
 use anyhow::Context;
 use clap::{Command, CommandFactory, Parser};
 use colored::Colorize;
+use dialoguer::{MultiSelect, theme::ColorfulTheme, Confirm};
 use serde::Deserialize;
 use tbdflow::{cli, git};
 use tbdflow::cli::Commands;
@@ -50,6 +51,15 @@ fn read_dod_config() -> anyhow::Result<DodConfig> {
     let config: DodConfig = serde_yaml::from_str(&content)
         .context("Failed to parse .dod.yml")?;
     Ok(config)
+}
+
+/// Runs the checklist interactively, allowing the user to confirm each item before committing.
+fn run_checklist_interactive(checklist: &[String]) -> anyhow::Result<Vec<usize>> {
+    let selections = MultiSelect::with_theme(&ColorfulTheme::default())
+        .with_prompt("Please confirm each item before committing:")
+        .items(checklist)
+        .interact()?;
+    Ok(selections)
 }
 
 fn main() -> anyhow::Result<()> {
