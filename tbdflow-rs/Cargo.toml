@@ -1,6 +1,6 @@
 [package]
 name = "tbdflow"
-version = "0.6.0"
+version = "0.6.1"
 authors = ["Claes Adamsson <claes.adamsson@gmail.com>"]
 repository = "https://github.com/cladam/tbdflow"
 readme="README.md"
