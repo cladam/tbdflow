@@ -78,8 +78,7 @@ pub fn check_and_warn_for_stale_branches(verbose: bool) -> Result<(), anyhow::Er
     Ok(())
 }
 
-// -- Public Git workflow functions --
-// These functions provide a high-level interface to common Git operations.
+/// -- Public Git workflow functions --
 
 /// Check out the main branch.
 pub fn checkout_main(verbose: bool) -> Result<String> {

@@ -1,0 +1,9 @@
+main_branch_name: main
+stale_branch_threshold_days: 1
+branch_prefixes:
+  feature: feature_
+  release: release_
+  hotfix: hotfix_
+automatic_tags:
+  release_prefix: v
+  hotfix_prefix: hotfix_

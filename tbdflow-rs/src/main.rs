@@ -7,11 +7,12 @@
 // ===============================================================
 
 use std::io::Write;
+use std::fs;
 use anyhow::Context;
 use clap::{Command, CommandFactory, Parser};
 use colored::Colorize;
 use dialoguer::{MultiSelect, theme::ColorfulTheme, Confirm};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tbdflow::{cli, git};
 use tbdflow::cli::Commands;
 use tbdflow::git::{get_current_branch, GitError};
@@ -23,25 +24,53 @@ struct DodConfig {
     checklist: Vec<String>,
 }
 
-fn render_manpage_section(cmd: &Command, buffer: &mut Vec<u8>) -> Result<(), anyhow::Error> {
-    let man = clap_mangen::Man::new(cmd.clone());
-    // Render the command's sections into the buffer
-    man.render_name_section(buffer)?;
-    man.render_synopsis_section(buffer)?;
-    man.render_description_section(buffer)?;
-    man.render_options_section(buffer)?;
+#[derive(Debug, Serialize, Deserialize)]
+struct BranchPrefixes {
+    feature: String,
+    release: String,
+    hotfix: String,
+}
 
-    // Only add SUBCOMMANDS header if there are subcommands
-    if cmd.has_subcommands() {
-        use std::io::Write;
-        writeln!(buffer, "\nSUBCOMMANDS\n")?;
-        let mut cmd_mut = cmd.clone();
-        for sub in cmd_mut.get_subcommands_mut() {
-            render_manpage_section(sub, buffer)?;
+#[derive(Debug, Serialize, Deserialize)]
+struct AutomaticTags {
+    release_prefix: String,
+    hotfix_prefix: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Config {
+    main_branch_name: String,
+    stale_branch_threshold_days: i64,
+    branch_prefixes: BranchPrefixes,
+    automatic_tags: AutomaticTags,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            main_branch_name: "main".to_string(),
+            stale_branch_threshold_days: 1,
+            branch_prefixes: BranchPrefixes {
+                feature: "feature_".to_string(),
+                release: "release_".to_string(),
+                hotfix: "hotfix_".to_string(),
+            },
+            automatic_tags: AutomaticTags {
+                release_prefix: "v".to_string(),
+                hotfix_prefix: "hotfix_".to_string(),
+            },
         }
     }
+}
 
-    Ok(())
+/// Loads the configuration from the `.tbdflow.yml` file in the current directory (root of the git repository).
+fn load_config() -> Result<Config, anyhow::Error> {
+    // Attempt to read the configuration file
+    if let Ok(content) = fs::read_to_string(".tbdflow.yml") {
+        serde_yaml::from_str(&content).context("Failed to parse .tbdflow.yml")
+    } else {
+        Ok(Config::default())
+    }
 }
 
 /// Reads the DoD configuration from `.dod.yml` file in the current directory (root of the git repository).
@@ -113,49 +142,76 @@ fn handle_interactive_commit(config: &DodConfig, base_message: &str, issue: &Opt
     Ok(Some(commit_message))
 }
 
+/// Generate a flattened man page for tbdflow to stdout, users can pipe this to a file.
+fn render_manpage_section(cmd: &Command, buffer: &mut Vec<u8>) -> Result<(), anyhow::Error> {
+    let man = clap_mangen::Man::new(cmd.clone());
+    // Render the command's sections into the buffer
+    man.render_name_section(buffer)?;
+    man.render_synopsis_section(buffer)?;
+    man.render_description_section(buffer)?;
+    man.render_options_section(buffer)?;
+
+    // Only add SUBCOMMANDS header if there are subcommands
+    if cmd.has_subcommands() {
+        use std::io::Write;
+        writeln!(buffer, "\nSUBCOMMANDS\n")?;
+        let mut cmd_mut = cmd.clone();
+        for sub in cmd_mut.get_subcommands_mut() {
+            render_manpage_section(sub, buffer)?;
+        }
+    }
+
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
     let verbose = cli.verbose;
+    let config = load_config()?;
 
     match cli.command {
-        Commands::Feature { name } => {
-            println!("{}", "--- Creating feature branch ---".to_string().blue());
-            let branch_name = format!("feature_{}", name);
-            git::is_working_directory_clean(verbose)?;
-            git::checkout_main(verbose)?;
-            git::pull_latest_with_rebase(verbose)?;
-            git::create_branch(&branch_name, None, verbose)?;
-            git::push_set_upstream(&branch_name, verbose)?;
-            println!("\n{}", format!("Success! Switched to new feature branch: '{}'", branch_name).green());
-        }
-        Commands::Release { version, from_commit } => {
-            println!("{}", "--- Creating release branch ---".to_string().blue());
-            let branch_name = format!("release_{}", version);
-            git::is_working_directory_clean(verbose)?;
-            git::checkout_main(verbose)?;
-            git::pull_latest_with_rebase(verbose)?;
-            git::create_branch(&branch_name, from_commit.as_deref(), verbose)?;
-            git::push_set_upstream(&branch_name, verbose)?;
-            println!("\n{}", format!("Success! Switched to new release branch: '{}'", branch_name).green());
-        }
-        Commands::Hotfix { name } => {
-            println!("{}", "--- Creating hotfix branch ---".to_string().blue());
-            let branch_name = format!("hotfix_{}", name);
-            git::is_working_directory_clean(verbose)?;
-            git::checkout_main(verbose)?;
-            git::pull_latest_with_rebase(verbose)?;
-            git::create_branch(&branch_name, None, verbose)?;
-            git::push_set_upstream(&branch_name, verbose)?;
-            println!("\n{}", format!("Success! Switched to new hotfix branch: '{}'", branch_name).green());
+        Commands::Init => {
+            println!("{}", "--- Initialising tbdflow configuration ---".to_string().blue());
+            // Create .tbdflow.yml if it doesn't exist
+            if !std::path::Path::new(".tbdflow.yml").exists() {
+                let default_config = Config::default();
+                let yaml_string = serde_yaml::to_string(&default_config)?;
+                fs::write(".tbdflow.yml", yaml_string)?;
+                println!("{}", "Created default .tbdflow.yml configuration file.".green());
+            } else {
+                println!("{}", ".tbdflow.yml already exists. Skipping.".yellow());
+            }
+            // Create .dod.yml if it doesn't exist
+            if !std::path::Path::new(".dod.yml").exists() {
+                let default_dod = r#"
+# --- Optional Issue Tracker Integration ---
+# If true, the check-commit tool will require the --issue <ID> flag
+# to be used with the commit command, ensuring all work is traceable.
+issue_reference_required: false
+
+# --- Interactive Checklist ---
+# This list is presented to the developer before every commit.
+checklist:
+  - "Code is clean, readable, and adheres to team coding standards."
+  - "All relevant automated tests (unit, integration) pass successfully."
+  - "New features or bug fixes are covered by appropriate new tests."
+  - "Security implications of this change have been considered."
+  - "Relevant documentation (code comments, READMEs, etc.) is updated."
+"#.trim();
+                fs::write(".dod.yml", default_dod)?;
+                println!("{}", "Created default .dod.yml checklist file.".green());
+            } else {
+                println!("{}", ".dod.yml already exists. Skipping.".yellow());
+            }
         }
         Commands::Commit { r#type, scope, message, breaking, breaking_description, tag, no_verify, issue } => {
             println!("{}", "--- Committing changes ---".to_string().blue());
-            // Read the DoD configuration from `.dod.yml` file.
-            let config = read_dod_config().unwrap_or_else(|e| {
+            // Read the DoD configuration from the `.dod.yml` file.
+            let dod_config = read_dod_config().unwrap_or_else(|e| {
                 println!("{}", format!("Warning: {}. Proceeding without DoD checks.", e).yellow());
                 DodConfig::default()
             });
-            if std::path::Path::new(".dod.yml").exists() && config.checklist.is_empty() {
+            if std::path::Path::new(".dod.yml").exists() && dod_config.checklist.is_empty() {
                 println!("{}", "Warning: .dod.yml found, but contains no checklist items.".yellow());
             }
 
@@ -163,7 +219,7 @@ fn main() -> anyhow::Result<()> {
             let breaking_part = if breaking { "!" } else { "" };
             let header = format!("{}{}{}: {}", r#type, scope_part, breaking_part, message);
 
-            let final_commit_message = if no_verify || config.checklist.is_empty() {
+            let final_commit_message = if no_verify || dod_config.checklist.is_empty() {
                 let mut msg = header;
                 if let Some(desc) = breaking_description {
                     msg.push_str(&format!("\n\nBREAKING CHANGE: {}", desc));
@@ -177,7 +233,7 @@ fn main() -> anyhow::Result<()> {
                 if let Some(desc) = &breaking_description {
                     interactive_header.push_str(&format!("\n\nBREAKING CHANGE: {}", desc));
                 }
-                handle_interactive_commit(&config, &interactive_header, &issue)?
+                handle_interactive_commit(&dod_config, &interactive_header, &issue)?
             };
 
             if let Some(commit_message) = final_commit_message {
@@ -205,6 +261,36 @@ fn main() -> anyhow::Result<()> {
                     println!("{}", format!("Success! Created and pushed tag '{}'", tag_name).green());
                 }
             }
+        }
+        Commands::Feature { name } => {
+            println!("{}", "--- Creating feature branch ---".to_string().blue());
+            let branch_name = format!("{}{}", config.branch_prefixes.feature, name);
+            git::is_working_directory_clean(verbose)?;
+            git::checkout_main(verbose)?;
+            git::pull_latest_with_rebase(verbose)?;
+            git::create_branch(&branch_name, None, verbose)?;
+            git::push_set_upstream(&branch_name, verbose)?;
+            println!("\n{}", format!("Success! Switched to new feature branch: '{}'", branch_name).green());
+        }
+        Commands::Release { version, from_commit } => {
+            println!("{}", "--- Creating release branch ---".to_string().blue());
+            let branch_name = format!("release_{}", version);
+            git::is_working_directory_clean(verbose)?;
+            git::checkout_main(verbose)?;
+            git::pull_latest_with_rebase(verbose)?;
+            git::create_branch(&branch_name, from_commit.as_deref(), verbose)?;
+            git::push_set_upstream(&branch_name, verbose)?;
+            println!("\n{}", format!("Success! Switched to new release branch: '{}'", branch_name).green());
+        }
+        Commands::Hotfix { name } => {
+            println!("{}", "--- Creating hotfix branch ---".to_string().blue());
+            let branch_name = format!("hotfix_{}", name);
+            git::is_working_directory_clean(verbose)?;
+            git::checkout_main(verbose)?;
+            git::pull_latest_with_rebase(verbose)?;
+            git::create_branch(&branch_name, None, verbose)?;
+            git::push_set_upstream(&branch_name, verbose)?;
+            println!("\n{}", format!("Success! Switched to new hotfix branch: '{}'", branch_name).green());
         }
         Commands::Complete { r#type, name } => {
             println!("{}", "--- Completing short-lived branch ---".to_string().blue());
@@ -247,16 +333,6 @@ fn main() -> anyhow::Result<()> {
             git::delete_remote_branch(&branch_name, verbose)?;
             println!("\n{}", format!("Success! Branch '{}' was merged into main and deleted.", branch_name).green());
         }
-        Commands::Status => {
-            println!("{}", "--- Checking status ---".to_string().blue());
-            let output = git::status(verbose)?;
-            println!("{}", output.blue());
-        }
-        Commands::CurrentBranch => {
-            println!("{}", "--- Current branch ---".to_string().blue());
-            let branch_name = get_current_branch(verbose)?;
-            println!("{}", format!("Current branch is: {}", branch_name).green());
-        }
         Commands::Sync => {
             println!("{}", "--- Syncing with remote and showing status ---".to_string().blue());
             if get_current_branch(verbose)? != "main" {
@@ -281,6 +357,16 @@ fn main() -> anyhow::Result<()> {
             // Adding the stale branch check to the sync workflow
             println!("\n{}", "Checking for stale branches".bold());
             git::check_and_warn_for_stale_branches(verbose)?;
+        }
+        Commands::Status => {
+            println!("{}", "--- Checking status ---".to_string().blue());
+            let output = git::status(verbose)?;
+            println!("{}", output.blue());
+        }
+        Commands::CurrentBranch => {
+            println!("{}", "--- Current branch ---".to_string().blue());
+            let branch_name = get_current_branch(verbose)?;
+            println!("{}", format!("Current branch is: {}", branch_name).green());
         }
         Commands::CheckBranches => {
             println!("{}", "--- Checking for stale branches ---".to_string().blue());

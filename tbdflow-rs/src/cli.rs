@@ -18,36 +18,15 @@ pub struct Cli {
     pub verbose: bool,
 }
 
+/// Subcommands for the tbdflow CLI tool.
+/// Each command corresponds to a specific operation in the Trunk-Based Development workflow.
+/// The commands include initialising the repository, committing changes, creating feature/release/hotfix branches,
+/// completing branches, syncing with the remote, checking status, and checking branches.
+/// The commands are designed to streamline the development process and enforce best practices in trunk-based development.
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Creates a new short-lived feature branch from 'main'.
-    #[command(after_help = "EXAMPLE:\n  \
-    tbdflow feature --name \"user-profile-page\"")]
-    Feature {
-        /// Name of the feature (e.g. 'user-profile-page').
-        #[arg(short, long)]
-        name: String,
-    },
-    /// Creates a new short-lived release branch from 'main'.
-    #[command(after_help = "EXAMPLES:\n  \
-    tbdflow release --version \"2.1.0\"\n  \
-    tbdflow release -v \"2.1.0\" -f \"39b68b5\"", disable_version_flag = true)]
-    Release {
-        /// Version for the release branch (e.g. '1.0.0').
-        #[arg(short, long)]
-        version: String,
-        /// Optional commit hash on 'main' to branch from.
-        #[arg(short, long)]
-        from_commit: Option<String>,
-    },
-    /// Creates a new short-lived hotfix branch from 'main'.
-    #[command(after_help = "EXAMPLE:\n  \
-    tbdflow hotfix --name \"critical-auth-bug\"")]
-    Hotfix {
-        /// Name of the hotfix (e.g. 'critical-auth-bug').
-        #[arg(short, long)]
-        name: String,
-    },
+    /// Initialises the repository for Trunk-Based Development.
+    Init,
     /// Commits changes to the current branch or 'main' if no branch is checked out.
     #[command(after_help = "Use the imperative, present tense: \"change\" not \"changed\". Think of This commit will...\n\
     COMMON COMMIT TYPES:\n  \
@@ -88,6 +67,34 @@ pub enum Commands {
         #[arg(long)]
         issue: Option<String>,
     },
+    /// Creates a new short-lived feature branch from 'main'.
+    #[command(after_help = "EXAMPLE:\n  \
+    tbdflow feature --name \"user-profile-page\"")]
+    Feature {
+        /// Name of the feature (e.g. 'user-profile-page').
+        #[arg(short, long)]
+        name: String,
+    },
+    /// Creates a new short-lived release branch from 'main'.
+    #[command(after_help = "EXAMPLES:\n  \
+    tbdflow release --version \"2.1.0\"\n  \
+    tbdflow release -v \"2.1.0\" -f \"39b68b5\"", disable_version_flag = true)]
+    Release {
+        /// Version for the release branch (e.g. '1.0.0').
+        #[arg(short, long)]
+        version: String,
+        /// Optional commit hash on 'main' to branch from.
+        #[arg(short, long)]
+        from_commit: Option<String>,
+    },
+    /// Creates a new short-lived hotfix branch from 'main'.
+    #[command(after_help = "EXAMPLE:\n  \
+    tbdflow hotfix --name \"critical-auth-bug\"")]
+    Hotfix {
+        /// Name of the hotfix (e.g. 'critical-auth-bug').
+        #[arg(short, long)]
+        name: String,
+    },
     /// Merges a short-lived branch into 'main' and deletes it.
     #[command(after_help = "EXAMPLES:\n  \
     tbdflow complete --type \"feature\" --name \"user-profile-page\"\n  \
@@ -100,13 +107,13 @@ pub enum Commands {
         #[arg(short, long)]
         name: String,
     },
+    /// Syncs with the remote, shows recent history, and checks for stale branches.
+    Sync,
     /// Shows the current git status.
     Status,
     /// Shows the current git branch name.
     #[command(name = "current-branch")]
     CurrentBranch,
-    /// Syncs with the remote, shows recent history, and checks for stale branches.
-    Sync,
     /// Checks for stale branches (older than 1 day).
     #[command(name = "check-branches")]
     CheckBranches,
