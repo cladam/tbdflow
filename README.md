@@ -45,6 +45,26 @@ It offers three main benefits:
 3. **It supports "the TBD way"**
    This tool makes the preferred approach easy by providing a smooth, safe, and efficient path for 80% of everyday tasks. For the other 20%, you can always use Git directly.
 
+### The Definition of Done (DoD) Check
+To move beyond just automating process, `tbdflow` integrates an optional pre-commit quality check. If a `.dod.yml` file is present in your repository, the commit command will present an interactive checklist to ensure your work meets the team's agreed-upon standards.
+
+**Example** `.dod.yml`:
+
+```
+# .dod.yml in your project root
+
+# If true, requires an --issue <ID> flag on the commit command.
+issue_reference_required: true
+
+checklist:
+  - "All relevant automated tests pass successfully."
+  - "New features or fixes are covered by new tests."
+  - "Security implications of this change have been considered."
+  - "Relevant documentation (code comments, READMEs) is updated."
+```
+
+If you try to proceed without checking all items, the tool will offer to add a TODO list to your commit message footer, ensuring the incomplete work is tracked directly in your Git history.
+
 ---
 
 ## Global options
@@ -79,7 +99,8 @@ tbdflow commit [options]
 | -m   | --message               | The descriptive commit message.                          | Yes      |
 | -b   | --breaking              | Mark the commit as a breaking change.                    | No       |
 |      | --breaking-description  | Provide a description for the BREAKING CHANGE: footer.   | No       |
-|      | --tag                   | Optionally add and push an annotated tag to this commit. | No.      |
+|      | --tag                   | Optionally add and push an annotated tag to this commit. | No       |
+|      | --no-verify             | Bypass the interactive DoD checklist.                    | No       |
 
 **Example:**
 
