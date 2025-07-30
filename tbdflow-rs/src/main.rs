@@ -62,6 +62,57 @@ fn run_checklist_interactive(checklist: &[String]) -> anyhow::Result<Vec<usize>>
     Ok(selections)
 }
 
+/// Builds the TODO footer for the commit message based on unchecked items in the checklist.
+fn build_todo_footer(checklist: &[String], checked_indices: &[usize]) -> String {
+    //let checked_indices: Vec<usize> = checked_indices.iter().cloned().collect();
+    let unchecked_items: Vec<String> = checklist
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| !checked_indices.contains(&i))
+        .map(|(_, item)| format!("- [ ] {}", item))
+        //.filter_map(|(i, item)| if !checked_indices.contains(&i) { Some(item.clone()) } else { None })
+        .collect();
+    if unchecked_items.is_empty() {
+        String::new()
+    } else {
+        format!("\n\nTODO:\n{}", unchecked_items.join("\n"))
+    }
+}
+
+/// Handles the interactive commit process, including checklist confirmation and issue reference handling.
+fn handle_interactive_commit(config: &DodConfig, base_message: &str, issue: &Option<String>) -> Result<Option<String>, anyhow::Error> {
+    // Start with the base commit message.
+    let mut commit_message = base_message.to_string();
+
+    let checked = run_checklist_interactive(&config.checklist)?;
+    if checked.len() != config.checklist.len() {
+        if Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Warning: Not all DoD items were checked. Proceed by adding a 'TODO' list to the commit message?")
+            .interact()?
+        {
+            let todo_footer = build_todo_footer(&config.checklist, &checked);
+            commit_message.push_str(&todo_footer);
+        } else {
+            println!("Commit aborted.");
+            return Ok(None);
+        }
+    }
+
+    if config.issue_reference_required.unwrap_or(false) && issue.is_none() {
+        println!("{}", "Issue reference is required for commits.".red());
+        return Err(anyhow::anyhow!("Aborted: Issue reference required."));
+    }
+
+    // Append the issue reference as a trailer/footer if required.
+    if config.issue_reference_required.unwrap_or(false) {
+        if let Some(issue_ref) = issue {
+            commit_message.push_str(&format!("\n\nRefs: {}", issue_ref));
+        }
+    }
+
+    Ok(Some(commit_message))
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
     let verbose = cli.verbose;
