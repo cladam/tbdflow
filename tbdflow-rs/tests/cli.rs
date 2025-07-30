@@ -68,6 +68,7 @@ fn test_create_hotfix_branch_command() {
 }
 
 /// Tests that adding a new file and committing it with the commit command works correctly.
+/// Skipping .dod.yml verification for simplicity in this test.
 #[test]
 #[serial]
 fn test_commit_command() {

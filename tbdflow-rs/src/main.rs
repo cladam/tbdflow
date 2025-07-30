@@ -84,6 +84,11 @@ fn handle_interactive_commit(config: &DodConfig, base_message: &str, issue: &Opt
     // Start with the base commit message.
     let mut commit_message = base_message.to_string();
 
+    if config.issue_reference_required.unwrap_or(false) && issue.is_none() {
+        println!("{}", "Issue reference is required for commits, see .dod.yml file.".red());
+        return Err(anyhow::anyhow!("Aborted: Issue reference required."));
+    }
+
     let checked = run_checklist_interactive(&config.checklist)?;
     if checked.len() != config.checklist.len() {
         if Confirm::with_theme(&ColorfulTheme::default())
@@ -96,11 +101,6 @@ fn handle_interactive_commit(config: &DodConfig, base_message: &str, issue: &Opt
             println!("Commit aborted.");
             return Ok(None);
         }
-    }
-
-    if config.issue_reference_required.unwrap_or(false) && issue.is_none() {
-        println!("{}", "Issue reference is required for commits.".red());
-        return Err(anyhow::anyhow!("Aborted: Issue reference required."));
     }
 
     // Append the issue reference as a trailer/footer if required.
@@ -116,13 +116,6 @@ fn handle_interactive_commit(config: &DodConfig, base_message: &str, issue: &Opt
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
     let verbose = cli.verbose;
-    let config = read_dod_config().unwrap_or_else(|e| {
-        println!("{}", format!("Warning: {}. Proceeding without DoD checks.", e).yellow());
-        DodConfig::default()
-    });
-    if std::path::Path::new(".dod.yml").exists() && config.checklist.is_empty() {
-        println!("{}", "Warning: .dod.yml found, but contains no checklist items.".yellow());
-    }
 
     match cli.command {
         Commands::Feature { name } => {
@@ -157,43 +150,60 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Commit { r#type, scope, message, breaking, breaking_description, tag, no_verify, issue } => {
             println!("{}", "--- Committing changes ---".to_string().blue());
+            // Read the DoD configuration from `.dod.yml` file.
+            let config = read_dod_config().unwrap_or_else(|e| {
+                println!("{}", format!("Warning: {}. Proceeding without DoD checks.", e).yellow());
+                DodConfig::default()
+            });
+            if std::path::Path::new(".dod.yml").exists() && config.checklist.is_empty() {
+                println!("{}", "Warning: .dod.yml found, but contains no checklist items.".yellow());
+            }
+
             let scope_part = scope.map_or("".to_string(), |s| format!("({})", s));
             let breaking_part = if breaking { "!" } else { "" };
             let header = format!("{}{}{}: {}", r#type, scope_part, breaking_part, message);
-            let footer = if let Some(desc) = breaking_description {
-                format!("\n\nBREAKING CHANGE: {}", desc)
+
+            let final_commit_message = if no_verify || config.checklist.is_empty() {
+                let mut msg = header;
+                if let Some(desc) = breaking_description {
+                    msg.push_str(&format!("\n\nBREAKING CHANGE: {}", desc));
+                }
+                if let Some(issue_ref) = &issue {
+                    msg.push_str(&format!("\n\nRefs: {}", issue_ref));
+                }
+                Some(msg)
             } else {
-                "".to_string()
+                let mut interactive_header = header.clone();
+                if let Some(desc) = &breaking_description {
+                    interactive_header.push_str(&format!("\n\nBREAKING CHANGE: {}", desc));
+                }
+                handle_interactive_commit(&config, &interactive_header, &issue)?
             };
-            let commit_message = format!("{}{}", header, footer);
 
-            println!("{}", format!("Commit message will be:\n---\n{}\n---", commit_message).blue());
+            if let Some(commit_message) = final_commit_message {
+                println!("{}", format!("Commit message will be:\n---\n{}\n---", commit_message).blue());
+                git::add_all(verbose)?;
+                let current_branch = git::get_current_branch(verbose)?;
 
-            // Stage changes first, before any other operations.
-            git::add_all(verbose)?;
+                if current_branch == "main" {
+                    println!("--- Committing directly to main branch ---");
+                    git::pull_latest_with_rebase(verbose)?;
+                    git::commit(&commit_message, verbose)?;
+                    git::push(verbose)?;
+                    println!("\n{}", "Successfully committed and pushed changes to main.".green());
+                } else {
+                    println!("--- Committing to feature branch '{}' ---", current_branch);
+                    git::commit(&commit_message, verbose)?;
+                    git::push(verbose)?;
+                    println!("\n{}", format!("Successfully pushed changes to '{}'.", current_branch).green());
+                }
 
-            let current_branch = get_current_branch(verbose)?;
-
-            if current_branch == "main" {
-                println!("--- Committing directly to main branch ---");
-                // Now that changes are staged, `pull --rebase --autostash` will work correctly.
-                git::pull_latest_with_rebase(verbose)?;
-                git::commit(&commit_message, verbose)?;
-                git::push(verbose)?;
-                println!("\n{}", "Successfully committed and pushed changes to main.".green());
-            } else {
-                println!("--- Committing to feature branch '{}' ---", current_branch);
-                // For feature branches, we just commit and push the staged changes.
-                git::commit(&commit_message, verbose)?;
-                git::push(verbose)?;
-                println!("\n{}", format!("Successfully pushed changes to '{}'.", current_branch).green());
-            }
-
-            if let Some(tag_name) = tag {
-                let commit_hash = git::get_head_commit_hash(verbose)?;
-                git::create_tag(&tag_name, &commit_message, &commit_hash, verbose)?;
-                git::push_tags(verbose)?;
-                println!("{}", format!("Success! Created and pushed tag '{}'", tag_name).green());
+                if let Some(tag_name) = tag {
+                    let commit_hash = git::get_head_commit_hash(verbose)?;
+                    git::create_tag(&tag_name, &commit_message, &commit_hash, verbose)?;
+                    git::push_tags(verbose)?;
+                    println!("{}", format!("Success! Created and pushed tag '{}'", tag_name).green());
+                }
             }
         }
         Commands::Complete { r#type, name } => {
@@ -255,7 +265,7 @@ fn main() -> anyhow::Result<()> {
             git::pull_latest_with_rebase(verbose)?;
 
             // Add the status check to the sync workflow
-            println!("\n{}", "Current status:".bold());
+            println!("\n{}", "Current status".bold());
             let status_output = git::status(verbose)?;
             if status_output.is_empty() {
                 println!("{}", "Working directory is clean.".green());
@@ -265,11 +275,11 @@ fn main() -> anyhow::Result<()> {
             }
 
             let log_output = git::log_graph(verbose)?;
-            println!("\n{}", "Recent activity on main:".bold());
+            println!("\n{}", "Recent activity on main".bold());
             println!("{}", log_output.cyan());
 
             // Adding the stale branch check to the sync workflow
-            println!("\n{}", "Checking for stale branches:".bold());
+            println!("\n{}", "Checking for stale branches".bold());
             git::check_and_warn_for_stale_branches(verbose)?;
         }
         Commands::CheckBranches => {
