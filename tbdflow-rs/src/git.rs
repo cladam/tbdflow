@@ -18,6 +18,8 @@ pub enum GitError {
     InvalidBranchType(String),
     #[error("Not on main branch: {0}")]
     NotOnMainBranch(String),
+    #[error("Not a Git repository: {0}")]
+    NotAGitRepository(String),
 }
 
 /// Runs a Git command with the specified subcommand and arguments.
@@ -159,6 +161,16 @@ pub fn status(verbose: bool) -> Result<String> {
 /// Show recent commits in the repository, 15 by default.
 pub fn log_graph(verbose: bool) -> Result<String> {
     run_git_command("log", &["--graph", "--oneline", "-n", "15"], verbose)
+}
+
+/// Check if the current dir is a valid Git repository.
+pub fn is_git_repository(verbose: bool) -> Result<String> {
+    run_git_command("rev-parse", &["--is-inside-work-tree"], verbose)
+}
+
+///Find the root directory of the Git repository and return its path.
+pub fn get_git_root(verbose: bool) -> Result<String> {
+    run_git_command("rev-parse", &["--show-toplevel"], verbose)
 }
 
 /// Check for stale branches in the repository.

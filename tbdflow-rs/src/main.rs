@@ -24,6 +24,10 @@ fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::Init => {
             println!("{}", "--- Initialising tbdflow configuration ---".to_string().blue());
+            // Check if we are in a git repository
+            if git::is_git_repository(verbose).is_err() {
+                return Err(GitError::NotAGitRepository.into());
+            }
             // Create .tbdflow.yml if it doesn't exist
             if !std::path::Path::new(".tbdflow.yml").exists() {
                 let default_config = config::Config::default();
