@@ -9,13 +9,13 @@
 
 ## tbdflow, a Trunk-Based Development CLI
 
-A simple yet powerful command-line tool to streamline Git workflows, especially for teams (and individuals) working with Trunk-Based Development (TBD).
+`tbdflow` is a lightweight command-line tool that helps you (and your team) stay in flow with Trunk-Based Development (TBD).
 
 This CLI supports both the default commit-to-main workflow and the structured handling of short-lived branches for features, releases, and hotfixes.
 
 ## Status & history
 
-This project is the result of an iterative development journey. It began as an F# application (`tbdflow-fs`) which served as a fantastic learning exercise in functional programming.
+This project is the result of an iterative development journey. It began as an F# application (`tbdflow-fs`) which was a great learning exercise in functional programming.
 
 The current and actively developed version is the Rust implementation (`tbdflow-rs`). It was ported to Rust to create a leaner, faster, and more portable single-binary executable, making it easier for others to use and contribute to. The F# version is no longer maintained but remains in the repository as a functional prototype.
 
@@ -44,6 +44,19 @@ It offers three main benefits:
 
 3. **It supports "the TBD way"**
    This tool makes the preferred approach easy by providing a smooth, safe, and efficient path for 80% of everyday tasks. For the other 20%, you can always use Git directly.
+
+### Configuration
+`tbdflow` is configurable via two optional files in the root of your repository. To get started quickly, run `tbdflow init` to generate default versions of these files.
+
+`.tbdflow.yml`
+This file controls the core workflow of the tool. You can customize:
+* The name of your main branch (e.g., main, trunk).
+* Branch name prefixes (e.g. feat- instead of feature_).
+* The threshold for stale branch warnings.
+* Automatic tagging formats.
+
+`.dod.yml`
+This file controls the interactive Definition of Done checklist for the commit command. 
 
 ### The Definition of Done (DoD) Check
 To move beyond just automating process, `tbdflow` integrates an optional pre-commit quality check. If a `.dod.yml` file is present in your repository, the commit command will present an interactive checklist to ensure your work meets the team's agreed-upon standards.
