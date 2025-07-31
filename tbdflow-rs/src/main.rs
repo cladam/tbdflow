@@ -151,7 +151,7 @@ fn render_manpage_section(cmd: &Command, buffer: &mut Vec<u8>) -> Result<(), any
     man.render_description_section(buffer)?;
     man.render_options_section(buffer)?;
 
-    // Only add SUBCOMMANDS header if there are subcommands
+    // Only add a SUBCOMMANDS header if there are subcommands
     if cmd.has_subcommands() {
         use std::io::Write;
         writeln!(buffer, "\nSUBCOMMANDS\n")?;
@@ -168,6 +168,8 @@ fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
     let verbose = cli.verbose;
     let config = load_config()?;
+    // Lookup the default branch name.
+    let main_branch_name = config.main_branch_name.as_str();
 
     match cli.command {
         Commands::Init => {
@@ -241,7 +243,7 @@ checklist:
                 git::add_all(verbose)?;
                 let current_branch = git::get_current_branch(verbose)?;
 
-                if current_branch == "main" {
+                if current_branch == main_branch_name {
                     println!("--- Committing directly to main branch ---");
                     git::pull_latest_with_rebase(verbose)?;
                     git::commit(&commit_message, verbose)?;
@@ -266,7 +268,7 @@ checklist:
             println!("{}", "--- Creating feature branch ---".to_string().blue());
             let branch_name = format!("{}{}", config.branch_prefixes.feature, name);
             git::is_working_directory_clean(verbose)?;
-            git::checkout_main(verbose)?;
+            git::checkout_main(verbose, main_branch_name)?;
             git::pull_latest_with_rebase(verbose)?;
             git::create_branch(&branch_name, None, verbose)?;
             git::push_set_upstream(&branch_name, verbose)?;
@@ -274,9 +276,9 @@ checklist:
         }
         Commands::Release { version, from_commit } => {
             println!("{}", "--- Creating release branch ---".to_string().blue());
-            let branch_name = format!("release_{}", version);
+            let branch_name = format!("{}{}", config.branch_prefixes.release, version);
             git::is_working_directory_clean(verbose)?;
-            git::checkout_main(verbose)?;
+            git::checkout_main(verbose, main_branch_name)?;
             git::pull_latest_with_rebase(verbose)?;
             git::create_branch(&branch_name, from_commit.as_deref(), verbose)?;
             git::push_set_upstream(&branch_name, verbose)?;
@@ -284,9 +286,9 @@ checklist:
         }
         Commands::Hotfix { name } => {
             println!("{}", "--- Creating hotfix branch ---".to_string().blue());
-            let branch_name = format!("hotfix_{}", name);
+            let branch_name = format!("{}{}", config.branch_prefixes.hotfix, name);
             git::is_working_directory_clean(verbose)?;
-            git::checkout_main(verbose)?;
+            git::checkout_main(verbose, main_branch_name)?;
             git::pull_latest_with_rebase(verbose)?;
             git::create_branch(&branch_name, None, verbose)?;
             git::push_set_upstream(&branch_name, verbose)?;
@@ -301,21 +303,21 @@ checklist:
             println!("{}", format!("Branch to complete: {}", branch_name).blue());
 
             git::is_working_directory_clean(verbose)?;
-            git::checkout_main(verbose)?;
+            git::checkout_main(verbose, main_branch_name)?;
             git::pull_latest_with_rebase(verbose)?;
             git::merge_branch(&branch_name, verbose)?;
 
             let mut should_push_tags = false;
             match r#type.as_str() {
                 "release" => {
-                    let tag_name = format!("v{}", name);
+                    let tag_name = format!("{}{}", config.automatic_tags.release_prefix, name);
                     let merge_commit_hash = git::get_head_commit_hash(verbose)?;
                     git::create_tag(&tag_name, &format!("Release {}", name), &merge_commit_hash, verbose)?;
                     println!("{}", format!("Created tag '{}' on merge commit.", tag_name).green());
                     should_push_tags = true;
                 }
                 "hotfix" => {
-                    let tag_name = format!("hotfix/{}", name);
+                    let tag_name = format!("{}{}", config.automatic_tags.hotfix_prefix, name);
                     let merge_commit_hash = git::get_head_commit_hash(verbose)?;
                     git::create_tag(&tag_name, &format!("Hotfix {}", name), &merge_commit_hash, verbose)?;
                     println!("{}", format!("Created tag '{}' on merge commit.", tag_name).green());
@@ -335,8 +337,8 @@ checklist:
         }
         Commands::Sync => {
             println!("{}", "--- Syncing with remote and showing status ---".to_string().blue());
-            if get_current_branch(verbose)? != "main" {
-                git::checkout_main(verbose)?;
+            if get_current_branch(verbose)? != main_branch_name {
+                git::checkout_main(verbose, main_branch_name)?;
             }
             git::pull_latest_with_rebase(verbose)?;
 
@@ -356,7 +358,8 @@ checklist:
 
             // Adding the stale branch check to the sync workflow
             println!("\n{}", "Checking for stale branches".bold());
-            git::check_and_warn_for_stale_branches(verbose)?;
+            let stale_days = config.stale_branch_threshold_days;
+            git::check_and_warn_for_stale_branches(verbose, main_branch_name, stale_days)?;
         }
         Commands::Status => {
             println!("{}", "--- Checking status ---".to_string().blue());
@@ -371,10 +374,11 @@ checklist:
         Commands::CheckBranches => {
             println!("{}", "--- Checking for stale branches ---".to_string().blue());
             let current_branch = get_current_branch(verbose)?;
-            if current_branch != "main" {
+            if current_branch != main_branch_name {
                 return Err(GitError::NotOnMainBranch(current_branch).into());
             }
-            git::check_and_warn_for_stale_branches(verbose)?;
+            let stale_days = config.stale_branch_threshold_days;
+            git::check_and_warn_for_stale_branches(verbose, main_branch_name, stale_days)?;
         }
         Commands::GenerateManPage => {
             println!("{}", "--- Generating a man page ---".to_string().blue());

@@ -67,8 +67,8 @@ pub fn is_working_directory_clean(verbose: bool) -> Result<()> {
 }
 
 // Helper function to perform and display the stale branch check
-pub fn check_and_warn_for_stale_branches(verbose: bool) -> Result<(), anyhow::Error> {
-    let stale_branches = get_stale_branches(verbose)?;
+pub fn check_and_warn_for_stale_branches(verbose: bool, main_branch: &str, stale_days: i64) -> Result<(), anyhow::Error> {
+    let stale_branches = get_stale_branches(verbose, main_branch, stale_days)?;
     if !stale_branches.is_empty() {
         println!("\n{}", "Warning: The following branches may be stale:".bold().yellow());
         for (branch, days) in stale_branches {
@@ -81,8 +81,8 @@ pub fn check_and_warn_for_stale_branches(verbose: bool) -> Result<(), anyhow::Er
 /// -- Public Git workflow functions --
 
 /// Check out the main branch.
-pub fn checkout_main(verbose: bool) -> Result<String> {
-    run_git_command("checkout", &["main"], verbose)
+pub fn checkout_main(verbose: bool, main_branch: &str) -> Result<String> {
+    run_git_command("checkout", &[main_branch], verbose)
 }
 
 /// Pull the latest changes with rebase.
@@ -162,9 +162,9 @@ pub fn log_graph(verbose: bool) -> Result<String> {
 }
 
 /// Check for stale branches in the repository.
-pub fn get_stale_branches(verbose: bool) -> Result<Vec<(String, i64)>> {
+pub fn get_stale_branches(verbose: bool, main_branch: &str, stale_days: i64) -> Result<Vec<(String, i64)>> {
     let now = Utc::now();
-    let day_in_seconds = 24 * 60 * 60;
+    let day_in_seconds = stale_days * 24 * 60 * 60;
 
     let output = run_git_command("for-each-ref", &["--format", "%(refname:short)|%(committerdate:iso8601-strict)", "refs/heads/"], verbose)?;
     let stale_branches = output
@@ -173,7 +173,7 @@ pub fn get_stale_branches(verbose: bool) -> Result<Vec<(String, i64)>> {
             let parts: Vec<&str> = line.split('|').collect();
             if parts.len() == 2 {
                 let branch_name = parts[0].to_string();
-                if branch_name == "main" {
+                if branch_name == main_branch {
                     return None; // Skip the main branch
                 }
                 if let Ok(date) = DateTime::parse_from_rfc3339(parts[1]) {
