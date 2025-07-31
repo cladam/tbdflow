@@ -142,6 +142,15 @@ fn handle_interactive_commit(config: &DodConfig, base_message: &str, issue: &Opt
     Ok(Some(commit_message))
 }
 
+/// Check if the TYPE in the commit message is valid.
+fn is_valid_commit_type(commit_type: &str) -> bool {
+    matches!(
+        commit_type,
+        "feat" | "fix" | "docs" | "style" | "refactor" | "perf" | "test" | "chore"
+        | "build" | "ci" | "revert" | "wip"
+    )
+}
+
 /// Generate a flattened man page for tbdflow to stdout, users can pipe this to a file.
 fn render_manpage_section(cmd: &Command, buffer: &mut Vec<u8>) -> Result<(), anyhow::Error> {
     let man = clap_mangen::Man::new(cmd.clone());
@@ -208,6 +217,11 @@ checklist:
         }
         Commands::Commit { r#type, scope, message, breaking, breaking_description, tag, no_verify, issue } => {
             println!("{}", "--- Committing changes ---".to_string().blue());
+            if !is_valid_commit_type(&r#type) {
+                // Print a helpful error message and exit
+                println!("{}", format!("Error: '{}' is not a valid Conventional Commit type.", r#type).red());
+                return Ok(()); // Or return an error
+            }
             // Read the DoD configuration from the `.dod.yml` file.
             let dod_config = read_dod_config().unwrap_or_else(|e| {
                 println!("{}", format!("Warning: {}. Proceeding without DoD checks.", e).yellow());
