@@ -1,9 +1,43 @@
-main_branch_name: main
-stale_branch_threshold_days: 1
+# Customise the prefixes for branch names.
+# Using a hyphen (-) or underscore (_) is recommended over a slash (/)
+# to avoid conflicts with git tags.
 branch_prefixes:
-  feature: feature_
-  release: release_
-  hotfix: hotfix_
+  feature: "feature_"
+  release: "release_"
+  hotfix: "hotfix_"
+
+# Set the name of the main branch
+main_branch_name: "main"
+
+
+# Define what "stale" means for the 'check-branches' and 'sync' commands.
+stale_branch_threshold_days: 1
+
+# Configure the automatic tagging behaviour for the 'complete' command.
 automatic_tags:
-  release_prefix: v
-  hotfix_prefix: hotfix_
+  release_prefix: "v"
+  hotfix_prefix: "hotfix_"
+
+lint:
+  # Enforce that the --type flag is one of the allowed conventional commit types.
+  conventional_commit_type:
+    enabled: true
+    # The list of allowed types.
+    allowed_types: ["feat", "fix", "build", "chore", "ci", "docs", "perf", "refactor", "style", "test", "wip"]
+
+  # Enforce that an issue key is present in the commit message.
+  issue_key_missing:
+    enabled: true
+    # A regex pattern to find the issue key (e.g., Jira, GitHub).
+    # This example looks for one or more uppercase letters, a hyphen, and one or more numbers.
+    pattern: "[A-Z]+-[0-9]+"
+
+  # Enforce common stylistic rules for the commit subject line.
+  subject_line_max_length: 50
+  subject_line_not_capitalized: true
+  subject_line_no_period: true
+
+  # Enforce a maximum line length for the commit body.
+  # git log truncates the message body at 72 characters,
+  # so this is a good default to ensure readability in logs.
+  body_max_line_length: 72
