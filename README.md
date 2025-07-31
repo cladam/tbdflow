@@ -111,8 +111,9 @@ tbdflow commit [options]
 | -s   | --scope                 | The scope of the changes (e.g., api, ui).                | No       |
 | -m   | --message               | The descriptive commit message.                          | Yes      |
 | -b   | --breaking              | Mark the commit as a breaking change.                    | No       |
-|      | --breaking-description  | Provide a description for the BREAKING CHANGE: footer.   | No       |
+|      | --breaking-description  | Provide a description for the 'BREAKING CHANGE:' footer. | No       |
 |      | --tag                   | Optionally add and push an annotated tag to this commit. | No       |
+|      | --issue                 | Optionally add an issue reference to the footer.         | No       |
 |      | --no-verify             | Bypass the interactive DoD checklist.                    | No       |
 
 **Example:**
