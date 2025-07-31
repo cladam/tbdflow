@@ -10,6 +10,8 @@ use std::io::Write;
 use std::fs;
 use clap::{CommandFactory, Parser};
 use colored::Colorize;
+use dialoguer::Confirm;
+use dialoguer::theme::ColorfulTheme;
 use tbdflow::{cli, git, config, commit, misc};
 use tbdflow::cli::Commands;
 use tbdflow::git::{get_current_branch, GitError};
@@ -25,20 +27,43 @@ fn main() -> anyhow::Result<()> {
         Commands::Init => {
             println!("{}", "--- Initialising tbdflow configuration ---".to_string().blue());
             // Check if we are in a git repository
+            // Get current filesystem directory, with a full path
+            let absolute_path = std::env::current_dir()?.to_str()
+                .unwrap_or("unknown")
+                .to_string();
             if git::is_git_repository(verbose).is_err() {
-                return Err(GitError::NotAGitRepository.into());
+                //return Err(GitError::NotAGitRepository(absolute_path).into());
+                // If not, ask the user if they want to create one.
+                if Confirm::with_theme(&ColorfulTheme::default())
+                    .with_prompt(format!("Currently not in a git repository ({}). Would you like to initialise one?", absolute_path))
+                    .interact()?
+                {
+                    // If yes, run git init.
+                    git::init_git_repository(verbose)?;
+                    println!("{}", "New git repository initialised.".green());
+                } else {
+                    // If no, abort.
+                    println!("{}", "Aborted. Please run 'tbdflow init' from within a git repository.".red());
+                    return Ok(());
+                }
             }
-            // Create .tbdflow.yml if it doesn't exist
-            if !std::path::Path::new(".tbdflow.yml").exists() {
+            // Get the root directory of the git repository
+            let git_root = git::get_git_root(verbose)?;
+            println!("{}", format!("Git repository root: {}", git_root).blue());
+            let tbdflow_path = std::path::Path::new(&git_root).join(".tbdflow.yml");
+
+            if !tbdflow_path.exists() {
                 let default_config = config::Config::default();
                 let yaml_string = serde_yaml::to_string(&default_config)?;
-                fs::write(".tbdflow.yml", yaml_string)?;
+                fs::write(&tbdflow_path, yaml_string)?;
                 println!("{}", "Created default .tbdflow.yml configuration file.".green());
             } else {
                 println!("{}", ".tbdflow.yml already exists. Skipping.".yellow());
             }
+
             // Create .dod.yml if it doesn't exist
-            if !std::path::Path::new(".dod.yml").exists() {
+            let dod_path = std::path::Path::new(&git_root).join(".dod.yml");
+            if !dod_path.exists() {
                 let default_dod = r#"
 # --- Optional Issue Tracker Integration ---
 # If true, the check-commit tool will require the --issue <ID> flag
@@ -54,7 +79,7 @@ checklist:
   - "Security implications of this change have been considered."
   - "Relevant documentation (code comments, READMEs, etc.) is updated."
 "#.trim();
-                fs::write(".dod.yml", default_dod)?;
+                fs::write(dod_path, default_dod)?;
                 println!("{}", "Created default .dod.yml checklist file.".green());
             } else {
                 println!("{}", ".dod.yml already exists. Skipping.".yellow());

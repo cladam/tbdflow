@@ -28,11 +28,11 @@ lint:
   # Enforce that an issue key is present in the commit message.
   issue_key_missing:
     enabled: true
-    # A regex pattern to find the issue key (e.g., Jira, GitHub).
+    # A regex pattern to find the issue key (e.g. Jira, GitHub).
     # This example looks for one or more uppercase letters, a hyphen, and one or more numbers.
     pattern: "[A-Z]+-[0-9]+"
 
-  # Enforce common stylistic rules for the commit subject line.
+  # Enforce common stylistic rules for the commit subject line (conventional commits).
   subject_line_max_length: 50
   subject_line_not_capitalized: true
   subject_line_no_period: true

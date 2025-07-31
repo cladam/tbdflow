@@ -168,9 +168,14 @@ pub fn is_git_repository(verbose: bool) -> Result<String> {
     run_git_command("rev-parse", &["--is-inside-work-tree"], verbose)
 }
 
-///Find the root directory of the Git repository and return its path.
+/// Find the root directory of the Git repository and return its path.
 pub fn get_git_root(verbose: bool) -> Result<String> {
     run_git_command("rev-parse", &["--show-toplevel"], verbose)
+}
+
+/// Initialise a new Git repository in the current directory.
+pub fn init_git_repository(verbose: bool) -> Result<String> {
+    run_git_command("init", &[], verbose)
 }
 
 /// Check for stale branches in the repository.
