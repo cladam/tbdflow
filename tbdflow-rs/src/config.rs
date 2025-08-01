@@ -87,7 +87,7 @@ impl Default for Config {
                     ]),
                 }),
                 issue_key: Some(IssueKeyConfig {
-                    enabled: Some(false),
+                    enabled: Some(true),
                     issue_key_pattern: Some(r"^[A-Z]+-\d+$".to_string()), // Example pattern for Jira issue keys
                 }),
             }),
