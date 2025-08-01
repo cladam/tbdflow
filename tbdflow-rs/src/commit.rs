@@ -99,7 +99,7 @@ pub fn is_valid_issue_key(issue_key: &Option<String>, config: &config::Config) -
                     return true; // If linting is disabled, any issue key is valid
                 }
             }
-            if let Some(issue_key_pattern) = &issue_key_config.issue_key_pattern {
+            if let Some(issue_key_pattern) = &issue_key_config.pattern {
                 let re = regex::Regex::new(issue_key_pattern).unwrap();
                 return re.is_match(&issue_key.as_ref().unwrap_or(&"".to_string()));
             }

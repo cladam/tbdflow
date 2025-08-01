@@ -35,7 +35,7 @@ pub struct ConventionalCommitTypeConfig {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IssueKeyConfig {
     pub enabled: Option<bool>,
-    pub issue_key_pattern: Option<String>,
+    pub pattern: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -87,8 +87,8 @@ impl Default for Config {
                     ]),
                 }),
                 issue_key_missing: Some(IssueKeyConfig {
-                    enabled: Some(true),
-                    issue_key_pattern: Some(r"^[A-Z]+-\d+$".to_string()), // Example pattern for Jira issue keys
+                    enabled: Some(false),
+                    pattern: Some(r"^[A-Z]+-\d+$".to_string()), // Example pattern for Jira issue keys
                 }),
             }),
         }
