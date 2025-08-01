@@ -23,7 +23,19 @@ lint:
   conventional_commit_type:
     enabled: true
     # The list of allowed types.
-    allowed_types: ["feat", "fix", "build", "chore", "ci", "docs", "perf", "refactor", "style", "test", "wip"]
+    allowed_types: [
+      "build",
+      "chore",
+      "ci",
+      "docs",
+      "feat",
+      "fix",
+      "perf",
+      "refactor",
+      "revert",
+      "style",
+      "test"
+    ]
 
   # Enforce that an issue key is present in the commit message.
   issue_key_missing:

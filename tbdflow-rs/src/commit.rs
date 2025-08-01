@@ -2,6 +2,7 @@ use crate::config::DodConfig;
 use anyhow::Result;
 use colored::Colorize;
 use dialoguer::{MultiSelect, Confirm, theme::ColorfulTheme};
+use crate::config;
 
 /// Runs the checklist interactively, allowing the user to confirm each item before committing.
 pub fn run_checklist_interactive(checklist: &[String]) -> anyhow::Result<Vec<usize>> {
@@ -64,10 +65,18 @@ pub fn handle_interactive_commit(config: &DodConfig, base_message: &str, issue: 
 }
 
 /// Check if the TYPE in the commit message is valid.
-pub fn is_valid_commit_type(commit_type: &str) -> bool {
-    matches!(
-        commit_type,
-        "feat" | "fix" | "docs" | "style" | "refactor" | "perf" | "test" | "chore"
-        | "build" | "ci" | "revert" | "wip"
-    )
+pub fn is_valid_commit_type(commit_type: &str, config: &config::Config) -> bool {
+    if let Some(lint_config) = &config.lint {
+        if let Some(conventional_commit_type) = &lint_config.conventional_commit_type {
+            if let Some(enabled) = conventional_commit_type.enabled {
+                if !enabled {
+                    return true; // If linting is disabled, any type is valid
+                }
+            }
+            if let Some(allowed_types) = &conventional_commit_type.allowed_types {
+                return allowed_types.iter().any(|t| t == commit_type);
+            }
+        }
+    }
+   true
 }

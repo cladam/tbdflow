@@ -87,7 +87,7 @@ checklist:
         }
         Commands::Commit { r#type, scope, message, breaking, breaking_description, tag, no_verify, issue } => {
             println!("{}", "--- Committing changes ---".to_string().blue());
-            if !commit::is_valid_commit_type(&r#type) {
+            if !commit::is_valid_commit_type(&r#type, &config) {
                 // Print a helpful error message and exit
                 println!("{}", format!("Error: '{}' is not a valid Conventional Commit type.", r#type).red());
                 return Ok(()); // Or return an error

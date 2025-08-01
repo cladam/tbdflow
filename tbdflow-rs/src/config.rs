@@ -23,11 +23,24 @@ pub struct AutomaticTags {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ConventionalCommitTypeConfig {
+    pub enabled: Option<bool>,
+    pub allowed_types: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LintConfig {
+    pub conventional_commit_type: Option<ConventionalCommitTypeConfig>,
+    // ... will add the other fields ...
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub main_branch_name: String,
     pub stale_branch_threshold_days: i64,
     pub branch_prefixes: BranchPrefixes,
     pub automatic_tags: AutomaticTags,
+    pub lint: Option<LintConfig>,
 }
 
 impl Default for Config {
@@ -44,6 +57,25 @@ impl Default for Config {
                 release_prefix: "v".to_string(),
                 hotfix_prefix: "hotfix_".to_string(),
             },
+            // Add default lint configuration
+            lint: Some(LintConfig {
+                conventional_commit_type: Some(ConventionalCommitTypeConfig {
+                    enabled: Some(true),
+                    allowed_types: Some(vec![
+                        "build".to_string(),
+                        "chore".to_string(),
+                        "ci".to_string(),
+                        "docs".to_string(),
+                        "feat".to_string(),
+                        "fix".to_string(),
+                        "perf".to_string(),
+                        "refactor".to_string(),
+                        "revert".to_string(),
+                        "style".to_string(),
+                        "test".to_string(),
+                    ]),
+                }),
+            }),
         }
     }
 }
