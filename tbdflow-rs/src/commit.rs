@@ -93,7 +93,7 @@ pub fn is_valid_commit_type(commit_type: &str, config: &config::Config) -> bool 
 /// Check if the issue key in the commit message is valid.
 pub fn is_valid_issue_key(issue_key: &Option<String>, config: &config::Config) -> bool {
     if let Some(lint_config) = &config.lint {
-        if let Some(issue_key_config) = &lint_config.issue_key {
+        if let Some(issue_key_config) = &lint_config.issue_key_missing {
             if let Some(enabled) = issue_key_config.enabled {
                 if !enabled {
                     return true; // If linting is disabled, any issue key is valid

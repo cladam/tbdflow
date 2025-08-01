@@ -41,7 +41,7 @@ pub struct IssueKeyConfig {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LintConfig {
     pub conventional_commit_type: Option<ConventionalCommitTypeConfig>,
-    pub issue_key: Option<IssueKeyConfig>,
+    pub issue_key_missing: Option<IssueKeyConfig>,
     // ... will add the other fields ...
 }
 
@@ -86,7 +86,7 @@ impl Default for Config {
                         "test".to_string(),
                     ]),
                 }),
-                issue_key: Some(IssueKeyConfig {
+                issue_key_missing: Some(IssueKeyConfig {
                     enabled: Some(true),
                     issue_key_pattern: Some(r"^[A-Z]+-\d+$".to_string()), // Example pattern for Jira issue keys
                 }),
