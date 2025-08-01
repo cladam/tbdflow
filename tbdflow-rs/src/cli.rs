@@ -67,6 +67,9 @@ pub enum Commands {
         /// Optional flag for an issue reference.
         #[arg(long)]
         issue: Option<String>,
+        /// Optional multi-line body for the commit message.
+        #[arg(long)]
+        body: Option<String>,
     },
     /// Creates a new short-lived feature branch from 'main'.
     #[command(after_help = "EXAMPLE:\n  \

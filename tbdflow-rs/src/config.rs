@@ -39,10 +39,23 @@ pub struct IssueKeyConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct SubjectLineRules {
+    pub subject_line_max_length: Option<usize>,
+    pub subject_line_not_capitalized: Option<bool>,
+    pub subject_line_no_period: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BodyLineRules {
+    pub body_max_line_length: Option<usize>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LintConfig {
     pub conventional_commit_type: Option<ConventionalCommitTypeConfig>,
     pub issue_key_missing: Option<IssueKeyConfig>,
-    // ... will add the other fields ...
+    pub subject_line_rules: Option<SubjectLineRules>,
+    pub body_line_rules: Option<BodyLineRules>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -89,6 +102,14 @@ impl Default for Config {
                 issue_key_missing: Some(IssueKeyConfig {
                     enabled: Some(false),
                     pattern: Some(r"^[A-Z]+-\d+$".to_string()), // Example pattern for Jira issue keys
+                }),
+                subject_line_rules: Some(SubjectLineRules {
+                    subject_line_max_length: Some(72),
+                    subject_line_not_capitalized: Some(true),
+                    subject_line_no_period: Some(true),
+                }),
+                body_line_rules: Some(BodyLineRules {
+                    body_max_line_length: Some(80),
                 }),
             }),
         }

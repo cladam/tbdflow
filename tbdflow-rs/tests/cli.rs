@@ -106,6 +106,7 @@ fn test_commit_command() {
         .arg("--type").arg("feat")
         .arg("--scope").arg("ui")
         .arg("--message").arg("Add new button")
+        .arg("--body").arg("This button is used for submitting forms.")
         .arg("--breaking")
         .arg("--tag").arg("button-v1");
     cmd.assert()

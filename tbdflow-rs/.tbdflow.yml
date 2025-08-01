@@ -46,11 +46,11 @@ lint:
     pattern: "[A-Z]+-[0-9]+"
 
   # Enforce common stylistic rules for the commit subject line (conventional commits).
-  subject_line_max_length: 50
+  subject_line_max_length: 72
   subject_line_not_capitalized: true
   subject_line_no_period: true
 
   # Enforce a maximum line length for the commit body.
-  # git log truncates the message body at 72 characters,
+  # git log truncates the message body at 80 characters,
   # so this is a good default to ensure readability in logs.
-  body_max_line_length: 72
+  body_max_line_length: 80

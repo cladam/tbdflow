@@ -54,11 +54,14 @@ This file controls the core workflow of the tool. You can customize:
 * Branch name prefixes (e.g. feat- instead of feature_).
 * The threshold for stale branch warnings.
 * Automatic tagging formats.
+* Commit message linting rules.
 
 `.dod.yml`
 This file controls the interactive Definition of Done checklist for the commit command. 
 
-### The Definition of Done (DoD) Check
+### Features
+
+#### The Definition of Done (DoD) Check
 To move beyond just automating process, `tbdflow` integrates an optional pre-commit quality check. If a `.dod.yml` file is present in your repository, the commit command will present an interactive checklist to ensure your work meets the team's agreed-upon standards.
 
 **Example** `.dod.yml`:
@@ -77,6 +80,10 @@ checklist:
 ```
 
 If you try to proceed without checking all items, the tool will offer to add a TODO list to your commit message footer, ensuring the incomplete work is tracked directly in your Git history.
+
+#### Commit Message Linting
+
+If a `.tbdflow.yml` file is present and contains a lint section, the commit command will automatically validate your commit message against the configured rules before the DoD check. This provides immediate feedback on stylistic and structural conventions.
 
 ---
 
@@ -109,7 +116,8 @@ tbdflow commit [options]
 |------|-------------------------|----------------------------------------------------------|----------|
 | -t   | --type                  | The type of commit (e.g., feat, fix, chore).             | Yes      |
 | -s   | --scope                 | The scope of the changes (e.g., api, ui).                | No       |
-| -m   | --message               | The descriptive commit message.                          | Yes      |
+| -m   | --message               | The descriptive commit message (subject line).           | Yes      |
+|      | --body                  | Optional multi-line body for the commit message.         | No.      |
 | -b   | --breaking              | Mark the commit as a breaking change.                    | No       |
 |      | --breaking-description  | Provide a description for the 'BREAKING CHANGE:' footer. | No       |
 |      | --tag                   | Optionally add and push an annotated tag to this commit. | No       |

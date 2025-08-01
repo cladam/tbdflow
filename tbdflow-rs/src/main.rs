@@ -32,7 +32,6 @@ fn main() -> anyhow::Result<()> {
                 .unwrap_or("unknown")
                 .to_string();
             if git::is_git_repository(verbose).is_err() {
-                //return Err(GitError::NotAGitRepository(absolute_path).into());
                 // If not, ask the user if they want to create one.
                 if Confirm::with_theme(&ColorfulTheme::default())
                     .with_prompt(format!("Currently not in a git repository ({}). Would you like to initialise one?", absolute_path))
@@ -41,6 +40,10 @@ fn main() -> anyhow::Result<()> {
                     // If yes, run git init.
                     git::init_git_repository(verbose)?;
                     println!("{}", "New git repository initialised.".green());
+                    println!("{}", "\nNext steps:".bold());
+                    println!("1. Create a repository on your git provider (e.g., GitHub).");
+                    println!("2. Run the following command to link it:");
+                    println!("{}", "   git remote add origin <your-repository-url>".cyan());
                 } else {
                     // If no, abort.
                     println!("{}", "Aborted. Please run 'tbdflow init' from within a git repository.".red());
@@ -65,11 +68,6 @@ fn main() -> anyhow::Result<()> {
             let dod_path = std::path::Path::new(&git_root).join(".dod.yml");
             if !dod_path.exists() {
                 let default_dod = r#"
-# --- Optional Issue Tracker Integration ---
-# If true, the check-commit tool will require the --issue <ID> flag
-# to be used with the commit command, ensuring all work is traceable.
-issue_reference_required: false
-
 # --- Interactive Checklist ---
 # This list is presented to the developer before every commit.
 checklist:
@@ -85,7 +83,7 @@ checklist:
                 println!("{}", ".dod.yml already exists. Skipping.".yellow());
             }
         }
-        Commands::Commit { r#type, scope, message, breaking, breaking_description, tag, no_verify, issue } => {
+        Commands::Commit { r#type, scope, message, breaking, breaking_description, tag, no_verify, issue, body } => {
             println!("{}", "--- Committing changes ---".to_string().blue());
             // Linting checks for commit type and issue reference
             if !commit::is_valid_commit_type(&r#type, &config) {
@@ -96,6 +94,20 @@ checklist:
             if !commit::is_valid_issue_key(&issue, &config) {
                 println!("{}", "Issue reference is required for commits, see .tbdflow.yml file.".red());
                 return Err(anyhow::anyhow!("Aborted: Issue reference required."));
+            }
+
+            // Linting checks for commit message subject line
+            if let Err(subject_err) = commit::is_valid_subject_line(&message, &config) {
+                println!("{}", format!("Commit message subject line error: {}", subject_err).red());
+                return Err(anyhow::anyhow!("Aborted: Invalid commit message subject line."));
+            }
+
+            // Linting checks for commit message body
+            if let Some(body_text) = &body {
+                if !commit::is_valid_body_lines(body_text, &config) {
+                    println!("{}", "Commit message body contains lines that exceed the maximum length.".red());
+                    return Err(anyhow::anyhow!("Aborted: Invalid commit message body."));
+                }
             }
 
             // Read the DoD configuration from the `.dod.yml` file.
@@ -113,6 +125,11 @@ checklist:
             let header = format!("{}{}{}: {}", r#type, scope_part, breaking_part, message);
 
             let mut commit_message = header;
+
+            if let Some(body_text) = body {
+                commit_message.push_str("\n\n");
+                commit_message.push_str(&body_text);
+            }
 
             if let Some(desc) = breaking_description {
                 commit_message.push_str(&format!("\n\nBREAKING CHANGE: {}", desc));

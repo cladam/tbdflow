@@ -107,3 +107,49 @@ pub fn is_valid_issue_key(issue_key: &Option<String>, config: &config::Config) -
     }
     true
 }
+
+/// Check if the subject line of the commit message is valid.
+/// Validations include maximum length, capitalization, and period at the end.
+pub fn is_valid_subject_line(subject: &str, config: &config::Config) -> Result<(), String> {
+    if let Some(lint) = &config.lint {
+        if let Some(rules) = &lint.subject_line_rules {
+            if let Some(max_len) = rules.subject_line_max_length {
+                if subject.len() > max_len {
+                    return Err(format!("Subject line exceeds maximum length of {} characters.", max_len));
+                }
+            }
+            // Sentence case: first char uppercase, rest not all uppercase
+            let mut chars = subject.chars();
+            if let Some(first) = chars.next() {
+                if !first.is_uppercase() {
+                    return Err("Subject line must start with an uppercase letter (sentence case).".to_string());
+                }
+                let rest: String = chars.collect();
+                if rest.chars().all(|c| c.is_uppercase()) {
+                    return Err("Subject line must use sentence case, not all uppercase.".to_string());
+                }
+            }
+            if let Some(no_period) = rules.subject_line_no_period {
+                if no_period && subject.trim_end().ends_with('.') {
+                    return Err("Subject line should not end with a period.".to_string());
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Check if the body lines of the commit message are valid.
+/// Validations include maximum line length.
+pub fn is_valid_body_lines(body: &str, config: &config::Config) -> bool {
+    if let Some(lint) = &config.lint {
+        if let Some(rules) = &lint.body_line_rules {
+            if let Some(max_len) = rules.body_max_line_length {
+                for line in body.lines() {
+                    if line.len() > max_len { return false; }
+                }
+            }
+        }
+    }
+    true
+}
