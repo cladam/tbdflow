@@ -87,11 +87,17 @@ checklist:
         }
         Commands::Commit { r#type, scope, message, breaking, breaking_description, tag, no_verify, issue } => {
             println!("{}", "--- Committing changes ---".to_string().blue());
+            // Linting checks for commit type and issue reference
             if !commit::is_valid_commit_type(&r#type, &config) {
                 // Print a helpful error message and exit
                 println!("{}", format!("Error: '{}' is not a valid Conventional Commit type.", r#type).red());
-                return Ok(()); // Or return an error
+                return Err(anyhow::anyhow!("Aborted: Invalid commit type."));
             }
+            if !commit::is_valid_issue_key(&issue, &config) {
+                println!("{}", "Issue reference is required for commits, see .tbdflow.yml file.".red());
+                return Err(anyhow::anyhow!("Aborted: Issue reference required."));
+            }
+
             // Read the DoD configuration from the `.dod.yml` file.
             let dod_config = config::load_dod_config().unwrap_or_else(|e| {
                 println!("{}", format!("Warning: {}. Proceeding without DoD checks.", e).yellow());
@@ -101,51 +107,53 @@ checklist:
                 println!("{}", "Warning: .dod.yml found, but contains no checklist items.".yellow());
             }
 
+            // Assemble the commit message
             let scope_part = scope.map_or("".to_string(), |s| format!("({})", s));
             let breaking_part = if breaking { "!" } else { "" };
             let header = format!("{}{}{}: {}", r#type, scope_part, breaking_part, message);
 
-            let final_commit_message = if no_verify || dod_config.checklist.is_empty() {
-                let mut msg = header;
-                if let Some(desc) = breaking_description {
-                    msg.push_str(&format!("\n\nBREAKING CHANGE: {}", desc));
-                }
-                if let Some(issue_ref) = &issue {
-                    msg.push_str(&format!("\n\nRefs: {}", issue_ref));
-                }
-                Some(msg)
+            let footer = if no_verify || dod_config.checklist.is_empty() {
+                // If we skip the check, there's no TODO footer.
+                Ok(None)
             } else {
-                let mut interactive_header = header.clone();
-                if let Some(desc) = &breaking_description {
-                    interactive_header.push_str(&format!("\n\nBREAKING CHANGE: {}", desc));
-                }
-                commit::handle_interactive_commit(&dod_config, &interactive_header, &issue)?
+                commit::handle_interactive_dod(&dod_config)
             };
 
-            if let Some(commit_message) = final_commit_message {
-                println!("{}", format!("Commit message will be:\n---\n{}\n---", commit_message).blue());
-                git::add_all(verbose)?;
-                let current_branch = git::get_current_branch(verbose)?;
+            let mut commit_message = header;
 
-                if current_branch == main_branch_name {
-                    println!("--- Committing directly to main branch ---");
-                    git::pull_latest_with_rebase(verbose)?;
-                    git::commit(&commit_message, verbose)?;
-                    git::push(verbose)?;
-                    println!("\n{}", "Successfully committed and pushed changes to main.".green());
-                } else {
-                    println!("--- Committing to feature branch '{}' ---", current_branch);
-                    git::commit(&commit_message, verbose)?;
-                    git::push(verbose)?;
-                    println!("\n{}", format!("Successfully pushed changes to '{}'.", current_branch).green());
-                }
+            if let Some(desc) = breaking_description {
+                commit_message.push_str(&format!("\n\nBREAKING CHANGE: {}", desc));
+            }
 
-                if let Some(tag_name) = tag {
-                    let commit_hash = git::get_head_commit_hash(verbose)?;
-                    git::create_tag(&tag_name, &commit_message, &commit_hash, verbose)?;
-                    git::push_tags(verbose)?;
-                    println!("{}", format!("Success! Created and pushed tag '{}'", tag_name).green());
-                }
+            if let Some(issue_ref) = &issue {
+                commit_message.push_str(&format!("\n\nRefs: {}", issue_ref));
+            }
+            if let Some(footer_text) = footer? {
+                // Add the TODO footer from the interactive check.
+                commit_message.push_str(&footer_text);
+            }
+            println!("{}", format!("Commit message will be:\n---\n{}\n---", commit_message).blue());
+            git::add_all(verbose)?;
+            let current_branch = git::get_current_branch(verbose)?;
+
+            if current_branch == config.main_branch_name {
+                println!("--- Committing directly to main branch ---");
+                git::pull_latest_with_rebase(verbose)?;
+                git::commit(&commit_message, verbose)?;
+                git::push(verbose)?;
+                println!("\n{}", "Successfully committed and pushed changes to main.".green());
+            } else {
+                println!("--- Committing to feature branch '{}' ---", current_branch);
+                git::commit(&commit_message, verbose)?;
+                git::push(verbose)?;
+                println!("\n{}", format!("Successfully pushed changes to '{}'.", current_branch).green());
+            }
+
+            if let Some(tag_name) = tag {
+                let commit_hash = git::get_head_commit_hash(verbose)?;
+                git::create_tag(&tag_name, &commit_message, &commit_hash, verbose)?;
+                git::push_tags(verbose)?;
+                println!("{}", format!("Success! Created and pushed tag '{}'", tag_name).green());
             }
         }
         Commands::Feature { name } => {

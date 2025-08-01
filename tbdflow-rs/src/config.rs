@@ -2,6 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use anyhow::Context;
 
+/// The structs and functions for handling the configuration of the TBDFlow tool.
+/// This includes reading the configuration from `.tbdflow.yml` and `.dod.yml` files,
+/// as well as defining the structure of the configuration data.
+
 #[derive(Debug, Deserialize, Default)]
 pub struct DodConfig {
     pub issue_reference_required: Option<bool>,
@@ -29,8 +33,15 @@ pub struct ConventionalCommitTypeConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct IssueKeyConfig {
+    pub enabled: Option<bool>,
+    pub issue_key_pattern: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LintConfig {
     pub conventional_commit_type: Option<ConventionalCommitTypeConfig>,
+    pub issue_key: Option<IssueKeyConfig>,
     // ... will add the other fields ...
 }
 
@@ -74,6 +85,10 @@ impl Default for Config {
                         "style".to_string(),
                         "test".to_string(),
                     ]),
+                }),
+                issue_key: Some(IssueKeyConfig {
+                    enabled: Some(false),
+                    issue_key_pattern: Some(r"^[A-Z]+-\d+$".to_string()), // Example pattern for Jira issue keys
                 }),
             }),
         }

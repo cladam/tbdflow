@@ -1,6 +1,5 @@
 use crate::config::DodConfig;
 use anyhow::Result;
-use colored::Colorize;
 use dialoguer::{MultiSelect, Confirm, theme::ColorfulTheme};
 use crate::config;
 
@@ -31,14 +30,9 @@ pub fn build_todo_footer(checklist: &[String], checked_indices: &[usize]) -> Str
 }
 
 /// Handles the interactive commit process, including checklist confirmation and issue reference handling.
-pub fn handle_interactive_commit(config: &DodConfig, base_message: &str, issue: &Option<String>) -> Result<Option<String>, anyhow::Error> {
+pub fn handle_interactive_commit(config: &DodConfig, base_message: &str) -> Result<Option<String>, anyhow::Error> {
     // Start with the base commit message.
     let mut commit_message = base_message.to_string();
-
-    if config.issue_reference_required.unwrap_or(false) && issue.is_none() {
-        println!("{}", "Issue reference is required for commits, see .dod.yml file.".red());
-        return Err(anyhow::anyhow!("Aborted: Issue reference required."));
-    }
 
     let checked = run_checklist_interactive(&config.checklist)?;
     if checked.len() != config.checklist.len() {
@@ -54,14 +48,29 @@ pub fn handle_interactive_commit(config: &DodConfig, base_message: &str, issue: 
         }
     }
 
-    // Append the issue reference as a trailer/footer if required.
-    if config.issue_reference_required.unwrap_or(false) {
-        if let Some(issue_ref) = issue {
-            commit_message.push_str(&format!("\n\nRefs: {}", issue_ref));
-        }
-    }
-
     Ok(Some(commit_message))
+}
+
+/// Runs the interactive DoD check.
+/// Returns Ok(Some(footer)) on success.
+/// Returns Ok(None) if the user aborts.
+/// Returns Err if something goes wrong.
+pub fn handle_interactive_dod(config: &DodConfig) -> Result<Option<String>> {
+    let checked = run_checklist_interactive(&config.checklist)?;
+    if checked.len() != config.checklist.len() {
+        if Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Warning: Not all DoD items were checked. Proceed by adding a 'TODO' list to the commit message?")
+            .interact()?
+        {
+            let todo_footer = build_todo_footer(&config.checklist, &checked);
+            Ok(Some(todo_footer))
+        } else {
+            println!("Commit aborted.");
+            Ok(None)
+        }
+    } else {
+        Ok(Some(String::new())) // All items checked, return an empty footer.
+    }
 }
 
 /// Check if the TYPE in the commit message is valid.
@@ -79,4 +88,22 @@ pub fn is_valid_commit_type(commit_type: &str, config: &config::Config) -> bool 
         }
     }
    true
+}
+
+/// Check if the issue key in the commit message is valid.
+pub fn is_valid_issue_key(issue_key: &Option<String>, config: &config::Config) -> bool {
+    if let Some(lint_config) = &config.lint {
+        if let Some(issue_key_config) = &lint_config.issue_key {
+            if let Some(enabled) = issue_key_config.enabled {
+                if !enabled {
+                    return true; // If linting is disabled, any issue key is valid
+                }
+            }
+            if let Some(issue_key_pattern) = &issue_key_config.issue_key_pattern {
+                let re = regex::Regex::new(issue_key_pattern).unwrap();
+                return re.is_match(&issue_key.as_ref().unwrap_or(&"".to_string()));
+            }
+        }
+    }
+    true
 }
