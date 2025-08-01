@@ -112,13 +112,6 @@ checklist:
             let breaking_part = if breaking { "!" } else { "" };
             let header = format!("{}{}{}: {}", r#type, scope_part, breaking_part, message);
 
-            let footer = if no_verify || dod_config.checklist.is_empty() {
-                // If we skip the check, there's no TODO footer.
-                Ok(None)
-            } else {
-                commit::handle_interactive_dod(&dod_config)
-            };
-
             let mut commit_message = header;
 
             if let Some(desc) = breaking_description {
@@ -128,32 +121,41 @@ checklist:
             if let Some(issue_ref) = &issue {
                 commit_message.push_str(&format!("\n\nRefs: {}", issue_ref));
             }
-            if let Some(footer_text) = footer? {
-                // Add the TODO footer from the interactive check.
-                commit_message.push_str(&footer_text);
-            }
-            println!("{}", format!("Commit message will be:\n---\n{}\n---", commit_message).blue());
-            git::add_all(verbose)?;
-            let current_branch = git::get_current_branch(verbose)?;
 
-            if current_branch == config.main_branch_name {
-                println!("--- Committing directly to main branch ---");
-                git::pull_latest_with_rebase(verbose)?;
-                git::commit(&commit_message, verbose)?;
-                git::push(verbose)?;
-                println!("\n{}", "Successfully committed and pushed changes to main.".green());
+            // Handle the interactive DoD check to get the TODO footer
+            let todo_footer_result = if no_verify || dod_config.checklist.is_empty() {
+                Ok(Some(String::new())) // Skip check, success with empty footer
             } else {
-                println!("--- Committing to feature branch '{}' ---", current_branch);
-                git::commit(&commit_message, verbose)?;
-                git::push(verbose)?;
-                println!("\n{}", format!("Successfully pushed changes to '{}'.", current_branch).green());
-            }
+                commit::handle_interactive_dod(&dod_config)
+            };
 
-            if let Some(tag_name) = tag {
-                let commit_hash = git::get_head_commit_hash(verbose)?;
-                git::create_tag(&tag_name, &commit_message, &commit_hash, verbose)?;
-                git::push_tags(verbose)?;
-                println!("{}", format!("Success! Created and pushed tag '{}'", tag_name).green());
+            // Proceed only if the user did not abort the interactive check
+            if let Some(todo_footer) = todo_footer_result? {
+                commit_message.push_str(&todo_footer);
+
+                println!("{}", format!("Commit message will be:\n---\n{}\n---", commit_message).blue());
+                git::add_all(verbose)?;
+                let current_branch = git::get_current_branch(verbose)?;
+
+                if current_branch == config.main_branch_name {
+                    println!("--- Committing directly to main branch ---");
+                    git::pull_latest_with_rebase(verbose)?;
+                    git::commit(&commit_message, verbose)?;
+                    git::push(verbose)?;
+                    println!("\n{}", "Successfully committed and pushed changes to main.".green());
+                } else {
+                    println!("--- Committing to feature branch '{}' ---", current_branch);
+                    git::commit(&commit_message, verbose)?;
+                    git::push(verbose)?;
+                    println!("\n{}", format!("Successfully pushed changes to '{}'.", current_branch).green());
+                }
+
+                if let Some(tag_name) = tag {
+                    let commit_hash = git::get_head_commit_hash(verbose)?;
+                    git::create_tag(&tag_name, &commit_message, &commit_hash, verbose)?;
+                    git::push_tags(verbose)?;
+                    println!("{}", format!("Success! Created and pushed tag '{}'", tag_name).green());
+                }
             }
         }
         Commands::Feature { name } => {
