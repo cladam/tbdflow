@@ -117,7 +117,7 @@ tbdflow commit [options]
 | -t   | --type                  | The type of commit (e.g., feat, fix, chore).             | Yes      |
 | -s   | --scope                 | The scope of the changes (e.g., api, ui).                | No       |
 | -m   | --message               | The descriptive commit message (subject line).           | Yes      |
-|      | --body                  | Optional multi-line body for the commit message.         | No.      |
+|      | --body                  | Optional multi-line body for the commit message.         | No       |
 | -b   | --breaking              | Mark the commit as a breaking change.                    | No       |
 |      | --breaking-description  | Provide a description for the 'BREAKING CHANGE:' footer. | No       |
 |      | --tag                   | Optionally add and push an annotated tag to this commit. | No       |
@@ -128,14 +128,14 @@ tbdflow commit [options]
 
 ```bash
 # A new feature
-tbdflow commit -t "feat" -s "auth" -m "Add password reset endpoint"
+tbdflow commit -t feat -s auth -m "Add password reset endpoint"
 
 # A bug fix with a breaking change
-tbdflow commit -t "fix" -m "Correct user permission logic" -b
-tbdflow commit -t "refactor" -m "Rename internal API" --breaking --breaking-description "The `getUser` function has been renamed to `fetchUser`."
+tbdflow commit -t fix -m "Correct user permission logic" -b
+tbdflow commit -t refactor -m "Rename internal API" --breaking --breaking-description "The `getUser` function has been renamed to `fetchUser`."
 
 # A bug fix with a new tag
-tbdflow commit -t "fix" -m "Correct user permission logic" --tag "v1.1.1"
+tbdflow commit -t fix -m "Correct user permission logic" --tag "v1.1.1"
 ```
 
 ### 2.`feature` / `release` / `hotfix`
@@ -182,7 +182,7 @@ Merges a short-lived branch back into main, then deletes the local and remote co
 **Automatic Tagging:**
 
 * When completing a release branch, a tag (e.g., v1.2.0) is automatically created and pushed.
-* When completing a hotfix branch, a tag (e.g., hotfix/name-of-fix) is automatically created and pushed.
+* When completing a hotfix branch, a tag (e.g., hotfix_name-of-fix) is automatically created and pushed.
 
 **Usage:**
 
@@ -201,10 +201,10 @@ tbdflow complete --type <branch-type> --name <branch-name>
 
 ```bash
 # Complete a feature branch
-tbdflow complete -t "feature" -n "user-profile-page"
+tbdflow complete -t feature -n "user-profile-page"
 
 # Complete a release branch (this will be tagged v2.1.0)
-tbdflow complete -t "release" -n "2.1.0"
+tbdflow complete -t release -n "2.1.0"
 ```
 
 ### 4. Misc commands
