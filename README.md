@@ -85,6 +85,43 @@ If you try to proceed without checking all items, the tool will offer to add a T
 
 If a `.tbdflow.yml` file is present and contains a lint section, the commit command will automatically validate your commit message against the configured rules before the DoD check. This provides immediate feedback on stylistic and structural conventions.
 
+**Default linting rules:**
+
+```yaml
+main_branch_name: main
+stale_branch_threshold_days: 1
+branch_prefixes:
+  feature: feature_
+  release: release_
+  hotfix: hotfix_
+automatic_tags:
+  release_prefix: v
+  hotfix_prefix: hotfix_
+lint:
+  conventional_commit_type:
+    enabled: true
+    allowed_types:
+    - build
+    - chore
+    - ci
+    - docs
+    - feat
+    - fix
+    - perf
+    - refactor
+    - revert
+    - style
+    - test
+  issue_key_missing:
+    enabled: false
+    pattern: ^[A-Z]+-\d+$
+  subject_line_rules:
+    subject_line_max_length: 72
+    subject_line_not_capitalized: true
+    subject_line_no_period: true
+  body_line_rules:
+    body_max_line_length: 80
+```
 ---
 
 ## Global options
