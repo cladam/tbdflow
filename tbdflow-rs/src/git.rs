@@ -80,7 +80,25 @@ pub fn check_and_warn_for_stale_branches(verbose: bool, main_branch: &str, stale
     Ok(())
 }
 
-/// -- Public Git workflow functions --
+fn run_git_status_check(command: &str, args: &[&str], verbose: bool) -> Result<std::process::ExitStatus> {
+    if verbose {
+        println!("{} git {} {}", "[CHECKING] ".dimmed(), command, args.join(" "));
+    }
+    Command::new("git")
+        .arg(command)
+        .args(args)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .with_context(|| format!("Failed to execute 'git {}'", command))
+}
+
+/// Checks if there are any changes in the staging area.
+pub fn has_staged_changes(verbose: bool) -> Result<bool> {
+    let status = run_git_status_check("diff", &["--staged", "--quiet"], verbose)?;
+    // `git diff --quiet` exits with 1 if there are changes, 0 if not.
+    Ok(status.code() == Some(1))
+}
 
 /// Check out the main branch.
 pub fn checkout_main(verbose: bool, main_branch: &str) -> Result<String> {

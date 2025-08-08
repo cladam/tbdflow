@@ -165,6 +165,10 @@ checklist:
 
                 println!("{}", format!("Commit message will be:\n---\n{}\n---", commit_message).blue());
                 git::add_all(verbose)?;
+                if !git::has_staged_changes(verbose)? {
+                    println!("{}", "No changes added to commit.".yellow());
+                    return Ok(());
+                }
                 let current_branch = git::get_current_branch(verbose)?;
 
                 if current_branch == config.main_branch_name {
