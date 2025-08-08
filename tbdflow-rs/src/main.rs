@@ -40,10 +40,6 @@ fn main() -> anyhow::Result<()> {
                     // If yes, run git init.
                     git::init_git_repository(verbose)?;
                     println!("{}", "New git repository initialised.".green());
-                    println!("{}", "\nNext steps:".bold());
-                    println!("1. Create a repository on your git provider (e.g., GitHub).");
-                    println!("2. Run the following command to link it:");
-                    println!("{}", "   git remote add origin <your-repository-url>".cyan());
                 } else {
                     // If no, abort.
                     println!("{}", "Aborted. Please run 'tbdflow init' from within a git repository.".red());
@@ -55,11 +51,13 @@ fn main() -> anyhow::Result<()> {
             println!("{}", format!("Git repository root: {}", git_root).blue());
             let tbdflow_path = std::path::Path::new(&git_root).join(".tbdflow.yml");
 
+            let mut files_created = false;
             if !tbdflow_path.exists() {
                 let default_config = config::Config::default();
                 let yaml_string = serde_yaml::to_string(&default_config)?;
                 fs::write(&tbdflow_path, yaml_string)?;
                 println!("{}", "Created default .tbdflow.yml configuration file.".green());
+                files_created = true;
             } else {
                 println!("{}", ".tbdflow.yml already exists. Skipping.".yellow());
             }
@@ -79,8 +77,23 @@ checklist:
 "#.trim();
                 fs::write(dod_path, default_dod)?;
                 println!("{}", "Created default .dod.yml checklist file.".green());
+                files_created = true;
             } else {
                 println!("{}", ".dod.yml already exists. Skipping.".yellow());
+            }
+
+            if files_created {
+                println!("\n{}", "Creating initial commit for configuration files...".blue());
+                git::add_all(verbose)?;
+                git::commit("chore: Initialise tbdflow configuration", verbose)?;
+                println!("{}", "Initial commit created.".green());
+
+                println!("{}", "\nNext steps:".bold());
+                println!("1. Create a repository on your git provider (e.g., GitHub).");
+                println!("2. Run the following command to link it:");
+                println!("{}", "   git remote add origin <your-repository-url>".cyan());
+                println!("3. Then run this command to push your initial commit:");
+                println!("{}", "   git push -u origin main".cyan());
             }
         }
         Commands::Commit { r#type, scope, message, breaking, breaking_description, tag, no_verify, issue, body } => {
