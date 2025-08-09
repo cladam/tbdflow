@@ -28,6 +28,8 @@ pub struct Cli {
 pub enum Commands {
     /// Initialises the repository for Trunk-Based Development.
     Init,
+    /// Checks for a new version of tbdflow and updates it if available.
+    Update,
     /// Commits changes to the current branch or 'main' if no branch is checked out.
     #[command(after_help = "Use the imperative, present tense: \"change\" not \"changed\". Think of This commit will...\n\
     COMMON COMMIT TYPES:\n  \

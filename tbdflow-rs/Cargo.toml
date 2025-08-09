@@ -21,6 +21,7 @@ chrono = "0.4.41"
 serde_yaml = "0.9.33"
 serde = { version = "1.0.219", features = ["derive"] }
 dialoguer = "0.11.0"
+self_update = "0.40.0"
 regex = "1.11.1"
 
 [dev-dependencies]

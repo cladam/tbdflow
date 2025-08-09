@@ -22,7 +22,7 @@ fn main() -> anyhow::Result<()> {
 
     // Before running any command, check if we are in a git repository,
     // unless the command is `init` itself.
-    if !matches!(cli.command, Commands::Init) {
+    if !matches!(cli.command, Commands::Init | Commands::Update) {
         if git::is_git_repository(verbose).is_err() {
             println!("{}", "Error: Not a git repository (or any of the parent directories).".red());
             println!("Hint: Run 'tbdflow init' to initialise a new repository here.");
@@ -106,6 +106,24 @@ checklist:
                 println!("{}", "   git remote add origin <your-repository-url>".cyan());
                 println!("3. Then run this command to push your initial commit:");
                 println!("{}", "   git push -u origin main".cyan());
+            }
+        }
+        Commands::Update => {
+            println!("{}", "--- Checking for updates ---".blue());
+            let status = self_update::backends::github::Update::configure()
+                .repo_owner("cladam")
+                .repo_name("tbdflow")
+                .bin_name("tbdflow")
+                .show_download_progress(true)
+                .current_version(self_update::cargo_crate_version!())
+                .build()?
+                .update()?;
+
+            println!("Update status: `{}`!", status.version());
+            if status.updated() {
+                println!("{}", "Successfully updated tbdflow!".green());
+            } else {
+                println!("{}", "tbdflow is already up to date.".green());
             }
         }
         Commands::Commit { r#type, scope, message, breaking, breaking_description, tag, no_verify, issue, body } => {
