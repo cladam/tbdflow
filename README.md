@@ -264,3 +264,34 @@ tbdflow current-branch
 tbdflow check-branches
 ```
 
+### 5. Advanced Usage
+
+#### Shell Completion
+
+To make `tbdflow` even faster to use, you can enable shell completion. Add one of the following lines to your shell's configuration file.
+
+For Zsh (`~/.zshrc`):
+
+```bash
+eval "$(tbdflow generate-completion zsh)"
+```
+
+For Bash (`~/.bashrc`):
+
+```bash
+eval "$(tbdflow generate-completion bash)"
+```
+
+For Fish (`~/.config/fish/config.fish`):
+
+```bash
+tbdflow generate-completion fish | source
+```
+
+#### Man Page Generation
+
+You can generate a man page for `tbdflow` by running the following command:
+
+```bash
+tbdflow generate-man-page > tbdflow.1
+```
