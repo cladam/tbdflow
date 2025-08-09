@@ -1,5 +1,7 @@
 # This workflow builds binaries for multiple targets and publishes them to a GitHub Release
 # when a new version tag is pushed.
+permissions:
+  contents: write
 name: Release and Publish to GH
 
 on:
