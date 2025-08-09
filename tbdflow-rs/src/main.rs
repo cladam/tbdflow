@@ -355,8 +355,6 @@ checklist:
             std::io::stdout().write_all(&buffer)?;
         }
         Commands::Completion { shell } => {
-            // print function messes with the shells
-            //println!("{}", "--- Generating shell completion script ---".to_string().blue());
             let mut cmd = cli::Cli::command();
             let bin_name = cmd.get_name().to_string();
             clap_complete::generate(shell, &mut cmd, bin_name, &mut io::stdout());
