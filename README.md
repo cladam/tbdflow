@@ -262,6 +262,9 @@ tbdflow current-branch
 
 # Explicitly checks for local branches older than one day.
 tbdflow check-branches
+
+# Checks for a new version of tbdflow and updates it if available.
+tbdflow update
 ```
 
 ### 5. Advanced Usage
