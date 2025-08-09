@@ -7,7 +7,7 @@
 // ===============================================================
 
 use std::io::Write;
-use std::fs;
+use std::{fs, io};
 use clap::{CommandFactory, Parser};
 use colored::Colorize;
 use dialoguer::Confirm;
@@ -322,6 +322,12 @@ checklist:
                 misc::render_manpage_section(sub, &mut buffer)?;
             }
             std::io::stdout().write_all(&buffer)?;
+        }
+        Commands::Completion { shell } => {
+            println!("{}", "--- Generating shell completion script ---".to_string().blue());
+            let mut cmd = cli::Cli::command();
+            let bin_name = cmd.get_name().to_string();
+            clap_complete::generate(shell, &mut cmd, bin_name, &mut io::stdout());
         }
     }
 

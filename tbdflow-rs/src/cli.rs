@@ -1,6 +1,7 @@
 // This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
 // It provides commands to initialise, show, and run operations in the context of tbdflow.
 use clap::{Parser, Subcommand};
+use clap_complete::Shell;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -127,4 +128,10 @@ pub enum Commands {
     tbdflow generate-man-page > tbdflow.1\n \
     man ./tbdflow.1")]
     GenerateManPage,
+    /// Generates shell completion scripts.
+    #[command(name = "generate-completion", hide = true)] // Hidden from help
+    Completion {
+        #[arg(value_enum)]
+        shell: Shell,
+    },
 }
