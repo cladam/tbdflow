@@ -110,6 +110,7 @@ checklist:
         }
         Commands::Update => {
             println!("{}", "--- Checking for updates ---".blue());
+            // This relies on up2date GitHub releases
             let status = self_update::backends::github::Update::configure()
                 .repo_owner("cladam")
                 .repo_name("tbdflow")
