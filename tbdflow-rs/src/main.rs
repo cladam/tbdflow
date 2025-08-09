@@ -22,7 +22,7 @@ fn main() -> anyhow::Result<()> {
 
     // Before running any command, check if we are in a git repository,
     // unless the command is `init` itself.
-    if !matches!(cli.command, Commands::Init | Commands::Update) {
+    if !matches!(cli.command, Commands::Init | Commands::Update | Commands::Completion {..}) {
         if git::is_git_repository(verbose).is_err() {
             println!("{}", "Error: Not a git repository (or any of the parent directories).".red());
             println!("Hint: Run 'tbdflow init' to initialise a new repository here.");
