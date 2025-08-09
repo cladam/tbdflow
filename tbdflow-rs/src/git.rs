@@ -157,7 +157,7 @@ pub fn delete_remote_branch(branch_name: &str, verbose: bool) -> Result<String> 
 
 /// Get the current branch name.
 pub fn get_current_branch(verbose: bool) -> Result<String> {
-    run_git_command("rev-parse", &["--abbrev-ref", "HEAD"], verbose)
+    run_git_command("branch", &["--show-current"], verbose)
 }
 
 /// Create a new branch from the current HEAD or a specified point.

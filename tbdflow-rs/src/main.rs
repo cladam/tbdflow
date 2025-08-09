@@ -255,10 +255,19 @@ checklist:
         }
         Commands::Complete { r#type, name } => {
             println!("{}", "--- Completing short-lived branch ---".to_string().blue());
-            let branch_name = match r#type.as_str() {
-                "feature" | "hotfix" | "release" => format!("{}_{}", r#type, name),
+            let prefix = match r#type.as_str() {
+                "feature" => &config.branch_prefixes.feature,
+                "release" => &config.branch_prefixes.release,
+                "hotfix" => &config.branch_prefixes.hotfix,
                 _ => return Err(GitError::InvalidBranchType(r#type).into()),
             };
+
+            let branch_name = if name.starts_with(prefix) {
+                name.clone()
+            } else {
+                format!("{}{}", prefix, name)
+            };
+
             println!("{}", format!("Branch to complete: {}", branch_name).blue());
 
             git::is_working_directory_clean(verbose)?;

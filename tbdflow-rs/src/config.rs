@@ -79,7 +79,7 @@ impl Default for Config {
             },
             automatic_tags: AutomaticTags {
                 release_prefix: "v".to_string(),
-                hotfix_prefix: "hotfix_".to_string(),
+                hotfix_prefix: "hotfix-tag_".to_string(),
             },
             // Add default lint configuration
             lint: Some(LintConfig {
