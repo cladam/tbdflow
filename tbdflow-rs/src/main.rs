@@ -19,6 +19,18 @@ use tbdflow::git::{get_current_branch, GitError};
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
     let verbose = cli.verbose;
+
+    // Before running any command, check if we are in a git repository,
+    // unless the command is `init` itself.
+    if !matches!(cli.command, Commands::Init) {
+        if git::is_git_repository(verbose).is_err() {
+            println!("{}", "Error: Not a git repository (or any of the parent directories).".red());
+            println!("Hint: Run 'tbdflow init' to initialise a new repository here.");
+            // Exit gracefully without a scary error stack trace.
+            std::process::exit(1);
+        }
+    }
+
     let config = config::load_tbdflow_config()?;
     // Lookup the default branch name.
     let main_branch_name = config.main_branch_name.as_str();
