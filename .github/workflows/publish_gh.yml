@@ -1,0 +1,78 @@
+# This workflow builds binaries for multiple targets and publishes them to a GitHub Release
+# when a new version tag is pushed.
+name: Release and Publish to GH
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+  build-and-upload-assets:
+    name: Build & Upload Assets
+    needs: create-release
+    strategy:
+      matrix:
+        # Define the targets to build for
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin # This is the one for your M1 Mac
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build binary
+        working-directory: ./tbdflow-rs
+        run: cargo build --verbose --release --target ${{ matrix.target }}
+
+      - name: Package binary for release
+        shell: bash
+        run: |
+          cd tbdflow-rs/target/${{ matrix.target }}/release
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            mv tbdflow.exe tbdflow-${{ matrix.target }}.exe
+            echo "ASSET_NAME=tbdflow-${{ matrix.target }}.exe" >> $GITHUB_ENV
+          else
+            mv tbdflow tbdflow-${{ matrix.target }}
+            echo "ASSET_NAME=tbdflow-${{ matrix.target }}" >> $GITHUB_ENV
+          fi
+          cd -
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./tbdflow-rs/target/${{ matrix.target }}/release/${{ env.ASSET_NAME }}
+          asset_name: ${{ env.ASSET_NAME }}
+          asset_content_type: application/octet-stream
