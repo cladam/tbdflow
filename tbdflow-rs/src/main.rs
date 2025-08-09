@@ -296,10 +296,16 @@ checklist:
         }
         Commands::Sync => {
             println!("{}", "--- Syncing with remote and showing status ---".to_string().blue());
-            if get_current_branch(verbose)? != main_branch_name {
-                git::checkout_main(verbose, main_branch_name)?;
+            let current_branch = get_current_branch(verbose)?;
+            println!("{}", format!("Current branch: {}", current_branch).blue());
+            if current_branch == main_branch_name {
+                println!("On main branch, pulling latest changes...");
+                git::pull_latest_with_rebase(verbose)?;
+            } else {
+                println!("On branch '{}', rebasing onto latest '{}'...", current_branch, main_branch_name);
+                git::fetch_origin(verbose)?;
+                git::rebase_onto_main(main_branch_name, verbose)?;
             }
-            git::pull_latest_with_rebase(verbose)?;
 
             // Add the status check to the sync workflow
             println!("\n{}", "Current status".bold());

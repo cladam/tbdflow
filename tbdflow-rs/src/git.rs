@@ -111,6 +111,16 @@ pub fn pull_latest_with_rebase(verbose: bool) -> Result<String> {
     run_git_command("pull", &["--rebase", "--autostash"], verbose)
 }
 
+/// Fetch the latest changes from the origin remote.
+pub fn fetch_origin(verbose: bool) -> Result<String> {
+    run_git_command("fetch", &["origin"], verbose)
+}
+
+/// Rebase the current branch onto the main branch.
+pub fn rebase_onto_main(main_branch_name: &str, verbose: bool) -> Result<String> {
+    run_git_command("rebase", &["--autostash", &format!("origin/{}", main_branch_name)], verbose)
+}
+
 /// Add all changes to the staging area.
 pub fn add_all(verbose: bool) -> Result<String> {
     run_git_command("add", &["."], verbose)
