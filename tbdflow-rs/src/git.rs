@@ -18,6 +18,8 @@ pub enum GitError {
     InvalidBranchType(String),
     #[error("Branch '{0}' does not exist locally.")]
     BranchNotFound(String),
+    #[error("Tag '{0}' already exists.")]
+    TagAlreadyExists(String),
     #[error("Not on main branch: {0}")]
     NotOnMainBranch(String),
     #[error("Not a Git repository: {0}")]
@@ -149,6 +151,12 @@ pub fn branch_exists_locally(branch_name: &str, verbose: bool) -> Result<()> {
         Ok(_) => Ok(()),
         Err(_) => Err(GitError::BranchNotFound(branch_name.to_string()).into()),
     }
+}
+
+/// Check if the tag exists in the repository.
+pub fn tag_exists(tag_name: &str, verbose: bool) -> Result<bool> {
+    let output = run_git_command("tag", &["-l", tag_name], verbose)?;
+    Ok(!output.is_empty())
 }
 
 /// Merge the current branch with another branch.

@@ -273,6 +273,17 @@ checklist:
             // pre-flight check the branch name
             git::branch_exists_locally(&branch_name, verbose)?;
 
+            if r#type == "release" || r#type == "hotfix" {
+                let tag_name = if r#type == "release" {
+                    format!("{}{}", config.automatic_tags.release_prefix, name)
+                } else {
+                    format!("{}{}", config.automatic_tags.hotfix_prefix, name)
+                };
+                if git::tag_exists(&tag_name, verbose)? {
+                    return Err(GitError::TagAlreadyExists(tag_name).into());
+                }
+            }
+
             git::is_working_directory_clean(verbose)?;
             git::checkout_main(verbose, main_branch_name)?;
             git::pull_latest_with_rebase(verbose)?;
