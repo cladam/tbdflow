@@ -203,13 +203,17 @@ checklist:
                 let current_branch = git::get_current_branch(verbose)?;
 
                 if current_branch == config.main_branch_name {
-                    println!("--- Committing directly to main branch ---");
+                    if verbose {
+                        println!("--- Committing directly to main branch ---");
+                    }
                     git::pull_latest_with_rebase(verbose)?;
                     git::commit(&commit_message, verbose)?;
                     git::push(verbose)?;
                     println!("\n{}", "Successfully committed and pushed changes to main.".green());
                 } else {
-                    println!("--- Committing to feature branch '{}' ---", current_branch);
+                    if verbose {
+                        println!("--- Committing to feature branch '{}' ---", current_branch);
+                    }
                     git::commit(&commit_message, verbose)?;
                     git::push(verbose)?;
                     println!("\n{}", format!("Successfully pushed changes to '{}'.", current_branch).green());
@@ -322,10 +326,14 @@ checklist:
             let current_branch = get_current_branch(verbose)?;
             println!("{}", format!("Current branch: {}", current_branch).blue());
             if current_branch == main_branch_name {
-                println!("On main branch, pulling latest changes...");
+                if verbose {
+                    println!("--- On main branch, pulling latest changes ---");
+                }
                 git::pull_latest_with_rebase(verbose)?;
             } else {
-                println!("On branch '{}', rebasing onto latest '{}'...", current_branch, main_branch_name);
+                if verbose {
+                    println!("--- On branch '{}', rebasing onto main branch '{}' ---", current_branch, main_branch_name);
+                }
                 git::fetch_origin(verbose)?;
                 git::rebase_onto_main(main_branch_name, verbose)?;
             }
