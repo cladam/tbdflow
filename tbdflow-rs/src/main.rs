@@ -259,19 +259,7 @@ checklist:
         }
         Commands::Complete { r#type, name } => {
             println!("{}", "--- Completing short-lived branch ---".to_string().blue());
-            let prefix = match r#type.as_str() {
-                "feature" => &config.branch_prefixes.feature,
-                "release" => &config.branch_prefixes.release,
-                "hotfix" => &config.branch_prefixes.hotfix,
-                _ => return Err(GitError::InvalidBranchType(r#type).into()),
-            };
-
-            let branch_name = if name.starts_with(prefix) {
-                name.clone()
-            } else {
-                format!("{}{}", prefix, name)
-            };
-
+            let branch_name= git::find_branch_case_insensitive(&name, &r#type, &config.branch_prefixes, verbose)?;
             println!("{}", format!("Branch to complete: {}", branch_name).blue());
 
             // pre-flight check the branch name

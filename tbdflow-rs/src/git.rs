@@ -5,6 +5,7 @@ use thiserror::Error;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
+use crate::config::BranchPrefixes;
 
 // --- Custom Error Type ---
 // Using `thiserror` to create a structured error type.
@@ -151,6 +152,35 @@ pub fn branch_exists_locally(branch_name: &str, verbose: bool) -> Result<()> {
         Ok(_) => Ok(()),
         Err(_) => Err(GitError::BranchNotFound(branch_name.to_string()).into()),
     }
+}
+
+/// Find a branch by name, case-insensitive, using the provided prefixes.
+/// Someone will name their branch in mixed case, so we need to handle that.
+/// Returns the full branch name if found, or an error if not found.
+pub fn find_branch_case_insensitive(name: &str, r#type: &str, prefixes: &BranchPrefixes, verbose: bool) -> Result<String> {
+    let prefix = match r#type {
+        "feature" => &prefixes.feature,
+        "release" => &prefixes.release,
+        "hotfix" => &prefixes.hotfix,
+        _ => return Err(GitError::InvalidBranchType(r#type.to_string()).into()),
+    };
+
+    let full_name_guess = if name.starts_with(prefix) {
+        name.to_lowercase()
+    } else {
+        format!("{}{}", prefix, name).to_lowercase()
+    };
+
+    let all_branches = run_git_command("branch", &["--list"], verbose)?;
+
+    for branch in all_branches.lines() {
+        let trimmed_branch = branch.trim().trim_start_matches('*').trim();
+        if trimmed_branch.to_lowercase() == full_name_guess {
+            return Ok(trimmed_branch.to_string());
+        }
+    }
+
+    Err(GitError::BranchNotFound(name.to_string()).into())
 }
 
 /// Check if the tag exists in the repository.
