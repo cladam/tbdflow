@@ -16,6 +16,8 @@ pub enum GitError {
     DirectoryNotClean(String),
     #[error("Invalid branch type: {0}. Use 'feature', 'release', or 'hotfix'.")]
     InvalidBranchType(String),
+    #[error("Branch '{0}' does not exist locally.")]
+    BranchNotFound(String),
     #[error("Not on main branch: {0}")]
     NotOnMainBranch(String),
     #[error("Not a Git repository: {0}")]
@@ -138,6 +140,15 @@ pub fn push(verbose: bool) -> Result<String> {
 
 pub fn push_tags(verbose: bool) -> Result<String> {
     run_git_command("push", &["--tags"], verbose)
+}
+
+/// Check if the branch exists locally.
+pub fn branch_exists_locally(branch_name: &str, verbose: bool) -> Result<()> {
+    let output = run_git_command("rev-parse", &["--verify", "--quiet", branch_name], verbose);
+    match output {
+        Ok(_) => Ok(()),
+        Err(_) => Err(GitError::BranchNotFound(branch_name.to_string()).into()),
+    }
 }
 
 /// Merge the current branch with another branch.

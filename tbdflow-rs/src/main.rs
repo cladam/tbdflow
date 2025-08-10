@@ -270,6 +270,9 @@ checklist:
 
             println!("{}", format!("Branch to complete: {}", branch_name).blue());
 
+            // pre-flight check the branch name
+            git::branch_exists_locally(&branch_name, verbose)?;
+
             git::is_working_directory_clean(verbose)?;
             git::checkout_main(verbose, main_branch_name)?;
             git::pull_latest_with_rebase(verbose)?;
