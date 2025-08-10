@@ -259,6 +259,12 @@ checklist:
         }
         Commands::Complete { r#type, name } => {
             println!("{}", "--- Completing short-lived branch ---".to_string().blue());
+
+            // Cannot complete the main branch
+            if name == main_branch_name {
+                return Err(GitError::CannotCompleteMainBranch.into());
+            }
+
             let branch_name= git::find_branch_case_insensitive(&name, &r#type, &config.branch_prefixes, verbose)?;
             println!("{}", format!("Branch to complete: {}", branch_name).blue());
 

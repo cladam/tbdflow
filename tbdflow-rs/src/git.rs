@@ -21,6 +21,8 @@ pub enum GitError {
     BranchNotFound(String),
     #[error("Tag '{0}' already exists.")]
     TagAlreadyExists(String),
+    #[error("Cannot complete the main branch. This is a protected branch.")]
+    CannotCompleteMainBranch,
     #[error("Not on main branch: {0}")]
     NotOnMainBranch(String),
     #[error("Not a Git repository: {0}")]
