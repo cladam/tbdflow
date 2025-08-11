@@ -118,15 +118,13 @@ pub fn is_valid_subject_line(subject: &str, config: &config::Config) -> Result<(
                     return Err(format!("Subject line exceeds maximum length of {} characters.", max_len));
                 }
             }
-            // Sentence case: first char uppercase, rest not all uppercase
-            let mut chars = subject.chars();
-            if let Some(first) = chars.next() {
-                if !first.is_uppercase() {
-                    return Err("Subject line must start with an uppercase letter (sentence case).".to_string());
-                }
-                let rest: String = chars.collect();
-                if rest.chars().all(|c| c.is_uppercase()) {
-                    return Err("Subject line must use sentence case, not all uppercase.".to_string());
+            if let Some(enforce_not_capitalized) = rules.subject_line_not_capitalized {
+                if enforce_not_capitalized {
+                    if let Some(first) = subject.chars().next() {
+                        if first.is_uppercase() {
+                            return Err("Subject line must not start with a capital letter.".to_string());
+                        }
+                    }
                 }
             }
             if let Some(no_period) = rules.subject_line_no_period {
