@@ -76,7 +76,7 @@ fn test_commit_command() {
     std::env::set_current_dir(&repo_path).unwrap();
 
     // Create a file to commit
-    std::fs::write(repo_path.join("BUTTON.md"), "This is a new button ■").unwrap();
+    std::fs::write(repo_path.join("BUTTON.md"), "this is a new button ■").unwrap();
     // Stage the file
     Command::new("git")
         .arg("add")
@@ -105,7 +105,7 @@ fn test_commit_command() {
     cmd.arg("commit")
         .arg("--type").arg("feat")
         .arg("--scope").arg("ui")
-        .arg("--message").arg("Add new button")
+        .arg("--message").arg("add new button")
         .arg("--body").arg("This button is used for submitting forms.")
         .arg("--breaking")
         .arg("--tag").arg("button-v1");
