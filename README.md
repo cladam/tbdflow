@@ -69,9 +69,6 @@ To move beyond just automating process, `tbdflow` integrates an optional pre-com
 ```
 # .dod.yml in your project root
 
-# If true, requires an --issue <ID> flag on the commit command.
-issue_reference_required: true
-
 checklist:
   - "All relevant automated tests pass successfully."
   - "New features or fixes are covered by new tests."
@@ -298,3 +295,4 @@ You can generate a man page for `tbdflow` by running the following command:
 ```bash
 tbdflow generate-man-page > tbdflow.1
 ```
+
