@@ -87,6 +87,7 @@ pub fn check_and_warn_for_stale_branches(verbose: bool, main_branch: &str, stale
     Ok(())
 }
 
+/// Runs a Git command that checks the status of the repository without producing output.
 fn run_git_status_check(command: &str, args: &[&str], verbose: bool) -> Result<std::process::ExitStatus> {
     if verbose {
         println!("{} git {} {}", "[CHECKING] ".dimmed(), command, args.join(" "));
@@ -143,6 +144,7 @@ pub fn push(verbose: bool) -> Result<String> {
     run_git_command("push", &[], verbose)
 }
 
+/// Push all tags to the remote repository.
 pub fn push_tags(verbose: bool) -> Result<String> {
     run_git_command("push", &["--tags"], verbose)
 }
@@ -220,14 +222,18 @@ pub fn create_branch(branch_name: &str, from_point: Option<&str>, verbose: bool)
     run_git_command("checkout", &args, verbose)
 }
 
+/// Get the hash of the current HEAD commit.
 pub fn get_head_commit_hash(verbose: bool) -> Result<String> {
     run_git_command("rev-parse", &["HEAD"], verbose)
 }
 
+/// Create a new tag with a message at a specific commit hash.
 pub fn create_tag(tag_name: &str, message: &str, commit_hash: &str, verbose: bool) -> Result<String> {
     run_git_command("tag", &["-a", tag_name, "-m", message, commit_hash], verbose)
 }
 
+/// Push a new branch to the remote repository and set it as upstream.
+/// This is useful for new branches that have not been pushed before.
 pub fn push_set_upstream(branch_name: &str, verbose: bool) -> Result<String> {
     run_git_command("push", &["--set-upstream", "origin", branch_name], verbose)
 }

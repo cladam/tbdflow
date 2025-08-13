@@ -11,7 +11,10 @@ use clap_complete::Shell;
     about = "A CLI tool for Trunk-Based Development (TBD) workflows",
     long_about = None)]
 #[command(propagate_version = true)]
+/// The main CLI structure for tbdflow.
+/// This struct defines the main commands and global options for the CLI tool.
 pub struct Cli {
+    /// The main command to run, which can be one of the subcommands defined in `Commands`.
     #[command(subcommand)]
     pub command: Commands,
     /// Enable verbose output for debugging. Use this to troubleshoot issues or understand the flow better.
