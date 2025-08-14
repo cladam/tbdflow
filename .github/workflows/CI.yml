@@ -1,0 +1,136 @@
+name: Build, Test, and Release
+
+permissions:
+  contents: write # Required for creating releases and uploading assets
+
+on:
+  push:
+    branches: [ "main" ]
+        # Only run this workflow if changes are made within the tbdflow-rs directory
+    paths:
+      - 'tbdflow-rs/**'
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*' # Trigger on version tags like v0.1.0
+  pull_request:
+    branches: [ "main" ]
+        # Only run this workflow if changes are made within the tbdflow-rs directory
+    paths:
+      - 'tbdflow-rs/**'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Job 1: Runs on every push/PR
+  build_and_test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: cargo build --verbose
+        working-directory: ./tbdflow-rs
+
+      - name: Run tests
+        run: cargo test --verbose
+        working-directory: ./tbdflow-rs
+
+  # Job 2: Creates the release on GitHub. Only runs on new tags.
+  create_release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build_and_test
+    if: startsWith(github.ref, 'refs/tags/v')
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+  # Job 3: Builds binaries for multiple platforms and uploads them. Only runs on new tags.
+  build_and_upload_assets:
+    name: Build & Upload Release Assets
+    needs: create_release
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install aarch64 linker (for cross-compiling on Ubuntu)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build binary
+        env:
+          # Set linker for aarch64 cross-compile
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: cargo build --verbose --release --target ${{ matrix.target }}
+
+      - name: Package binary for release
+        shell: bash
+        run: |
+          # The binary will be in the release directory
+          cd target/${{ matrix.target }}/release
+          
+          # Rename the binary to include the target triple
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            mv medi.exe medi-${{ matrix.target }}.exe
+            echo "ASSET_NAME=medi-${{ matrix.target }}.exe" >> $GITHUB_ENV
+          else
+            mv medi medi-${{ matrix.target }}
+            echo "ASSET_NAME=medi-${{ matrix.target }}" >> $GITHUB_ENV
+          fi
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ./target/${{ matrix.target }}/release/${{ env.ASSET_NAME }}
+          asset_name: ${{ env.ASSET_NAME }}
+          asset_content_type: application/octet-stream
+
+  # Job 4: Publishes to crates.io. Only runs on new tags.
+  publish_to_crates:
+    name: Publish to crates.io
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Publish to crates.io
+        run: cargo publish --token ${{ secrets.CRATES_TOKEN }}
