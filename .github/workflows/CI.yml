@@ -141,4 +141,4 @@ jobs:
       
       - name: Publish to crates.io
         working-directory: ./tbdflow-rs
-        run: cargo publish --token ${{ secrets.CRATES_TOKEN }}
+        run: cargo publish --allow-dirty --token ${{ secrets.CRATES_TOKEN }}
