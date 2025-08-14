@@ -10,6 +10,10 @@ use util::setup_temp_git_repo;
 #[test]
 #[serial]
 fn test_status_command() {
+    // Add the setup function to create a git repo for the test
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
     cmd.arg("--verbose").arg("status");
     cmd.assert()
