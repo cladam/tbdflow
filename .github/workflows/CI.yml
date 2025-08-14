@@ -30,12 +30,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set git default branch to main
+        run: git config --global init.defaultBranch main
+
       - name: Build
-        run: cargo build --verbose
+        run: cargo build
         working-directory: ./tbdflow-rs
 
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test
         working-directory: ./tbdflow-rs
 
   # Job 2: Creates the release on GitHub. Only runs on new tags.
