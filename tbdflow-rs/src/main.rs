@@ -35,6 +35,7 @@ fn main() -> anyhow::Result<()> {
     // Lookup the default branch name.
     let main_branch_name = config.main_branch_name.as_str();
 
+    // Match the commands and execute the functionality.
     match cli.command {
         Commands::Init => {
             println!("{}", "--- Initialising tbdflow configuration ---".to_string().blue());
