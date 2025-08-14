@@ -299,6 +299,7 @@ pub fn get_stale_branches(verbose: bool, main_branch: &str, stale_days: i64) -> 
 mod tests {
     use super::*;
 
+    /// Test if Git is installed and available in the system PATH.
     #[test]
     fn test_git_is_installed() {
         let result = std::process::Command::new("git")
