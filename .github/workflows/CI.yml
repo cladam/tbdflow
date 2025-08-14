@@ -135,5 +135,9 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Copy root README to crate folder
+        run: cp README.md tbdflow-rs/README.md
+      
       - name: Publish to crates.io
+        working-directory: ./tbdflow-rs
         run: cargo publish --token ${{ secrets.CRATES_TOKEN }}
