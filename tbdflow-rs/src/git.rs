@@ -292,6 +292,9 @@ pub fn get_stale_branches(verbose: bool, main_branch: &str, stale_days: i64) -> 
     Ok(stale_branches)
 }
 
+/// Unit tests for the Git module.
+/// These tests check if Git is installed, if the run_git_command function works correctly,
+/// and if the status function returns expected results.
 #[cfg(test)]
 mod tests {
     use super::*;
