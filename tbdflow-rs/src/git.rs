@@ -75,7 +75,7 @@ pub fn is_working_directory_clean(verbose: bool) -> Result<()> {
     }
 }
 
-// Helper function to perform and display the stale branch check
+/// Helper function to perform and display the stale branch check
 pub fn check_and_warn_for_stale_branches(verbose: bool, main_branch: &str, stale_days: i64) -> Result<(), anyhow::Error> {
     let stale_branches = get_stale_branches(verbose, main_branch, stale_days)?;
     if !stale_branches.is_empty() {

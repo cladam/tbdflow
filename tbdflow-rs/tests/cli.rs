@@ -8,6 +8,7 @@ use util::setup_temp_git_repo;
 
 /// Tests that the status command outputs the expected status message.
 #[test]
+#[serial]
 fn test_status_command() {
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
     cmd.arg("--verbose").arg("status");
@@ -18,6 +19,7 @@ fn test_status_command() {
 
 /// Tests that the current branch command outputs the expected branch name.
 #[test]
+#[serial]
 fn test_current_branch_command() {
     let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
     std::env::set_current_dir(&repo_path).unwrap();
