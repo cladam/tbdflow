@@ -108,11 +108,11 @@ jobs:
           
           # Rename the binary to include the target triple
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            mv medi.exe medi-${{ matrix.target }}.exe
-            echo "ASSET_NAME=medi-${{ matrix.target }}.exe" >> $GITHUB_ENV
+            mv tbdflow.exe tbdflow-${{ matrix.target }}.exe
+            echo "ASSET_NAME=tbdflow-${{ matrix.target }}.exe" >> $GITHUB_ENV
           else
-            mv medi medi-${{ matrix.target }}
-            echo "ASSET_NAME=medi-${{ matrix.target }}" >> $GITHUB_ENV
+            mv tbdflow tbdflow-${{ matrix.target }}
+            echo "ASSET_NAME=tbdflow-${{ matrix.target }}" >> $GITHUB_ENV
           fi
 
       - name: Upload Release Asset
