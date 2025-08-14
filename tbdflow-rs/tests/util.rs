@@ -15,6 +15,7 @@ pub fn setup_temp_git_repo() -> (TempDir, TempDir, std::path::PathBuf) {
     Command::new("git").arg("init").current_dir(&repo_path).output().unwrap();
     Command::new("git").args(&["config", "user.email", "test@example.com"]).current_dir(&repo_path).output().unwrap();
     Command::new("git").args(&["config", "user.name", "Test"]).current_dir(&repo_path).output().unwrap();
+    Command::new("git").args(&["config", "push.autoSetupRemote", "true"]).current_dir(&repo_path).output().unwrap();
     let file_path = repo_path.join("README.md");
     write(&file_path, "test").unwrap();
     Command::new("git").args(&["add", "."]).current_dir(&repo_path).output().unwrap();
