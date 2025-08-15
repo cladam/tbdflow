@@ -1,7 +1,8 @@
-use crate::config::DodConfig;
+use crate::config::{Config, DodConfig};
 use anyhow::Result;
+use colored::Colorize;
 use dialoguer::{MultiSelect, Confirm, theme::ColorfulTheme};
-use crate::config;
+use crate::{config, git};
 
 /// Runs the checklist interactively, allowing the user to confirm each item before committing.
 pub fn run_checklist_interactive(checklist: &[String]) -> anyhow::Result<Vec<usize>> {
@@ -150,4 +151,98 @@ pub fn is_valid_body_lines(body: &str, config: &config::Config) -> bool {
         }
     }
     true
+}
+
+pub fn handle_commit(
+    verbose: bool,
+    config: &Config,
+    r#type: String,
+    scope: Option<String>,
+    message: String,
+    body: Option<String>,
+    breaking: bool,
+    breaking_description: Option<String>,
+    tag: Option<String>,
+    no_verify: bool,
+    issue: Option<String>,
+) -> Result<()> {
+    println!("{}", "--- Committing changes ---".blue());
+
+    // 1. LINTING
+    if !is_valid_commit_type(&r#type, config) {
+        println!("{}", format!("Error: '{}' is not a valid Conventional Commit type.", r#type).red());
+        return Err(anyhow::anyhow!("Aborted: Invalid commit type."));
+    }
+    if !is_valid_issue_key(&issue, config) {
+        println!("{}", "Issue reference is required by your .tbdflow.yml config.".red());
+        return Err(anyhow::anyhow!("Aborted: Issue reference required."));
+    }
+    if let Err(e) = is_valid_subject_line(&message, config) {
+        println!("{}", format!("Commit message subject error: {}", e).red());
+        return Err(anyhow::anyhow!("Aborted: Invalid commit message subject."));
+    }
+    if let Some(body_text) = &body {
+        if !is_valid_body_lines(body_text, config) {
+            println!("{}", "Commit message body contains lines that exceed the maximum length.".red());
+            return Err(anyhow::anyhow!("Aborted: Invalid commit message body."));
+        }
+    }
+
+    let scope_part = scope.map_or("".to_string(), |s| format!("({})", s));
+    let breaking_part = if breaking { "!" } else { "" };
+    let header = format!("{}{}{}: {}", r#type, scope_part, breaking_part, message);
+
+    let dod_config = config::load_dod_config().unwrap_or_default();
+    let todo_footer_result = if no_verify || dod_config.checklist.is_empty() {
+        Ok(Some(String::new()))
+    } else {
+        handle_interactive_dod(&dod_config)
+    };
+
+    if let Some(todo_footer) = todo_footer_result? {
+        // 4. ASSEMBLE FINAL MESSAGE
+        let mut commit_message = header;
+        if let Some(body_text) = body {
+            commit_message.push_str("\n\n");
+            commit_message.push_str(&body_text);
+        }
+        if let Some(desc) = breaking_description {
+            commit_message.push_str(&format!("\n\nBREAKING CHANGE: {}", desc));
+        }
+        if let Some(issue_ref) = &issue {
+            commit_message.push_str(&format!("\n\nRefs: {}", issue_ref));
+        }
+        commit_message.push_str(&todo_footer);
+
+        println!("{}", format!("Commit message will be:\n---\n{}\n---", commit_message).blue());
+
+        // 5. EXECUTE GIT WORKFLOW
+        git::add_all(verbose)?;
+        if !git::has_staged_changes(verbose)? {
+            println!("{}", "No changes added to commit.".yellow());
+            return Ok(());
+        }
+
+        let current_branch = git::get_current_branch(verbose)?;
+        if current_branch == config.main_branch_name {
+            println!("--- Committing directly to main branch ---");
+            git::pull_latest_with_rebase(verbose)?;
+            git::commit(&commit_message, verbose)?;
+            git::push(verbose)?;
+            println!("\n{}", "Successfully committed and pushed changes to main.".green());
+        } else {
+            println!("--- Committing to feature branch '{}' ---", current_branch);
+            git::commit(&commit_message, verbose)?;
+            git::push(verbose)?;
+            println!("\n{}", format!("Successfully pushed changes to '{}'.", current_branch).green());
+        }
+
+        if let Some(tag_name) = tag {
+            let commit_hash = git::get_head_commit_hash(verbose)?;
+            git::create_tag(&tag_name, &commit_message, &commit_hash, verbose)?;
+            git::push_tags(verbose)?;
+            println!("{}", format!("Success! Created and pushed tag '{}'", tag_name).green());
+        }
+    }
+    Ok(())
 }
