@@ -200,7 +200,6 @@ pub fn handle_commit(
     };
 
     if let Some(todo_footer) = todo_footer_result? {
-        // 4. ASSEMBLE FINAL MESSAGE
         let mut commit_message = header;
         if let Some(body_text) = body {
             commit_message.push_str("\n\n");
@@ -215,8 +214,7 @@ pub fn handle_commit(
         commit_message.push_str(&todo_footer);
 
         println!("{}", format!("Commit message will be:\n---\n{}\n---", commit_message).blue());
-
-        // 5. EXECUTE GIT WORKFLOW
+        
         git::add_all(verbose)?;
         if !git::has_staged_changes(verbose)? {
             println!("{}", "No changes added to commit.".yellow());

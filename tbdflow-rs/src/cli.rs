@@ -44,11 +44,11 @@ pub enum Commands {
     refactor: Code changes that neither fix a bug nor add a feature.\n  \
     test:     Adding or improving tests.\n\n\
     EXAMPLES:\n  \
-    tbdflow commit --type feat --scope api -m \"Add user endpoint\"\n  \
-    tbdflow commit -t fix -m \"Fix login bug\" --breaking\n  \
-    tbdflow commit -t chore -m \"Update dependencies\" --tag \"v0.4.0\"\n  \
-    tbdflow commit -t refactor -m \"Rename internal API\" --breaking --breaking-description \"The `getUser` function has been renamed to `fetchUser`.\"\n  \
-    tbdflow commit -t fix -s ui -m \"Fix button alignment\" --issue \"#123\"")]
+    tbdflow commit --type feat --scope api -m \"add user endpoint\"\n  \
+    tbdflow commit -t fix -m \"fix login bug\" --breaking\n  \
+    tbdflow commit -t chore -m \"update dependencies\" --tag \"v0.4.0\"\n  \
+    tbdflow commit -t refactor -m \"rename internal API\" --breaking --breaking-description \"The `getUser` function has been renamed to `fetchUser`.\"\n  \
+    tbdflow commit -t fix -s ui -m \"fix button alignment\" --issue \"#123\"")]
     Commit {
         /// Commit type (e.g. 'feat', 'fix', 'chore', 'docs').
         #[arg(short, long)]
@@ -63,6 +63,7 @@ pub enum Commands {
         #[arg(short, long)]
         breaking: bool,
         /// Optionally provide a description for the breaking change.
+        #[arg(long)]
         breaking_description: Option<String>,
         /// Optionally add and push an annotated tag to this commit.
         #[arg(long)]
