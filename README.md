@@ -162,14 +162,14 @@ tbdflow commit [options]
 
 ```bash
 # A new feature
-tbdflow commit -t feat -s auth -m "Add password reset endpoint"
+tbdflow commit -t feat -s auth -m "add password reset endpoint"
 
 # A bug fix with a breaking change
-tbdflow commit -t fix -m "Correct user permission logic" -b
-tbdflow commit -t refactor -m "Rename internal API" --breaking --breaking-description "The `getUser` function has been renamed to `fetchUser`."
+tbdflow commit -t fix -m "correct user permission logic" -b
+tbdflow commit -t refactor -m "rename internal API" --breaking --breaking-description "The `getUser` function has been renamed to `fetchUser`."
 
 # A bug fix with a new tag
-tbdflow commit -t fix -m "Correct user permission logic" --tag "v1.1.1"
+tbdflow commit -t fix -m "correct user permission logic" --tag "v1.1.1"
 ```
 
 ### 2.`feature` / `release` / `hotfix`
@@ -295,4 +295,3 @@ You can generate a man page for `tbdflow` by running the following command:
 ```bash
 tbdflow generate-man-page > tbdflow.1
 ```
-
