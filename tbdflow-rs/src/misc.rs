@@ -92,7 +92,13 @@ checklist:
 
             if !remote_url.is_empty() {
                 git::add_remote("origin", &remote_url, verbose)?;
-                let _ = git::pull_latest_with_rebase(verbose); // Ignore error for empty remotes
+                git::fetch_origin(verbose)?;
+
+                if git::remote_branch_exists("main", verbose).is_ok() {
+                    println!("{}", "Remote 'main' branch found. Reconciling histories...".yellow());
+                    git::rebase_onto_main("main", verbose)?;
+                }
+
                 git::push_set_upstream("main", verbose)?;
                 println!("{}", "Successfully linked remote and pushed initial commit.".green());
             } else {

@@ -118,6 +118,16 @@ pub fn fetch_origin(verbose: bool) -> Result<String> {
     run_git_command("fetch", &["origin"], verbose)
 }
 
+/// Check if a remote branch exists.
+/// This checks if a branch exists on the remote repository (e.g. `origin`).
+pub fn remote_branch_exists(branch_name: &str, verbose: bool) -> Result<()> {
+    let output = run_git_command("ls-remote", &["--exit-code", "--heads", "origin", branch_name], verbose);
+    match output {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e.into()),
+    }
+}
+
 /// Rebase the current branch onto the main branch.
 pub fn rebase_onto_main(main_branch_name: &str, verbose: bool) -> Result<String> {
     run_git_command("rebase", &["--autostash", &format!("origin/{}", main_branch_name)], verbose)
