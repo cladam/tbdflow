@@ -75,18 +75,6 @@ pub fn is_working_directory_clean(verbose: bool) -> Result<()> {
     }
 }
 
-/// Helper function to perform and display the stale branch check
-pub fn check_and_warn_for_stale_branches(verbose: bool, main_branch: &str, stale_days: i64) -> Result<(), anyhow::Error> {
-    let stale_branches = get_stale_branches(verbose, main_branch, stale_days)?;
-    if !stale_branches.is_empty() {
-        println!("\n{}", "Warning: The following branches may be stale:".bold().yellow());
-        for (branch, days) in stale_branches {
-            println!("{}", format!("  - {} (last commit {} days ago)", branch, days).yellow());
-        }
-    }
-    Ok(())
-}
-
 /// Runs a Git command that checks the status of the repository without producing output.
 fn run_git_status_check(command: &str, args: &[&str], verbose: bool) -> Result<std::process::ExitStatus> {
     if verbose {
@@ -106,6 +94,12 @@ pub fn has_staged_changes(verbose: bool) -> Result<bool> {
     let status = run_git_status_check("diff", &["--staged", "--quiet"], verbose)?;
     // `git diff --quiet` exits with 1 if there are changes, 0 if not.
     Ok(status.code() == Some(1))
+}
+
+/// Add a new remote repository to the current Git repository.
+/// git remote add origin <your-repository-url>
+pub fn add_remote(remote_name: &str, remote_url: &str, verbose: bool) -> Result<String> {
+    run_git_command("remote", &["add", remote_name, remote_url], verbose)
 }
 
 /// Check out the main branch.

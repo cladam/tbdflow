@@ -7,11 +7,9 @@
 // ===============================================================
 
 use std::io::Write;
-use std::{fs, io};
+use std::io;
 use clap::{CommandFactory, Parser};
 use colored::Colorize;
-use dialoguer::Confirm;
-use dialoguer::theme::ColorfulTheme;
 use tbdflow::{cli, git, config, commit, misc};
 use tbdflow::cli::Commands;
 use tbdflow::git::{get_current_branch, GitError};
@@ -38,95 +36,10 @@ fn main() -> anyhow::Result<()> {
     // Match the commands and execute the functionality.
     match cli.command {
         Commands::Init => {
-            println!("{}", "--- Initialising tbdflow configuration ---".to_string().blue());
-            // Check if we are in a git repository
-            // Get current filesystem directory, with a full path
-            let absolute_path = std::env::current_dir()?.to_str()
-                .unwrap_or("unknown")
-                .to_string();
-            if git::is_git_repository(verbose).is_err() {
-                // If not, ask the user if they want to create one.
-                if Confirm::with_theme(&ColorfulTheme::default())
-                    .with_prompt(format!("Currently not in a git repository ({}). Would you like to initialise one?", absolute_path))
-                    .interact()?
-                {
-                    // If yes, run git init.
-                    git::init_git_repository(verbose)?;
-                    println!("{}", "New git repository initialised.".green());
-                } else {
-                    // If no, abort.
-                    println!("{}", "Aborted. Please run 'tbdflow init' from within a git repository.".red());
-                    return Ok(());
-                }
-            }
-            // Get the root directory of the git repository
-            let git_root = git::get_git_root(verbose)?;
-            println!("{}", format!("Git repository root: {}", git_root).blue());
-            let tbdflow_path = std::path::Path::new(&git_root).join(".tbdflow.yml");
-
-            let mut files_created = false;
-            if !tbdflow_path.exists() {
-                let default_config = config::Config::default();
-                let yaml_string = serde_yaml::to_string(&default_config)?;
-                fs::write(&tbdflow_path, yaml_string)?;
-                println!("{}", "Created default .tbdflow.yml configuration file.".green());
-                files_created = true;
-            } else {
-                println!("{}", ".tbdflow.yml already exists. Skipping.".yellow());
-            }
-
-            // Create .dod.yml if it doesn't exist
-            let dod_path = std::path::Path::new(&git_root).join(".dod.yml");
-            if !dod_path.exists() {
-                let default_dod = r#"
-# --- Interactive Checklist ---
-# This list is presented to the developer before every commit.
-checklist:
-  - "Code is clean, readable, and adheres to team coding standards."
-  - "All relevant automated tests (unit, integration) pass successfully."
-  - "New features or bug fixes are covered by appropriate new tests."
-  - "Security implications of this change have been considered."
-  - "Relevant documentation (code comments, READMEs, etc.) is updated."
-"#.trim();
-                fs::write(dod_path, default_dod)?;
-                println!("{}", "Created default .dod.yml checklist file.".green());
-                files_created = true;
-            } else {
-                println!("{}", ".dod.yml already exists. Skipping.".yellow());
-            }
-
-            if files_created {
-                println!("\n{}", "Creating initial commit for configuration files...".blue());
-                git::add_all(verbose)?;
-                git::commit("chore: Initialise tbdflow configuration", verbose)?;
-                println!("{}", "Initial commit created.".green());
-
-                println!("{}", "\nNext steps:".bold());
-                println!("1. Create a repository on your git provider (e.g., GitHub).");
-                println!("2. Run the following command to link it:");
-                println!("{}", "   git remote add origin <your-repository-url>".cyan());
-                println!("3. Then run this command to push your initial commit:");
-                println!("{}", "   git push -u origin main".cyan());
-            }
+            misc::handle_init_command(verbose)?;
         }
         Commands::Update => {
-            println!("{}", "--- Checking for updates ---".blue());
-            // This relies on up2date GitHub releases
-            let status = self_update::backends::github::Update::configure()
-                .repo_owner("cladam")
-                .repo_name("tbdflow")
-                .bin_name("tbdflow")
-                .show_download_progress(true)
-                .current_version(self_update::cargo_crate_version!())
-                .build()?
-                .update()?;
-
-            println!("Update status: `{}`!", status.version());
-            if status.updated() {
-                println!("{}", "Successfully updated tbdflow!".green());
-            } else {
-                println!("{}", "tbdflow is already up to date.".green());
-            }
+            misc::handle_update_command()?;
         }
         Commands::Commit { r#type, scope, message, breaking, breaking_description, tag, no_verify, issue, body } => {
             println!("{}", "--- Committing changes ---".to_string().blue());
@@ -317,40 +230,7 @@ checklist:
             println!("\n{}", format!("Success! Branch '{}' was merged into main and deleted.", branch_name).green());
         }
         Commands::Sync => {
-            println!("{}", "--- Syncing with remote and showing status ---".to_string().blue());
-            let current_branch = get_current_branch(verbose)?;
-            println!("{}", format!("Current branch: {}", current_branch).blue());
-            if current_branch == main_branch_name {
-                if verbose {
-                    println!("--- On main branch, pulling latest changes ---");
-                }
-                git::pull_latest_with_rebase(verbose)?;
-            } else {
-                if verbose {
-                    println!("--- On branch '{}', rebasing onto main branch '{}' ---", current_branch, main_branch_name);
-                }
-                git::fetch_origin(verbose)?;
-                git::rebase_onto_main(main_branch_name, verbose)?;
-            }
-
-            // Add the status check to the sync workflow
-            println!("\n{}", "Current status".bold());
-            let status_output = git::status(verbose)?;
-            if status_output.is_empty() {
-                println!("{}", "Working directory is clean.".green());
-            } else {
-                // Show local changes in yellow to draw attention to them.
-                println!("{}", status_output.yellow());
-            }
-
-            let log_output = git::log_graph(verbose)?;
-            println!("\n{}", "Recent activity on main".bold());
-            println!("{}", log_output.cyan());
-
-            // Adding the stale branch check to the sync workflow
-            println!("\n{}", "Checking for stale branches".bold());
-            let stale_days = config.stale_branch_threshold_days;
-            git::check_and_warn_for_stale_branches(verbose, main_branch_name, stale_days)?;
+            misc::handle_sync(verbose, &config)?;
         }
         Commands::Status => {
             println!("{}", "--- Checking status ---".to_string().blue());
@@ -363,13 +243,7 @@ checklist:
             println!("{}", format!("Current branch is: {}", branch_name).green());
         }
         Commands::CheckBranches => {
-            println!("{}", "--- Checking for stale branches ---".to_string().blue());
-            let current_branch = get_current_branch(verbose)?;
-            if current_branch != main_branch_name {
-                return Err(GitError::NotOnMainBranch(current_branch).into());
-            }
-            let stale_days = config.stale_branch_threshold_days;
-            git::check_and_warn_for_stale_branches(verbose, main_branch_name, stale_days)?;
+            misc::handle_check_branches(verbose, &config)?;
         }
         Commands::GenerateManPage => {
             println!("{}", "--- Generating a man page ---".to_string().blue());
