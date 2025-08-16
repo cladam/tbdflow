@@ -1,0 +1,44 @@
+# -----------------------------------------------------------------------------
+# .dod.yml - Definition of Done Checklist for the 'tbdflow' tool
+#
+# This file defines the interactive checklist that runs before a commit.
+# The goal is to create a lightweight, fast quality gate that reinforces
+# team standards without being obtrusive.
+#
+# Instructions:
+# - Keep the active list short and focused (3-5 items is ideal).
+# - Comment out items that are better handled by automated CI or are too
+#   time-consuming for a developer to verify on every single commit.
+# - Use clear, actionable language for each checklist item.
+# - Ensure the checklist is easy to read and understand.
+#
+# The checklist can be bypassed with the --no-verify flag,
+# but this should be used sparingly and answer to the question
+# "For this one specific commit, do I have a good reason to bypass our default rules?"
+# -----------------------------------------------------------------------------
+
+# --- Optional Issue Tracker Integration ---
+# If true, the check-commit tool will require the --issue <ID> flag
+# to be used with the commit command, ensuring all work is traceable.
+issue_reference_required: false
+
+checklist:
+  # --- Code Quality & Testing (High-Impact Checks) ---
+  - "Code is clean, readable, and adheres to team coding standards."
+  - "All relevant automated tests (unit, integration) pass successfully."
+  - "New features or bug fixes are covered by appropriate new tests."
+
+  # --- Security & Documentation (Important Reminders) ---
+  - "Security implications of this change have been considered."
+  - "Relevant documentation (code comments, READMEs, etc.) is updated."
+
+  # --- Advanced / CI-Handled Checks (Commented out by default) ---
+  # These are critical but are often better verified automatically in a CI pipeline
+  # or are too in-depth for a quick pre-commit check.
+
+  # - "[Resilience] The system design considers potential failure scenarios."
+  # - "[Observability] Necessary logging, metrics, and monitoring hooks are in place."
+  # - "[Deployability] The change is independently deployable and testable."
+  # - "[Architecture] The change adheres to a loosely coupled architecture."
+  # - "[Compliance] The change is cyber secure and privacy compliant."
+  # - "[Test Data] Required test data is available and follows policies."
