@@ -13,11 +13,7 @@
 
 This CLI supports both the default commit-to-main workflow and the structured handling of short-lived branches for features, releases, and hotfixes.
 
-## Status & history
-
-This project is the result of an iterative development journey. It began as an F# application (`tbdflow-fs`) which was a great learning exercise in functional programming.
-
-The current and actively developed version is the Rust implementation (`tbdflow-rs`). It was ported to Rust to create a leaner, faster, and more portable single-binary executable, making it easier for others to use and contribute to. The F# version is no longer maintained but remains in the repository as a functional prototype.
+![A terminal running the command tbdflowlow](docs/commit-demo.gif "A demo of tbdflow running commit-to-main commands")
 
 ## Philosophy
 
@@ -295,3 +291,5 @@ You can generate a man page for `tbdflow` by running the following command:
 ```bash
 tbdflow generate-man-page > tbdflow.1
 ```
+
+
