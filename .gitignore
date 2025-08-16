@@ -1,12 +1,3 @@
-# Build results
-bin/
-obj/
-*.dll
-*.exe
-*.pdb
-*.app
-*.log
-
 # Rider/JetBrains IDE
 .idea/
 *.suo
@@ -19,15 +10,7 @@ obj/
 
 # MacOS
 .DS_Store
-
-# Dotnet publish artifacts
-publish/
-*.db
-
-# NuGet
-*.nupkg
-.nuget/
-packages/
+.gmap
 
 # Rust
-tbdflow-rs/target/
+target/
