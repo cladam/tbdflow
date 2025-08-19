@@ -92,7 +92,6 @@ To move beyond just automating process, `tbdflow` integrates an optional pre-com
 
 ```
 # .dod.yml in your project root
-
 checklist:
   - "All relevant automated tests pass successfully."
   - "New features or fixes are covered by new tests."
@@ -117,7 +116,7 @@ branch_prefixes:
   hotfix: hotfix_
 automatic_tags:
   release_prefix: v
-  hotfix_prefix: hotfix_
+  hotfix_prefix: hotfix-tag_
 lint:
   conventional_commit_type:
     enabled: true
@@ -136,12 +135,16 @@ lint:
   issue_key_missing:
     enabled: false
     pattern: ^[A-Z]+-\d+$
+  scope:
+    enabled: true
+    enforce_lowercase: true
   subject_line_rules:
-    subject_line_max_length: 72
-    subject_line_not_capitalized: true
-    subject_line_no_period: true
+    max_length: 72
+    enforce_lowercase: true
+    no_period: true
   body_line_rules:
-    body_max_line_length: 80
+    max_line_length: 80
+    leading_blank: true
 ```
 ---
 
