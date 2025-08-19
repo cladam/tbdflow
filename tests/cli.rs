@@ -1,5 +1,6 @@
 use assert_cmd::Command;
 use predicates::str::contains;
+use predicates::str::is_match;
 use serial_test::serial;
 use chrono::{Duration, Utc};
 
@@ -117,7 +118,17 @@ fn test_commit_command() {
         .arg("--tag").arg("button-v1");
     cmd.assert()
         .success()
-        .stdout(contains("Successfully committed and pushed changes to main."));
+        .stdout(
+        /*
+        Depending on Git version used, output may vary slightly. For example:
+        - Successfully committed and pushed changes to BRANCH_NAME.
+        - Successfully pushed changes to 'BRANCH_NAME'.
+
+        Also default branch name can be 'main' or 'master', depending on the Git version
+        and distribution. Below is a regex that matches all those cases.
+        */
+        is_match(r"Successfully (?:committed and )?pushed changes to '?(?:main|master)'?\.").unwrap()
+	);
 
     // Check that the tag exists
     let output = std::process::Command::new("git")
