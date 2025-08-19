@@ -46,20 +46,28 @@ pub struct IssueKeyConfig {
     pub pattern: Option<String>,
 }
 
+/// Represents the configuration for scopes in commit messages.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ScopeConfig {
+    pub enabled: Option<bool>,
+    pub enforce_lowercase: Option<bool>,
+}
+
 /// Represents the rules for validating the subject line of commit messages.
 /// This includes checks for maximum length, capitalization, and whether it ends with a period.
 /// The subject line rules help ensure that commit messages are clear and follow a consistent format.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubjectLineRules {
-    pub subject_line_max_length: Option<usize>,
-    pub subject_line_not_capitalized: Option<bool>,
-    pub subject_line_no_period: Option<bool>,
+    pub max_length: Option<usize>,
+    pub enforce_lowercase: Option<bool>,
+    pub no_period: Option<bool>,
 }
 
 /// Represents the rules for validating the body lines of commit messages.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BodyLineRules {
-    pub body_max_line_length: Option<usize>,
+    pub max_line_length: Option<usize>,
+    pub leading_blank: Option<bool>,
 }
 
 /// Represents the configuration for linting commit messages.
@@ -70,6 +78,7 @@ pub struct BodyLineRules {
 pub struct LintConfig {
     pub conventional_commit_type: Option<ConventionalCommitTypeConfig>,
     pub issue_key_missing: Option<IssueKeyConfig>,
+    pub scope: Option<ScopeConfig>,
     pub subject_line_rules: Option<SubjectLineRules>,
     pub body_line_rules: Option<BodyLineRules>,
 }
@@ -133,13 +142,18 @@ impl Default for Config {
                     enabled: Some(false),
                     pattern: Some(r"^[A-Z]+-\d+$".to_string()), // Example pattern for Jira issue keys
                 }),
+                scope: Some(ScopeConfig {
+                    enabled: Some(true),
+                    enforce_lowercase: Some(true),
+                }),
                 subject_line_rules: Some(SubjectLineRules {
-                    subject_line_max_length: Some(72),
-                    subject_line_not_capitalized: Some(true),
-                    subject_line_no_period: Some(true),
+                    max_length: Some(72),
+                    enforce_lowercase: Some(true),
+                    no_period: Some(true),
                 }),
                 body_line_rules: Some(BodyLineRules {
-                    body_max_line_length: Some(80),
+                    max_line_length: Some(80),
+                    leading_blank: Option::from(true)
                 }),
             }),
         }

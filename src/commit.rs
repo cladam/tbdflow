@@ -109,26 +109,47 @@ pub fn is_valid_issue_key(issue_key: &Option<String>, config: &config::Config) -
     true
 }
 
+pub fn is_valid_scope(scope: &Option<String>, config: &config::Config) -> bool {
+    if let Some(lint_config) = &config.lint {
+        if let Some(scope_config) = &lint_config.scope {
+            if let Some(enabled) = scope_config.enabled {
+                if !enabled {
+                    return true; // If linting is disabled, any scope is valid
+                }
+            }
+            if let Some(enforce_lowercase) = scope_config.enforce_lowercase {
+                if enforce_lowercase {
+                    if let Some(s) = scope {
+                        return s.chars().all(|c| c.is_lowercase());
+                    }
+                }
+            }
+        }
+    }
+    true
+}
+
 /// Check if the subject line of the commit message is valid.
 /// Validations include maximum length, capitalization, and period at the end.
 pub fn is_valid_subject_line(subject: &str, config: &config::Config) -> Result<(), String> {
     if let Some(lint) = &config.lint {
         if let Some(rules) = &lint.subject_line_rules {
-            if let Some(max_len) = rules.subject_line_max_length {
+            if let Some(max_len) = rules.max_length {
                 if subject.len() > max_len {
                     return Err(format!("Subject line exceeds maximum length of {} characters.", max_len));
                 }
             }
-            if let Some(enforce_not_capitalized) = rules.subject_line_not_capitalized {
-                if enforce_not_capitalized {
+            if let Some(enforce_lowercase) = rules.enforce_lowercase {
+                if enforce_lowercase {
                     if let Some(first) = subject.chars().next() {
                         if first.is_uppercase() {
                             return Err("Subject line must not start with a capital letter.".to_string());
                         }
+
                     }
                 }
             }
-            if let Some(no_period) = rules.subject_line_no_period {
+            if let Some(no_period) = rules.no_period {
                 if no_period && subject.trim_end().ends_with('.') {
                     return Err("Subject line should not end with a period.".to_string());
                 }
@@ -143,7 +164,7 @@ pub fn is_valid_subject_line(subject: &str, config: &config::Config) -> Result<(
 pub fn is_valid_body_lines(body: &str, config: &config::Config) -> bool {
     if let Some(lint) = &config.lint {
         if let Some(rules) = &lint.body_line_rules {
-            if let Some(max_len) = rules.body_max_line_length {
+            if let Some(max_len) = rules.max_line_length {
                 for line in body.lines() {
                     if line.len() > max_len { return false; }
                 }
