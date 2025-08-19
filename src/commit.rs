@@ -21,7 +21,6 @@ pub fn build_todo_footer(checklist: &[String], checked_indices: &[usize]) -> Str
         .enumerate()
         .filter(|(i, _)| !checked_indices.contains(&i))
         .map(|(_, item)| format!("- [ ] {}", item))
-        //.filter_map(|(i, item)| if !checked_indices.contains(&i) { Some(item.clone()) } else { None })
         .collect();
     if unchecked_items.is_empty() {
         String::new()
@@ -169,6 +168,11 @@ pub fn is_valid_body_lines(body: &str, config: &config::Config) -> bool {
                     if line.len() > max_len { return false; }
                 }
             }
+            if let Some(leading_blank) = rules.leading_blank {
+                if leading_blank && !body.starts_with("\n\n") {
+                    return false; // Body must start with a leading blank line
+                }
+            }
         }
     }
     true
@@ -189,23 +193,33 @@ pub fn handle_commit(
 ) -> Result<()> {
     println!("{}", "--- Committing changes ---".blue());
 
-    // 1. LINTING
+    // Linting based on the provided configuration
     if !is_valid_commit_type(&r#type, config) {
         println!("{}", format!("Error: '{}' is not a valid Conventional Commit type.", r#type).red());
         return Err(anyhow::anyhow!("Aborted: Invalid commit type."));
     }
+
     if !is_valid_issue_key(&issue, config) {
         println!("{}", "Issue reference is required by your .tbdflow.yml config.".red());
         return Err(anyhow::anyhow!("Aborted: Issue reference required."));
     }
+
     if let Err(e) = is_valid_subject_line(&message, config) {
         println!("{}", format!("Commit message subject error: {}", e).red());
         return Err(anyhow::anyhow!("Aborted: Invalid commit message subject."));
     }
+
     if let Some(body_text) = &body {
         if !is_valid_body_lines(body_text, config) {
             println!("{}", "Commit message body contains lines that exceed the maximum length.".red());
             return Err(anyhow::anyhow!("Aborted: Invalid commit message body."));
+        }
+    }
+
+    if let Some(s) = &scope {
+        if !is_valid_scope(&Some(s.clone()), config) {
+            println!("{}", "Scope must be lowercase.".red());
+            return Err(anyhow::anyhow!("Aborted: Invalid commit scope."));
         }
     }
 

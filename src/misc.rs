@@ -61,7 +61,6 @@ pub fn handle_init_command(verbose: bool) -> Result<()> {
 
     if !dod_path.exists() {
         let default_dod = r#"
-issue_reference_required: false
 checklist:
   - "Code is clean, readable, and adheres to team coding standards."
   - "All relevant automated tests (unit, integration) pass successfully."

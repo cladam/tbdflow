@@ -8,7 +8,6 @@ use anyhow::Context;
 /// Represents the Definition of Done (DoD) configuration.
 #[derive(Debug, Deserialize, Default)]
 pub struct DodConfig {
-    pub issue_reference_required: Option<bool>,
     #[serde(default)]
     pub checklist: Vec<String>,
 }
