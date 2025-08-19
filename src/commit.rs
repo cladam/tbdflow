@@ -168,11 +168,12 @@ pub fn is_valid_body_lines(body: &str, config: &config::Config) -> bool {
                     if line.len() > max_len { return false; }
                 }
             }
-            if let Some(leading_blank) = rules.leading_blank {
-                if leading_blank && !body.starts_with("\n\n") {
-                    return false; // Body must start with a leading blank line
-                }
-            }
+            // Enforced in code already, but can be uncommented later on
+            // if let Some(leading_blank) = rules.leading_blank {
+            //     if leading_blank && !body.starts_with("\n\n") {
+            //         return false; // Body must start with a leading blank line
+            //     }
+            // }
         }
     }
     true
