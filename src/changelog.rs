@@ -1,4 +1,4 @@
-use crate::git;
+use crate::{config::Config, git};
 use anyhow::Result;
 use colored::*;
 use git_conventional::Commit;
@@ -18,6 +18,7 @@ fn get_section_header(commit_type: &str) -> &'static str {
 
 pub fn handle_changelog(
     verbose: bool,
+    config: &Config,
     from: Option<String>,
     to: Option<String>,
     unreleased: bool,
@@ -28,11 +29,7 @@ pub fn handle_changelog(
         format!("{}..HEAD", latest_tag)
     } else {
         // Get the range from the specified 'from' commit to 'to' commit
-        format!(
-            "{}..{}",
-            from.unwrap_or_default(),
-            to.unwrap_or("HEAD".to_string())
-        )
+        format!("{}..{}", from.unwrap_or_default(), to.clone().unwrap_or("HEAD".to_string()))
     };
 
     // Fetch the commit history in a friendly format
@@ -76,6 +73,25 @@ pub fn handle_changelog(
     }
 
     let mut changelog = String::new();
+
+    // Add the version header
+    if unreleased {
+        changelog.push_str("# Unreleased Changes\n");
+    } else {
+        if let Some(tag) = &to {
+            let version = tag.strip_prefix('v').unwrap_or(tag);
+            let date = chrono::Local::now().format("%Y-%m-%d").to_string();
+
+            let release_link = if let Some(template) = &config.release_url_template {
+                let url = template.replace("{{version}}", tag);
+                format!("[{}]({})", version, url)
+            } else {
+                version.to_string()
+            };
+            changelog.push_str(&format!("# {} ({})\n", release_link, date));
+        }
+    }
+
     let section_order = [
         "### ⚠️ BREAKING CHANGES",
         "### ✨ Features",

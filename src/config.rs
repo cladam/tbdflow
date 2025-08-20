@@ -94,6 +94,7 @@ pub struct LintConfig {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub main_branch_name: String,
+    pub release_url_template: Option<String>,
     pub stale_branch_threshold_days: i64,
     pub branch_prefixes: BranchPrefixes,
     pub automatic_tags: AutomaticTags,
@@ -109,6 +110,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             main_branch_name: "main".to_string(),
+            release_url_template: Some("https://github.com/{repo_owner}/{repo_name}/releases/tag/{{version}}".to_string()),
             stale_branch_threshold_days: 1,
             branch_prefixes: BranchPrefixes {
                 feature: "feature_".to_string(),
