@@ -1,3 +1,18 @@
+# [0.14.0](https://github.com/{repo_owner}/{repo_name}/releases/tag/v0.14.0) (2025-08-20)
+
+### ✨ Features
+- **(changelog):** add CHANGELOG.md based on changelog command and GH Releases [`bdcdd01`](https://github.com/cladam/tbdflow/commit/bdcdd01f8e37fea534982a994c36ae59fe107fe9)
+- **(changelog):** update heading for unreleased changes [`7b4b4b6`](https://github.com/cladam/tbdflow/commit/7b4b4b648bb4e42097570edc91ddd4fe4a019d41)
+- **(changelog):** update heading with link from .tbdflow.yml [`68fbdc9`](https://github.com/cladam/tbdflow/commit/68fbdc998f4f35c7202b0664dd12fe37243c75f2)
+- **(changelog):** update output format och changelog [`11b1cb2`](https://github.com/cladam/tbdflow/commit/11b1cb2ee770969ac2be7e94f485145a278ef9db)
+- **(changelog):** add initial changelog command [`5a8d7c7`](https://github.com/cladam/tbdflow/commit/5a8d7c7dd36499ef7630318fb2996aec1a5e37d0)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`83044c0`](https://github.com/cladam/tbdflow/commit/83044c038b83ea9909c37527a535c55d7baaa1c5)
+- update README with changelog documentation [`1d5a0cc`](https://github.com/cladam/tbdflow/commit/1d5a0cc20d568be0a6980ec6918cfbb29e30c6a6)
+- update README [`40ab254`](https://github.com/cladam/tbdflow/commit/40ab254e2f42a3627c2d5c23f191e7ee2182b494)
+
+
 # [0.13.1](https://github.com/{repo_owner}/{repo_name}/releases/tag/v0.13.1) (2025-08-20)
 
 ### ⚠️ BREAKING CHANGES
