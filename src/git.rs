@@ -231,6 +231,24 @@ pub fn get_head_commit_hash(verbose: bool) -> Result<String> {
     run_git_command("rev-parse", &["HEAD"], verbose)
 }
 
+/// Get the latest tag in the repository.
+/// This returns the most recent tag, which is useful for versioning.
+pub fn get_latest_tag(verbose: bool) -> Result<String> {
+    run_git_command("describe", &["--tags", "--abbrev=0"], verbose)
+}
+
+/// Get the commit history in a specific range.
+pub fn get_commit_history(range: &str, verbose: bool) -> Result<String> {
+    run_git_command("log", &[range, "--pretty=format:%H|%s"], verbose)
+}
+
+/// Get the remote URL of the repository.
+pub fn get_remote_url(verbose: bool) -> Result<String> {
+    let url = run_git_command("remote", &["get-url", "origin"], verbose)?;
+    // Remove the .git suffix for cleaner URLs
+    Ok(url.trim_end_matches(".git").to_string())
+}
+
 /// Create a new tag with a message at a specific commit hash.
 pub fn create_tag(tag_name: &str, message: &str, commit_hash: &str, verbose: bool) -> Result<String> {
     run_git_command("tag", &["-a", tag_name, "-m", message, commit_hash], verbose)

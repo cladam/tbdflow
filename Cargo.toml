@@ -23,6 +23,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 dialoguer = "0.11.0"
 self_update = "0.42.0"
 regex = "1.11.1"
+git-conventional = "0.12.9"
 [target.'cfg(all(target_os = "linux", target_arch = "aarch64"))'.dependencies]
 openssl-sys = { version = "0.9.109", features = ["vendored"] }
 

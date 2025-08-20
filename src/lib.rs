@@ -3,3 +3,4 @@ pub mod cli;
 pub mod config;
 pub mod commit;
 pub mod misc;
+pub mod changelog;

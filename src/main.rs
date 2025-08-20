@@ -10,7 +10,7 @@ use std::io::Write;
 use std::io;
 use clap::{CommandFactory, Parser};
 use colored::Colorize;
-use tbdflow::{cli, git, config, commit, misc};
+use tbdflow::{cli, git, config, commit, misc, changelog};
 use tbdflow::cli::Commands;
 use tbdflow::git::{get_current_branch, GitError};
 
@@ -179,6 +179,15 @@ fn main() -> anyhow::Result<()> {
             let mut cmd = cli::Cli::command();
             let bin_name = cmd.get_name().to_string();
             clap_complete::generate(shell, &mut cmd, bin_name, &mut io::stdout());
+        }
+        Commands::Changelog { from, to, unreleased } => {
+            println!("{}", "--- Generating changelog ---".blue());
+            let changelog = changelog::handle_changelog(verbose, from, to, unreleased)?;
+            if changelog.is_empty() {
+                println!("{}", "No conventional commits found in the specified range.".yellow());
+            } else {
+                println!("{}", changelog);
+            }
         }
     }
 

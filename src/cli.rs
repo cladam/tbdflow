@@ -140,4 +140,20 @@ pub enum Commands {
         #[arg(value_enum)]
         shell: Shell,
     },
+    /// Generates a changelog from Conventional Commits.
+    #[command(name = "changelog", after_help = "EXAMPLES:\n  \
+    tbdflow changelog --from v1.0.0 --to v2.0.0\n  \
+    tbdflow changelog --unreleased\n  \
+    tbdflow changelog --from v1.0.0")]
+    Changelog {
+        /// Generate from this git reference (tag or commit hash).
+        #[arg(long)]
+        from: Option<String>,
+        /// Generate to this git reference (defaults to HEAD).
+        #[arg(long)]
+        to: Option<String>,
+        /// Generate for all commits since the latest tag.
+        #[arg(long, default_value_t = false)]
+        unreleased: bool,
+    },
 }
