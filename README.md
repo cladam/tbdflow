@@ -109,6 +109,7 @@ If a `.tbdflow.yml` file is present and contains a lint section, the commit comm
 
 ```yaml
 main_branch_name: main
+release_url_template: https://github.com/{repo_owner}/{repo_name}/releases/tag/{{version}}
 stale_branch_threshold_days: 1
 branch_prefixes:
   feature: feature_
