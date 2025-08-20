@@ -181,8 +181,9 @@ fn main() -> anyhow::Result<()> {
             clap_complete::generate(shell, &mut cmd, bin_name, &mut io::stdout());
         }
         Commands::Changelog { from, to, unreleased } => {
-            println!("{}", "--- Generating changelog ---".blue());
-            let changelog = changelog::handle_changelog(verbose, from, to, unreleased)?;
+            //println!("{}", "--- Generating changelog ---".blue());
+            // Don't print the header, good for when piping to a file
+            let changelog = changelog::handle_changelog(verbose, &config, from, to, unreleased)?;
             if changelog.is_empty() {
                 println!("{}", "No conventional commits found in the specified range.".yellow());
             } else {
