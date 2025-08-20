@@ -6,13 +6,13 @@
 // Author: Claes Adamsson @cladam
 // ===============================================================
 
-use std::io::Write;
-use std::io;
 use clap::{CommandFactory, Parser};
 use colored::Colorize;
-use tbdflow::{cli, git, config, commit, misc, changelog};
+use std::io;
+use std::io::Write;
 use tbdflow::cli::Commands;
 use tbdflow::git::{get_current_branch, GitError};
+use tbdflow::{changelog, cli, commit, config, git, misc};
 
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
@@ -20,9 +20,15 @@ fn main() -> anyhow::Result<()> {
 
     // Before running any command, check if we are in a git repository,
     // unless the command is `init` itself.
-    if !matches!(cli.command, Commands::Init | Commands::Update | Commands::Completion {..}) {
+    if !matches!(
+        cli.command,
+        Commands::Init | Commands::Update | Commands::Completion { .. }
+    ) {
         if git::is_git_repository(verbose).is_err() {
-            println!("{}", "Error: Not a git repository (or any of the parent directories).".red());
+            println!(
+                "{}",
+                "Error: Not a git repository (or any of the parent directories).".red()
+            );
             println!("Hint: Run 'tbdflow init' to initialise a new repository here.");
             // Exit gracefully without a scary error stack trace.
             std::process::exit(1);
@@ -41,7 +47,17 @@ fn main() -> anyhow::Result<()> {
         Commands::Update => {
             misc::handle_update_command()?;
         }
-        Commands::Commit { r#type, scope, message, body, breaking, breaking_description, tag, no_verify, issue } => {
+        Commands::Commit {
+            r#type,
+            scope,
+            message,
+            body,
+            breaking,
+            breaking_description,
+            tag,
+            no_verify,
+            issue,
+        } => {
             commit::handle_commit(
                 verbose,
                 &config,
@@ -64,9 +80,15 @@ fn main() -> anyhow::Result<()> {
             git::pull_latest_with_rebase(verbose)?;
             git::create_branch(&branch_name, None, verbose)?;
             git::push_set_upstream(&branch_name, verbose)?;
-            println!("\n{}", format!("Success! Switched to new feature branch: '{}'", branch_name).green());
+            println!(
+                "\n{}",
+                format!("Success! Switched to new feature branch: '{}'", branch_name).green()
+            );
         }
-        Commands::Release { version, from_commit } => {
+        Commands::Release {
+            version,
+            from_commit,
+        } => {
             println!("{}", "--- Creating release branch ---".to_string().blue());
             let branch_name = format!("{}{}", config.branch_prefixes.release, version);
             git::is_working_directory_clean(verbose)?;
@@ -74,7 +96,10 @@ fn main() -> anyhow::Result<()> {
             git::pull_latest_with_rebase(verbose)?;
             git::create_branch(&branch_name, from_commit.as_deref(), verbose)?;
             git::push_set_upstream(&branch_name, verbose)?;
-            println!("\n{}", format!("Success! Switched to new release branch: '{}'", branch_name).green());
+            println!(
+                "\n{}",
+                format!("Success! Switched to new release branch: '{}'", branch_name).green()
+            );
         }
         Commands::Hotfix { name } => {
             println!("{}", "--- Creating hotfix branch ---".to_string().blue());
@@ -84,17 +109,28 @@ fn main() -> anyhow::Result<()> {
             git::pull_latest_with_rebase(verbose)?;
             git::create_branch(&branch_name, None, verbose)?;
             git::push_set_upstream(&branch_name, verbose)?;
-            println!("\n{}", format!("Success! Switched to new hotfix branch: '{}'", branch_name).green());
+            println!(
+                "\n{}",
+                format!("Success! Switched to new hotfix branch: '{}'", branch_name).green()
+            );
         }
         Commands::Complete { r#type, name } => {
-            println!("{}", "--- Completing short-lived branch ---".to_string().blue());
+            println!(
+                "{}",
+                "--- Completing short-lived branch ---".to_string().blue()
+            );
 
             // Cannot complete the main branch
             if name == main_branch_name {
                 return Err(GitError::CannotCompleteMainBranch.into());
             }
 
-            let branch_name= git::find_branch_case_insensitive(&name, &r#type, &config.branch_prefixes, verbose)?;
+            let branch_name = git::find_branch_case_insensitive(
+                &name,
+                &r#type,
+                &config.branch_prefixes,
+                verbose,
+            )?;
             println!("{}", format!("Branch to complete: {}", branch_name).blue());
 
             // pre-flight check the branch name
@@ -121,15 +157,31 @@ fn main() -> anyhow::Result<()> {
                 "release" => {
                     let tag_name = format!("{}{}", config.automatic_tags.release_prefix, name);
                     let merge_commit_hash = git::get_head_commit_hash(verbose)?;
-                    git::create_tag(&tag_name, &format!("Release {}", name), &merge_commit_hash, verbose)?;
-                    println!("{}", format!("Created tag '{}' on merge commit.", tag_name).green());
+                    git::create_tag(
+                        &tag_name,
+                        &format!("Release {}", name),
+                        &merge_commit_hash,
+                        verbose,
+                    )?;
+                    println!(
+                        "{}",
+                        format!("Created tag '{}' on merge commit.", tag_name).green()
+                    );
                     should_push_tags = true;
                 }
                 "hotfix" => {
                     let tag_name = format!("{}{}", config.automatic_tags.hotfix_prefix, name);
                     let merge_commit_hash = git::get_head_commit_hash(verbose)?;
-                    git::create_tag(&tag_name, &format!("Hotfix {}", name), &merge_commit_hash, verbose)?;
-                    println!("{}", format!("Created tag '{}' on merge commit.", tag_name).green());
+                    git::create_tag(
+                        &tag_name,
+                        &format!("Hotfix {}", name),
+                        &merge_commit_hash,
+                        verbose,
+                    )?;
+                    println!(
+                        "{}",
+                        format!("Created tag '{}' on merge commit.", tag_name).green()
+                    );
                     should_push_tags = true;
                 }
                 _ => {} // Do nothing for feature branches
@@ -142,7 +194,14 @@ fn main() -> anyhow::Result<()> {
             git::push(verbose)?;
             git::delete_local_branch(&branch_name, verbose)?;
             git::delete_remote_branch(&branch_name, verbose)?;
-            println!("\n{}", format!("Success! Branch '{}' was merged into main and deleted.", branch_name).green());
+            println!(
+                "\n{}",
+                format!(
+                    "Success! Branch '{}' was merged into main and deleted.",
+                    branch_name
+                )
+                .green()
+            );
         }
         Commands::Sync => {
             misc::handle_sync(verbose, &config)?;
@@ -180,11 +239,18 @@ fn main() -> anyhow::Result<()> {
             let bin_name = cmd.get_name().to_string();
             clap_complete::generate(shell, &mut cmd, bin_name, &mut io::stdout());
         }
-        Commands::Changelog { from, to, unreleased } => {
+        Commands::Changelog {
+            from,
+            to,
+            unreleased,
+        } => {
             println!("{}", "--- Generating changelog ---".blue());
             let changelog = changelog::handle_changelog(verbose, from, to, unreleased)?;
             if changelog.is_empty() {
-                println!("{}", "No conventional commits found in the specified range.".yellow());
+                println!(
+                    "{}",
+                    "No conventional commits found in the specified range.".yellow()
+                );
             } else {
                 println!("{}", changelog);
             }

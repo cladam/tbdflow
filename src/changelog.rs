@@ -28,7 +28,11 @@ pub fn handle_changelog(
         format!("{}..HEAD", latest_tag)
     } else {
         // Get the range from the specified 'from' commit to 'to' commit
-        format!("{}..{}", from.unwrap_or_default(), to.unwrap_or("HEAD".to_string()))
+        format!(
+            "{}..{}",
+            from.unwrap_or_default(),
+            to.unwrap_or("HEAD".to_string())
+        )
     };
 
     // Fetch the commit history in a friendly format
@@ -50,7 +54,9 @@ pub fn handle_changelog(
         // Parse the commit message using git_conventional
         // This will extract the type, scope, and description
         if let Ok(commit) = Commit::parse(message) {
-            let scope = commit.scope().map_or("".to_string(), |s| format!("**({}):** ", s));
+            let scope = commit
+                .scope()
+                .map_or("".to_string(), |s| format!("**({}):** ", s));
             let short_hash = &hash[..7];
             let commit_link = if !remote_url.is_empty() {
                 format!(" [`{}`]({}/commit/{})", short_hash, remote_url, hash)

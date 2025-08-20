@@ -1,6 +1,6 @@
 use serial_test::serial;
-use std::fs::write;
 use std::env;
+use std::fs::write;
 use tbdflow::git;
 mod util;
 use util::setup_temp_git_repo;

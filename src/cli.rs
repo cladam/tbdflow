@@ -34,7 +34,8 @@ pub enum Commands {
     /// Checks for a new version of tbdflow and updates it if available.
     Update,
     /// Commits changes to the current branch or 'main' if no branch is checked out.
-    #[command(after_help = "Use the imperative, present tense: \"change\" not \"changed\". Think of This commit will...\n\
+    #[command(
+        after_help = "Use the imperative, present tense: \"change\" not \"changed\". Think of This commit will...\n\
     COMMON COMMIT TYPES:\n  \
     feat:     A new feature for the user.\n  \
     fix:      A bug fix for the user.\n  \
@@ -48,7 +49,8 @@ pub enum Commands {
     tbdflow commit -t fix -m \"fix login bug\" --breaking\n  \
     tbdflow commit -t chore -m \"update dependencies\" --tag \"v0.4.0\"\n  \
     tbdflow commit -t refactor -m \"rename internal API\" --breaking --breaking-description \"The `getUser` function has been renamed to `fetchUser`.\"\n  \
-    tbdflow commit -t fix -s ui -m \"fix button alignment\" --issue \"#123\"")]
+    tbdflow commit -t fix -s ui -m \"fix button alignment\" --issue \"#123\""
+    )]
     Commit {
         /// Commit type (e.g. 'feat', 'fix', 'chore', 'docs').
         #[arg(short, long)]
@@ -87,9 +89,12 @@ pub enum Commands {
         name: String,
     },
     /// Creates a new short-lived release branch from 'main'.
-    #[command(after_help = "EXAMPLES:\n  \
+    #[command(
+        after_help = "EXAMPLES:\n  \
     tbdflow release --version \"2.1.0\"\n  \
-    tbdflow release -v \"2.1.0\" -f \"39b68b5\"", disable_version_flag = true)]
+    tbdflow release -v \"2.1.0\" -f \"39b68b5\"",
+        disable_version_flag = true
+    )]
     Release {
         /// Version for the release branch (e.g. '1.0.0').
         #[arg(short, long)]
@@ -141,10 +146,13 @@ pub enum Commands {
         shell: Shell,
     },
     /// Generates a changelog from Conventional Commits.
-    #[command(name = "changelog", after_help = "EXAMPLES:\n  \
+    #[command(
+        name = "changelog",
+        after_help = "EXAMPLES:\n  \
     tbdflow changelog --from v1.0.0 --to v2.0.0\n  \
     tbdflow changelog --unreleased\n  \
-    tbdflow changelog --from v1.0.0")]
+    tbdflow changelog --from v1.0.0"
+    )]
     Changelog {
         /// Generate from this git reference (tag or commit hash).
         #[arg(long)]

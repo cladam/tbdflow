@@ -1,6 +1,6 @@
-pub mod git;
-pub mod cli;
-pub mod config;
-pub mod commit;
-pub mod misc;
 pub mod changelog;
+pub mod cli;
+pub mod commit;
+pub mod config;
+pub mod git;
+pub mod misc;

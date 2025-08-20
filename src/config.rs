@@ -1,9 +1,9 @@
+use anyhow::Context;
 /// The structs and functions for handling the configuration of the TBDFlow tool.
 /// This includes reading the configuration from `.tbdflow.yml` and `.dod.yml` files,
 /// as well as defining the structure of the configuration data.
 use serde::{Deserialize, Serialize};
 use std::fs;
-use anyhow::Context;
 
 /// Represents the Definition of Done (DoD) configuration.
 #[derive(Debug, Deserialize, Default)]
@@ -152,7 +152,7 @@ impl Default for Config {
                 }),
                 body_line_rules: Some(BodyLineRules {
                     max_line_length: Some(80),
-                    leading_blank: Option::from(true)
+                    leading_blank: Option::from(true),
                 }),
             }),
         }
@@ -171,9 +171,7 @@ pub fn load_tbdflow_config() -> Result<Config, anyhow::Error> {
 
 /// Reads the DoD configuration from the `.dod.yml` file in the current directory (root of the git repository).
 pub fn load_dod_config() -> anyhow::Result<DodConfig> {
-    let content = std::fs::read_to_string(".dod.yml")
-        .context("Failed to read .dod.yml")?;
-    let config: DodConfig = serde_yaml::from_str(&content)
-        .context("Failed to parse .dod.yml")?;
+    let content = std::fs::read_to_string(".dod.yml").context("Failed to read .dod.yml")?;
+    let config: DodConfig = serde_yaml::from_str(&content).context("Failed to parse .dod.yml")?;
     Ok(config)
 }
