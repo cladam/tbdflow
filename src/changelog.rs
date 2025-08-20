@@ -29,7 +29,11 @@ pub fn handle_changelog(
         format!("{}..HEAD", latest_tag)
     } else {
         // Get the range from the specified 'from' commit to 'to' commit
-        format!("{}..{}", from.unwrap_or_default(), to.clone().unwrap_or("HEAD".to_string()))
+        format!(
+            "{}..{}",
+            from.unwrap_or_default(),
+            to.clone().unwrap_or("HEAD".to_string())
+        )
     };
 
     // Fetch the commit history in a friendly format
