@@ -72,18 +72,18 @@ pub fn handle_changelog(
 
     let mut changelog = String::new();
 
-    // Add the version header if this is a specific release
-    if !unreleased {
-        if let Some(tag) = to.as_ref() {
+    // Add the version header
+    if unreleased {
+        changelog.push_str("# Unreleased Changes\n");
+    } else {
+        if let Some(tag) = &to {
             let version = tag.strip_prefix('v').unwrap_or(tag);
             let date = chrono::Local::now().format("%Y-%m-%d").to_string();
 
             let release_link = if let Some(template) = &config.release_url_template {
-                // If a template exists, use it.
                 let url = template.replace("{{version}}", tag);
                 format!("[{}]({})", version, url)
             } else {
-                // Otherwise, just print the version text.
                 version.to_string()
             };
             changelog.push_str(&format!("# {} ({})\n", release_link, date));
