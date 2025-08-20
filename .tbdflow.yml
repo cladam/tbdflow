@@ -1,5 +1,5 @@
 main_branch_name: main
-release_url_template: https://github.com/{repo_owner}/{repo_name}/releases/tag/{{version}}
+release_url_template: https://github.com/cladam/tbdflow/releases/tag/{{version}}
 stale_branch_threshold_days: 1
 branch_prefixes:
   feature: feature_
