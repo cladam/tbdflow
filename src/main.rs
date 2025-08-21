@@ -170,12 +170,7 @@ fn main() -> anyhow::Result<()> {
                 return Err(GitError::CannotCompleteMainBranch.into());
             }
 
-            let branch_name = git::find_branch_case_insensitive2(
-                &name,
-                &r#type,
-                &config.branch_prefixes,
-                verbose,
-            )?;
+            let branch_name = git::find_branch(&name, &r#type, &config, verbose)?;
             println!("{}", format!("Branch to complete: {}", branch_name).blue());
 
             // pre-flight check the branch name
