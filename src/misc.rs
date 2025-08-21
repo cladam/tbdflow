@@ -203,6 +203,25 @@ pub fn check_and_warn_for_stale_branches(
     Ok(())
 }
 
+/// Get the branch prefix for a given branch type, or return an error if the type is invalid.
+pub fn get_branch_prefix_or_error<'a>(
+    branch_types: &'a std::collections::HashMap<String, String>,
+    r#type: &str,
+) -> anyhow::Result<&'a String> {
+    branch_types.get(r#type).ok_or_else(|| {
+        let allowed_types = branch_types
+            .keys()
+            .map(|s| s.as_str())
+            .collect::<Vec<&str>>()
+            .join(", ");
+        anyhow::anyhow!(
+            "Invalid branch type '{}'. Allowed types are: {}",
+            r#type,
+            allowed_types
+        )
+    })
+}
+
 /// Generate a flattened man page for tbdflow to stdout, users can pipe this to a file.
 pub fn render_manpage_section(cmd: &Commands, buffer: &mut Vec<u8>) -> Result<(), anyhow::Error> {
     let man = clap_mangen::Man::new(cmd.clone());

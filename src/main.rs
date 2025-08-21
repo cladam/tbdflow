@@ -124,19 +124,7 @@ fn main() -> anyhow::Result<()> {
                 "--- Creating short-lived branch ---".to_string().blue()
             );
 
-            let prefix = config.branch_types.get(&r#type).ok_or_else(|| {
-                let allowed_types = config
-                    .branch_types
-                    .keys()
-                    .map(|s| s.as_str())
-                    .collect::<Vec<&str>>()
-                    .join(", ");
-                anyhow::anyhow!(
-                    "Invalid branch type '{}'. Allowed types are: {}",
-                    r#type,
-                    allowed_types
-                )
-            })?;
+            let prefix = misc::get_branch_prefix_or_error(&config.branch_types, &r#type)?;
 
             // Construct the branch name based on the configured strategy
             let branch_name = match config.issue_handling.strategy {
@@ -176,12 +164,9 @@ fn main() -> anyhow::Result<()> {
             // pre-flight check the branch name
             git::branch_exists_locally(&branch_name, verbose)?;
 
-            if r#type == "release" || r#type == "hotfix" {
-                let tag_name = if r#type == "release" {
-                    format!("{}{}", config.automatic_tags.release_prefix, name)
-                } else {
-                    format!("{}{}", config.automatic_tags.hotfix_prefix, name)
-                };
+            if r#type == "release" {
+                let tag_name = format!("{}{}", config.automatic_tags.release_prefix, name);
+
                 if git::tag_exists(&tag_name, verbose)? {
                     return Err(GitError::TagAlreadyExists(tag_name).into());
                 }
@@ -192,45 +177,27 @@ fn main() -> anyhow::Result<()> {
             git::pull_latest_with_rebase(verbose)?;
             git::merge_branch(&branch_name, verbose)?;
 
-            let mut should_push_tags = false;
-            match r#type.as_str() {
-                "release" => {
-                    let tag_name = format!("{}{}", config.automatic_tags.release_prefix, name);
-                    let merge_commit_hash = git::get_head_commit_hash(verbose)?;
-                    git::create_tag(
-                        &tag_name,
-                        &format!("Release {}", name),
-                        &merge_commit_hash,
-                        verbose,
-                    )?;
-                    println!(
-                        "{}",
-                        format!("Created tag '{}' on merge commit.", tag_name).green()
-                    );
-                    should_push_tags = true;
-                }
-                "hotfix" => {
-                    let tag_name = format!("{}{}", config.automatic_tags.hotfix_prefix, name);
-                    let merge_commit_hash = git::get_head_commit_hash(verbose)?;
-                    git::create_tag(
-                        &tag_name,
-                        &format!("Hotfix {}", name),
-                        &merge_commit_hash,
-                        verbose,
-                    )?;
-                    println!(
-                        "{}",
-                        format!("Created tag '{}' on merge commit.", tag_name).green()
-                    );
-                    should_push_tags = true;
-                }
-                _ => {} // Do nothing for feature branches
+            // Create tag for release branches
+            if r#type == "release" {
+                let tag_name = format!("{}{}", config.automatic_tags.release_prefix, name);
+                let merge_commit_hash = git::get_head_commit_hash(verbose)?;
+                git::create_tag(
+                    &tag_name,
+                    &format!("Release {}", name),
+                    &merge_commit_hash,
+                    verbose,
+                )?;
+                println!(
+                    "{}",
+                    format!("Created tag '{}' on merge commit.", tag_name).green()
+                );
             }
 
             git::push(verbose)?;
-            if should_push_tags {
+            if r#type == "release" {
                 git::push_tags(verbose)?;
             }
+
             git::push(verbose)?;
             git::delete_local_branch(&branch_name, verbose)?;
             git::delete_remote_branch(&branch_name, verbose)?;

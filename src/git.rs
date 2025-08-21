@@ -1,6 +1,7 @@
 // This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
 
 use crate::config::Config;
+use crate::misc;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
@@ -15,7 +16,7 @@ pub enum GitError {
     Git(String),
     #[error("Working directory is not clean: {0}")]
     DirectoryNotClean(String),
-    #[error("Invalid branch type: {0}. Use 'feature', 'release', or 'hotfix'.")]
+    #[error("Invalid branch type: {0}.")]
     InvalidBranchType(String),
     #[error("Branch '{0}' does not exist locally.")]
     BranchNotFound(String),
@@ -182,19 +183,7 @@ pub fn branch_exists_locally(branch_name: &str, verbose: bool) -> Result<()> {
 
 /// Find a branch by name
 pub fn find_branch(name: &str, r#type: &str, config: &Config, verbose: bool) -> Result<String> {
-    let prefix = config.branch_types.get(r#type).ok_or_else(|| {
-        let allowed_types = config
-            .branch_types
-            .keys()
-            .map(|s| s.as_str())
-            .collect::<Vec<&str>>()
-            .join(", ");
-        anyhow::anyhow!(
-            "Invalid branch type '{}'. Allowed types are: {}",
-            r#type,
-            allowed_types
-        )
-    })?;
+    let prefix = misc::get_branch_prefix_or_error(&config.branch_types, &r#type)?;
 
     let all_branches = run_git_command("branch", &["--list"], verbose)?;
     let mut found_branches: Vec<String> = Vec::new();

@@ -81,6 +81,9 @@ pub enum Commands {
         body: Option<String>,
     },
     /// Creates and pushes a new short-lived branch.
+    #[command(after_help = "EXAMPLES:\n  \
+    tbdflow branch --type feat --name \"user-profile-page\" --issue \"ABC-123\"\n  \
+    tbdflow branch -t fix -n \"login-bug\" --issue \"CBA-456\"")]
     Branch {
         /// Type of branch (e.g., feat, fix, chore). See .tbdflow.yml for allowed types.
         #[arg(short, long)]
@@ -131,7 +134,7 @@ pub enum Commands {
     tbdflow complete --type \"feature\" --name \"user-profile-page\"\n  \
     tbdflow complete -t \"release\" -n \"1.2.0\"")]
     Complete {
-        /// Type of branch to complete ('feature', 'release', 'hotfix').
+        /// Type of branch to complete, see .tbdflow.yml for allowed types.
         #[arg(short, long)]
         r#type: String,
         /// Name or version of the branch to complete.
