@@ -3,6 +3,7 @@ use anyhow::Context;
 /// This includes reading the configuration from `.tbdflow.yml` and `.dod.yml` files,
 /// as well as defining the structure of the configuration data.
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 
 /// Represents the Definition of Done (DoD) configuration.
@@ -10,6 +11,26 @@ use std::fs;
 pub struct DodConfig {
     #[serde(default)]
     pub checklist: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum IssueHandlingStrategy {
+    BranchName,
+    CommitScope,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IssueHandling {
+    pub strategy: IssueHandlingStrategy,
+}
+
+impl Default for IssueHandling {
+    fn default() -> Self {
+        Self {
+            strategy: IssueHandlingStrategy::BranchName,
+        }
+    }
 }
 
 /// The thre main prefixes for different types of branches in the project.
@@ -96,6 +117,9 @@ pub struct Config {
     pub main_branch_name: String,
     pub release_url_template: Option<String>,
     pub stale_branch_threshold_days: i64,
+    #[serde(default)]
+    pub issue_handling: IssueHandling,
+    pub branch_types: HashMap<String, String>,
     pub branch_prefixes: BranchPrefixes,
     pub automatic_tags: AutomaticTags,
     pub lint: Option<LintConfig>,
@@ -108,12 +132,22 @@ pub struct Config {
 // even if the user has not provided a custom configuration file.
 impl Default for Config {
     fn default() -> Self {
+        let mut branch_types = HashMap::new();
+        branch_types.insert("feat".to_string(), "feat/".to_string());
+        branch_types.insert("fix".to_string(), "fix/".to_string());
+        branch_types.insert("chore".to_string(), "chore/".to_string());
+        branch_types.insert("docs".to_string(), "docs/".to_string());
+        branch_types.insert("refactor".to_string(), "refactor/".to_string());
+        branch_types.insert("ci".to_string(), "ci/".to_string());
+        branch_types.insert("release".to_string(), "release/".to_string());
         Config {
             main_branch_name: "main".to_string(),
             release_url_template: Some(
-                "https://github.com/{repo_owner}/{repo_name}/releases/tag/{{version}}".to_string(),
+                "https://github.com/username/repository/releases/tag/{{version}}".to_string(),
             ),
             stale_branch_threshold_days: 1,
+            issue_handling: IssueHandling::default(),
+            branch_types,
             branch_prefixes: BranchPrefixes {
                 feature: "feature_".to_string(),
                 release: "release_".to_string(),

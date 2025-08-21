@@ -1,6 +1,16 @@
 main_branch_name: main
 release_url_template: https://github.com/cladam/tbdflow/releases/tag/{{version}}
 stale_branch_threshold_days: 1
+issue_handling:
+  strategy: branch-name
+branch_types:
+  release: release/
+  docs: docs/
+  chore: chore/
+  fix: fix/
+  refactor: refactor/
+  feat: feat/
+  ci: ci/
 branch_prefixes:
   feature: feature_
   release: release_

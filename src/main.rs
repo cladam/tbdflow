@@ -114,6 +114,55 @@ fn main() -> anyhow::Result<()> {
                 format!("Success! Switched to new hotfix branch: '{}'", branch_name).green()
             );
         }
+        Commands::Branch {
+            r#type,
+            name,
+            issue,
+        } => {
+            println!(
+                "{}",
+                "--- Creating short-lived branch ---".to_string().blue()
+            );
+
+            let branch_name = git::find_branch_case_insensitive(&name, &r#type, &config, verbose)?;
+            println!("{}", format!("Branch to create: {}", branch_name).blue());
+
+            // Validate the branch type against the config
+            let prefix = config.branch_types.get(&r#type).ok_or_else(|| {
+                let allowed_types = config
+                    .branch_types
+                    .keys()
+                    .map(|s| s.as_str())
+                    .collect::<Vec<&str>>()
+                    .join(", ");
+                anyhow::anyhow!(
+                    "Invalid branch type '{}'. Allowed types are: {}",
+                    r#type,
+                    allowed_types
+                )
+            })?;
+
+            // Construct the branch name based on the configured strategy
+            let branch_name = match config.issue_handling.strategy {
+                config::IssueHandlingStrategy::BranchName => {
+                    let issue_part = issue.map_or("".to_string(), |i| format!("{}-", i));
+                    format!("{}{}{}", prefix, issue_part, name)
+                }
+                config::IssueHandlingStrategy::CommitScope => {
+                    format!("{}{}", prefix, name)
+                }
+            };
+
+            git::is_working_directory_clean(verbose)?;
+            git::checkout_main(verbose, main_branch_name)?;
+            git::pull_latest_with_rebase(verbose)?;
+            git::create_branch(&branch_name, None, verbose)?;
+            git::push_set_upstream(&branch_name, verbose)?;
+            println!(
+                "\n{}",
+                format!("Success! Switched to new branch: '{}'", branch_name).green()
+            );
+        }
         Commands::Complete { r#type, name } => {
             println!(
                 "{}",
@@ -125,12 +174,7 @@ fn main() -> anyhow::Result<()> {
                 return Err(GitError::CannotCompleteMainBranch.into());
             }
 
-            let branch_name = git::find_branch_case_insensitive(
-                &name,
-                &r#type,
-                &config.branch_prefixes,
-                verbose,
-            )?;
+            let branch_name = git::find_branch_case_insensitive(&name, &r#type, &config, verbose)?;
             println!("{}", format!("Branch to complete: {}", branch_name).blue());
 
             // pre-flight check the branch name

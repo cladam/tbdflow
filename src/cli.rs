@@ -80,7 +80,20 @@ pub enum Commands {
         #[arg(long)]
         body: Option<String>,
     },
+    /// Creates and pushes a new short-lived branch.
+    Branch {
+        /// Type of branch (e.g., feat, fix, chore). See .tbdflow.yml for allowed types.
+        #[arg(short, long)]
+        r#type: String,
+        /// A short, descriptive name for the branch.
+        #[arg(short, long)]
+        name: String,
+        /// Optional issue reference to include in the branch name.
+        #[arg(long)]
+        issue: Option<String>,
+    },
     /// Creates a new short-lived feature branch from 'main'.
+    #[command(hide = true)] // Deprecated
     #[command(after_help = "EXAMPLE:\n  \
     tbdflow feature --name \"user-profile-page\"")]
     Feature {
@@ -89,6 +102,7 @@ pub enum Commands {
         name: String,
     },
     /// Creates a new short-lived release branch from 'main'.
+    #[command(hide = true)] // Deprecated
     #[command(
         after_help = "EXAMPLES:\n  \
     tbdflow release --version \"2.1.0\"\n  \
@@ -104,6 +118,7 @@ pub enum Commands {
         from_commit: Option<String>,
     },
     /// Creates a new short-lived hotfix branch from 'main'.
+    #[command(hide = true)] // Deprecated
     #[command(after_help = "EXAMPLE:\n  \
     tbdflow hotfix --name \"critical-auth-bug\"")]
     Hotfix {
