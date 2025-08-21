@@ -1,8 +1,8 @@
 use assert_cmd::Command;
+use chrono::{Duration, Utc};
 use predicates::str::contains;
 use predicates::str::is_match;
 use serial_test::serial;
-use chrono::{Duration, Utc};
 
 mod util;
 use util::setup_temp_git_repo;
@@ -17,9 +17,7 @@ fn test_status_command() {
 
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
     cmd.arg("--verbose").arg("status");
-    cmd.assert()
-        .success()
-        .stdout(contains("Checking status"));
+    cmd.assert().success().stdout(contains("Checking status"));
 }
 
 /// Tests that the current branch command outputs the expected branch name.
@@ -43,9 +41,9 @@ fn test_create_feature_branch_command() {
     std::env::set_current_dir(&repo_path).unwrap();
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
     cmd.arg("feature").arg("--name").arg("new-feature");
-    cmd.assert()
-        .success()
-        .stdout(contains("Success! Switched to new feature branch: 'feature_new-feature'"));
+    cmd.assert().success().stdout(contains(
+        "Success! Switched to new feature branch: 'feature_new-feature'",
+    ));
 }
 
 /// Tests that creating a new release branch called "1.0.0" works correctly.
@@ -56,9 +54,9 @@ fn test_create_release_branch_command() {
     std::env::set_current_dir(&repo_path).unwrap();
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
     cmd.arg("release").arg("--version").arg("1.0.0");
-    cmd.assert()
-        .success()
-        .stdout(contains("Success! Switched to new release branch: 'release_1.0.0'"));
+    cmd.assert().success().stdout(contains(
+        "Success! Switched to new release branch: 'release_1.0.0'",
+    ));
 }
 
 /// Tests that creating a new hotfix branch called "urgent-fix" works correctly.
@@ -69,9 +67,9 @@ fn test_create_hotfix_branch_command() {
     std::env::set_current_dir(&repo_path).unwrap();
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
     cmd.arg("hotfix").arg("--name").arg("urgent-fix");
-    cmd.assert()
-        .success()
-        .stdout(contains("Success! Switched to new hotfix branch: 'hotfix_urgent-fix'"));
+    cmd.assert().success().stdout(contains(
+        "Success! Switched to new hotfix branch: 'hotfix_urgent-fix'",
+    ));
 }
 
 /// Tests that adding a new file and committing it with the commit command works correctly.
@@ -110,15 +108,18 @@ fn test_commit_command() {
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
     // Run the commit command with a feature type, scope, message, and breaking change flag
     cmd.arg("commit")
-        .arg("--type").arg("feat")
-        .arg("--scope").arg("ui")
-        .arg("--message").arg("add new button")
-        .arg("--body").arg("This button is used for submitting forms.")
+        .arg("--type")
+        .arg("feat")
+        .arg("--scope")
+        .arg("ui")
+        .arg("--message")
+        .arg("add new button")
+        .arg("--body")
+        .arg("This button is used for submitting forms.")
         .arg("--breaking")
-        .arg("--tag").arg("button-v1");
-    cmd.assert()
-        .success()
-        .stdout(
+        .arg("--tag")
+        .arg("button-v1");
+    cmd.assert().success().stdout(
         /*
         Depending on Git version used, output may vary slightly. For example:
         - Successfully committed and pushed changes to BRANCH_NAME.
@@ -127,8 +128,9 @@ fn test_commit_command() {
         Also default branch name can be 'main' or 'master', depending on the Git version
         and distribution. Below is a regex that matches all those cases.
         */
-        is_match(r"Successfully (?:committed and )?pushed changes to '?(?:main|master)'?\.").unwrap()
-	);
+        is_match(r"Successfully (?:committed and )?pushed changes to '?(?:main|master)'?\.")
+            .unwrap(),
+    );
 
     // Check that the tag exists
     let output = std::process::Command::new("git")
@@ -137,7 +139,11 @@ fn test_commit_command() {
         .output()
         .unwrap();
     let tags = String::from_utf8_lossy(&output.stdout);
-    assert!(tags.contains("button-v1"), "Expected tag button-v1 not found. Tags: {}", tags);
+    assert!(
+        tags.contains("button-v1"),
+        "Expected tag button-v1 not found. Tags: {}",
+        tags
+    );
 }
 
 /// Tests that completing a feature branch called "new-feature" works correctly.
@@ -154,8 +160,10 @@ fn test_complete_feature_branch_command() {
 
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
     cmd.arg("complete")
-        .arg("--type").arg("feature")
-        .arg("--name").arg("new-feature");
+        .arg("--type")
+        .arg("feature")
+        .arg("--name")
+        .arg("new-feature");
     cmd.assert()
         .success()
         .stdout(contains("Branch to complete: feature_new-feature"));
@@ -170,14 +178,20 @@ fn test_complete_release_branch_command() {
 
     // Create the release branch first
     let mut create_cmd = Command::cargo_bin("tbdflow").unwrap();
-    create_cmd.arg("--verbose").arg("release").arg("--version").arg("1.0.0");
+    create_cmd
+        .arg("--verbose")
+        .arg("release")
+        .arg("--version")
+        .arg("1.0.0");
     create_cmd.assert().success();
 
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
     cmd.arg("--verbose")
         .arg("complete")
-        .arg("--type").arg("release")
-        .arg("--name").arg("1.0.0");
+        .arg("--type")
+        .arg("release")
+        .arg("--name")
+        .arg("1.0.0");
     cmd.assert()
         .success()
         .stdout(contains("Branch to complete: release_1.0.0"));
@@ -189,7 +203,11 @@ fn test_complete_release_branch_command() {
         .output()
         .unwrap();
     let tags = String::from_utf8_lossy(&output.stdout);
-    assert!(tags.contains("v1.0.0"), "Expected tag v1.0.0 not found. Tags: {}", tags);
+    assert!(
+        tags.contains("v1.0.0"),
+        "Expected tag v1.0.0 not found. Tags: {}",
+        tags
+    );
 }
 
 /// Testing the synch command to ensure it pulls changes from the remote repository

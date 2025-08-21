@@ -1,11 +1,11 @@
 // This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
 
-use std::process::{Command, Stdio};
-use thiserror::Error;
+use crate::config::BranchPrefixes;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
-use crate::config::BranchPrefixes;
+use std::process::{Command, Stdio};
+use thiserror::Error;
 
 // --- Custom Error Type ---
 // Using `thiserror` to create a structured error type.
@@ -70,15 +70,25 @@ pub fn is_working_directory_clean(verbose: bool) -> Result<()> {
         Ok(())
     } else {
         Err(GitError::DirectoryNotClean(
-            "You have unstaged changes. Please commit or stash them first.".to_string()
-        ).into())
+            "You have unstaged changes. Please commit or stash them first.".to_string(),
+        )
+        .into())
     }
 }
 
 /// Runs a Git command that checks the status of the repository without producing output.
-fn run_git_status_check(command: &str, args: &[&str], verbose: bool) -> Result<std::process::ExitStatus> {
+fn run_git_status_check(
+    command: &str,
+    args: &[&str],
+    verbose: bool,
+) -> Result<std::process::ExitStatus> {
     if verbose {
-        println!("{} git {} {}", "[CHECKING] ".dimmed(), command, args.join(" "));
+        println!(
+            "{} git {} {}",
+            "[CHECKING] ".dimmed(),
+            command,
+            args.join(" ")
+        );
     }
     Command::new("git")
         .arg(command)
@@ -121,7 +131,11 @@ pub fn fetch_origin(verbose: bool) -> Result<String> {
 /// Check if a remote branch exists.
 /// This checks if a branch exists on the remote repository (e.g. `origin`).
 pub fn remote_branch_exists(branch_name: &str, verbose: bool) -> Result<()> {
-    let output = run_git_command("ls-remote", &["--exit-code", "--heads", "origin", branch_name], verbose);
+    let output = run_git_command(
+        "ls-remote",
+        &["--exit-code", "--heads", "origin", branch_name],
+        verbose,
+    );
     match output {
         Ok(_) => Ok(()),
         Err(e) => Err(e.into()),
@@ -130,7 +144,11 @@ pub fn remote_branch_exists(branch_name: &str, verbose: bool) -> Result<()> {
 
 /// Rebase the current branch onto the main branch.
 pub fn rebase_onto_main(main_branch_name: &str, verbose: bool) -> Result<String> {
-    run_git_command("rebase", &["--autostash", &format!("origin/{}", main_branch_name)], verbose)
+    run_git_command(
+        "rebase",
+        &["--autostash", &format!("origin/{}", main_branch_name)],
+        verbose,
+    )
 }
 
 /// Add all changes to the staging area.
@@ -165,7 +183,12 @@ pub fn branch_exists_locally(branch_name: &str, verbose: bool) -> Result<()> {
 /// Find a branch by name, case-insensitive, using the provided prefixes.
 /// Someone will name their branch in mixed case, so we need to handle that.
 /// Returns the full branch name if found, or an error if not found.
-pub fn find_branch_case_insensitive(name: &str, r#type: &str, prefixes: &BranchPrefixes, verbose: bool) -> Result<String> {
+pub fn find_branch_case_insensitive(
+    name: &str,
+    r#type: &str,
+    prefixes: &BranchPrefixes,
+    verbose: bool,
+) -> Result<String> {
     let prefix = match r#type {
         "feature" => &prefixes.feature,
         "release" => &prefixes.release,
@@ -250,8 +273,17 @@ pub fn get_remote_url(verbose: bool) -> Result<String> {
 }
 
 /// Create a new tag with a message at a specific commit hash.
-pub fn create_tag(tag_name: &str, message: &str, commit_hash: &str, verbose: bool) -> Result<String> {
-    run_git_command("tag", &["-a", tag_name, "-m", message, commit_hash], verbose)
+pub fn create_tag(
+    tag_name: &str,
+    message: &str,
+    commit_hash: &str,
+    verbose: bool,
+) -> Result<String> {
+    run_git_command(
+        "tag",
+        &["-a", tag_name, "-m", message, commit_hash],
+        verbose,
+    )
 }
 
 /// Push a new branch to the remote repository and set it as upstream.
@@ -286,11 +318,23 @@ pub fn init_git_repository(verbose: bool) -> Result<String> {
 }
 
 /// Check for stale branches in the repository.
-pub fn get_stale_branches(verbose: bool, main_branch: &str, stale_days: i64) -> Result<Vec<(String, i64)>> {
+pub fn get_stale_branches(
+    verbose: bool,
+    main_branch: &str,
+    stale_days: i64,
+) -> Result<Vec<(String, i64)>> {
     let now = Utc::now();
     let day_in_seconds = stale_days * 24 * 60 * 60;
 
-    let output = run_git_command("for-each-ref", &["--format", "%(refname:short)|%(committerdate:iso8601-strict)", "refs/heads/"], verbose)?;
+    let output = run_git_command(
+        "for-each-ref",
+        &[
+            "--format",
+            "%(refname:short)|%(committerdate:iso8601-strict)",
+            "refs/heads/",
+        ],
+        verbose,
+    )?;
     let stale_branches = output
         .lines()
         .filter_map(|line| {
@@ -324,13 +368,15 @@ mod tests {
     /// Test if Git is installed and available in the system PATH.
     #[test]
     fn test_git_is_installed() {
-        let result = std::process::Command::new("git")
-            .arg("--version")
-            .output();
+        let result = std::process::Command::new("git").arg("--version").output();
         assert!(result.is_ok(), "Git is not installed or not in PATH");
         let output = result.unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("git version"), "Unexpected output: {}", stdout);
+        assert!(
+            stdout.contains("git version"),
+            "Unexpected output: {}",
+            stdout
+        );
     }
 
     /// Test the run_git_command function with a simple command
@@ -352,7 +398,10 @@ mod tests {
         let output = result.unwrap();
         // Accept any output (including empty if clean)
         assert!(
-            output.is_empty() || output.contains("M ") || output.contains("A ") || output.contains("D "),
+            output.is_empty()
+                || output.contains("M ")
+                || output.contains("A ")
+                || output.contains("D "),
             "Unexpected status output: {}",
             output
         );

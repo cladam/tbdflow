@@ -1,8 +1,8 @@
 use crate::config::{Config, DodConfig};
+use crate::{config, git};
 use anyhow::Result;
 use colored::Colorize;
-use dialoguer::{MultiSelect, Confirm, theme::ColorfulTheme};
-use crate::{config, git};
+use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect};
 
 /// Runs the checklist interactively, allowing the user to confirm each item before committing.
 pub fn run_checklist_interactive(checklist: &[String]) -> anyhow::Result<Vec<usize>> {
@@ -30,7 +30,10 @@ pub fn build_todo_footer(checklist: &[String], checked_indices: &[usize]) -> Str
 }
 
 /// Handles the interactive commit process, including checklist confirmation and issue reference handling.
-pub fn handle_interactive_commit(config: &DodConfig, base_message: &str) -> Result<Option<String>, anyhow::Error> {
+pub fn handle_interactive_commit(
+    config: &DodConfig,
+    base_message: &str,
+) -> Result<Option<String>, anyhow::Error> {
     // Start with the base commit message.
     let mut commit_message = base_message.to_string();
 
@@ -87,7 +90,7 @@ pub fn is_valid_commit_type(commit_type: &str, config: &config::Config) -> bool 
             }
         }
     }
-   true
+    true
 }
 
 /// Check if the issue key in the commit message is valid.
@@ -135,16 +138,20 @@ pub fn is_valid_subject_line(subject: &str, config: &config::Config) -> Result<(
         if let Some(rules) = &lint.subject_line_rules {
             if let Some(max_len) = rules.max_length {
                 if subject.len() > max_len {
-                    return Err(format!("Subject line exceeds maximum length of {} characters.", max_len));
+                    return Err(format!(
+                        "Subject line exceeds maximum length of {} characters.",
+                        max_len
+                    ));
                 }
             }
             if let Some(enforce_lowercase) = rules.enforce_lowercase {
                 if enforce_lowercase {
                     if let Some(first) = subject.chars().next() {
                         if first.is_uppercase() {
-                            return Err("Subject line must not start with a capital letter.".to_string());
+                            return Err(
+                                "Subject line must not start with a capital letter.".to_string()
+                            );
                         }
-
                     }
                 }
             }
@@ -165,7 +172,9 @@ pub fn is_valid_body_lines(body: &str, config: &config::Config) -> bool {
         if let Some(rules) = &lint.body_line_rules {
             if let Some(max_len) = rules.max_line_length {
                 for line in body.lines() {
-                    if line.len() > max_len { return false; }
+                    if line.len() > max_len {
+                        return false;
+                    }
                 }
             }
             // Enforced in code already, but can be uncommented later on
@@ -196,12 +205,22 @@ pub fn handle_commit(
 
     // Linting based on the provided configuration
     if !is_valid_commit_type(&r#type, config) {
-        println!("{}", format!("Error: '{}' is not a valid Conventional Commit type.", r#type).red());
+        println!(
+            "{}",
+            format!(
+                "Error: '{}' is not a valid Conventional Commit type.",
+                r#type
+            )
+            .red()
+        );
         return Err(anyhow::anyhow!("Aborted: Invalid commit type."));
     }
 
     if !is_valid_issue_key(&issue, config) {
-        println!("{}", "Issue reference is required by your .tbdflow.yml config.".red());
+        println!(
+            "{}",
+            "Issue reference is required by your .tbdflow.yml config.".red()
+        );
         return Err(anyhow::anyhow!("Aborted: Issue reference required."));
     }
 
@@ -212,7 +231,10 @@ pub fn handle_commit(
 
     if let Some(body_text) = &body {
         if !is_valid_body_lines(body_text, config) {
-            println!("{}", "Commit message body contains lines that exceed the maximum length.".red());
+            println!(
+                "{}",
+                "Commit message body contains lines that exceed the maximum length.".red()
+            );
             return Err(anyhow::anyhow!("Aborted: Invalid commit message body."));
         }
     }
@@ -249,8 +271,11 @@ pub fn handle_commit(
         }
         commit_message.push_str(&todo_footer);
 
-        println!("{}", format!("Commit message will be:\n---\n{}\n---", commit_message).blue());
-        
+        println!(
+            "{}",
+            format!("Commit message will be:\n---\n{}\n---", commit_message).blue()
+        );
+
         git::add_all(verbose)?;
         if !git::has_staged_changes(verbose)? {
             println!("{}", "No changes added to commit.".yellow());
@@ -263,19 +288,28 @@ pub fn handle_commit(
             git::pull_latest_with_rebase(verbose)?;
             git::commit(&commit_message, verbose)?;
             git::push(verbose)?;
-            println!("\n{}", "Successfully committed and pushed changes to main.".green());
+            println!(
+                "\n{}",
+                "Successfully committed and pushed changes to main.".green()
+            );
         } else {
             println!("--- Committing to feature branch '{}' ---", current_branch);
             git::commit(&commit_message, verbose)?;
             git::push(verbose)?;
-            println!("\n{}", format!("Successfully pushed changes to '{}'.", current_branch).green());
+            println!(
+                "\n{}",
+                format!("Successfully pushed changes to '{}'.", current_branch).green()
+            );
         }
 
         if let Some(tag_name) = tag {
             let commit_hash = git::get_head_commit_hash(verbose)?;
             git::create_tag(&tag_name, &commit_message, &commit_hash, verbose)?;
             git::push_tags(verbose)?;
-            println!("{}", format!("Success! Created and pushed tag '{}'", tag_name).green());
+            println!(
+                "{}",
+                format!("Success! Created and pushed tag '{}'", tag_name).green()
+            );
         }
     }
     Ok(())

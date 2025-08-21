@@ -1,8 +1,8 @@
-use clap::{Command as Commands};
-use anyhow::Result;
-use colored::*;
 use crate::{config, git};
-use dialoguer::{Confirm, Input, theme::ColorfulTheme};
+use anyhow::Result;
+use clap::Command as Commands;
+use colored::*;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use std::fs;
 
 /// Handle update command for tbdflow
@@ -33,7 +33,10 @@ pub fn handle_init_command(verbose: bool) -> Result<()> {
     if git::is_git_repository(verbose).is_err() {
         let current_dir = std::env::current_dir()?.to_string_lossy().to_string();
         if Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt(format!("Currently not in a git repository ({}). Would you like to initialise one?", current_dir))
+            .with_prompt(format!(
+                "Currently not in a git repository ({}). Would you like to initialise one?",
+                current_dir
+            ))
             .interact()?
         {
             git::init_git_repository(verbose)?;
@@ -53,7 +56,10 @@ pub fn handle_init_command(verbose: bool) -> Result<()> {
         let default_config = config::Config::default();
         let yaml_string = serde_yaml::to_string(&default_config)?;
         fs::write(&tbdflow_path, yaml_string)?;
-        println!("{}", "Created default .tbdflow.yml configuration file.".green());
+        println!(
+            "{}",
+            "Created default .tbdflow.yml configuration file.".green()
+        );
         files_created = true;
     } else {
         println!("{}", ".tbdflow.yml already exists. Skipping.".yellow());
@@ -67,7 +73,8 @@ checklist:
   - "New features or bug fixes are covered by appropriate new tests."
   - "Security implications of this change have been considered."
   - "Relevant documentation (code comments, READMEs, etc.) is updated."
-"#.trim();
+"#
+        .trim();
         fs::write(&dod_path, default_dod)?;
         println!("{}", "Created default .dod.yml checklist file.".green());
         files_created = true;
@@ -76,13 +83,18 @@ checklist:
     }
 
     if files_created {
-        println!("\n{}", "Creating initial commit for configuration files...".blue());
+        println!(
+            "\n{}",
+            "Creating initial commit for configuration files...".blue()
+        );
         git::add_all(verbose)?;
         git::commit("chore: Initialise tbdflow configuration", verbose)?;
         println!("{}", "Initial commit created.".green());
 
         if Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("\nDo you want to link a remote repository and push the initial commit now?")
+            .with_prompt(
+                "\nDo you want to link a remote repository and push the initial commit now?",
+            )
             .interact()?
         {
             let remote_url: String = Input::with_theme(&ColorfulTheme::default())
@@ -94,12 +106,18 @@ checklist:
                 git::fetch_origin(verbose)?;
 
                 if git::remote_branch_exists("main", verbose).is_ok() {
-                    println!("{}", "Remote 'main' branch found. Reconciling histories...".yellow());
+                    println!(
+                        "{}",
+                        "Remote 'main' branch found. Reconciling histories...".yellow()
+                    );
                     git::rebase_onto_main("main", verbose)?;
                 }
 
                 git::push_set_upstream("main", verbose)?;
-                println!("{}", "Successfully linked remote and pushed initial commit.".green());
+                println!(
+                    "{}",
+                    "Successfully linked remote and pushed initial commit.".green()
+                );
             } else {
                 println!("{}", "No URL provided. Skipping remote setup.".yellow());
             }
@@ -109,14 +127,22 @@ checklist:
 }
 
 pub fn handle_sync(verbose: bool, config: &config::Config) -> Result<()> {
-    println!("{}", "--- Syncing with remote and showing status ---".to_string().blue());
+    println!(
+        "{}",
+        "--- Syncing with remote and showing status ---"
+            .to_string()
+            .blue()
+    );
     let current_branch = git::get_current_branch(verbose)?;
 
     if current_branch == config.main_branch_name {
         println!("On main branch, pulling latest changes...");
         git::pull_latest_with_rebase(verbose)?;
     } else {
-        println!("On feature branch '{}', rebasing onto latest '{}'...", current_branch, config.main_branch_name);
+        println!(
+            "On feature branch '{}', rebasing onto latest '{}'...",
+            current_branch, config.main_branch_name
+        );
         git::fetch_origin(verbose)?;
         git::rebase_onto_main(&config.main_branch_name, verbose)?;
     }
@@ -138,7 +164,12 @@ pub fn handle_sync(verbose: bool, config: &config::Config) -> Result<()> {
 }
 
 pub fn handle_check_branches(verbose: bool, config: &config::Config) -> Result<()> {
-    println!("{}", "--- Checking current branch and stale branches ---".to_string().blue());
+    println!(
+        "{}",
+        "--- Checking current branch and stale branches ---"
+            .to_string()
+            .blue()
+    );
 
     let current_branch = git::get_current_branch(verbose)?;
     if current_branch != config.main_branch_name {
@@ -148,8 +179,13 @@ pub fn handle_check_branches(verbose: bool, config: &config::Config) -> Result<(
     Ok(())
 }
 
-pub fn check_and_warn_for_stale_branches(verbose: bool, current_branch: &str, config: &config::Config) -> Result<()> {
-    let stale_branches = git::get_stale_branches(verbose, current_branch, config.stale_branch_threshold_days)?;
+pub fn check_and_warn_for_stale_branches(
+    verbose: bool,
+    current_branch: &str,
+    config: &config::Config,
+) -> Result<()> {
+    let stale_branches =
+        git::get_stale_branches(verbose, current_branch, config.stale_branch_threshold_days)?;
     if !stale_branches.is_empty() {
         println!(
             "\n{}",
