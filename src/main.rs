@@ -124,10 +124,6 @@ fn main() -> anyhow::Result<()> {
                 "--- Creating short-lived branch ---".to_string().blue()
             );
 
-            let branch_name = git::find_branch_case_insensitive(&name, &r#type, &config, verbose)?;
-            println!("{}", format!("Branch to create: {}", branch_name).blue());
-
-            // Validate the branch type against the config
             let prefix = config.branch_types.get(&r#type).ok_or_else(|| {
                 let allowed_types = config
                     .branch_types
@@ -174,7 +170,12 @@ fn main() -> anyhow::Result<()> {
                 return Err(GitError::CannotCompleteMainBranch.into());
             }
 
-            let branch_name = git::find_branch_case_insensitive(&name, &r#type, &config, verbose)?;
+            let branch_name = git::find_branch_case_insensitive2(
+                &name,
+                &r#type,
+                &config.branch_prefixes,
+                verbose,
+            )?;
             println!("{}", format!("Branch to complete: {}", branch_name).blue());
 
             // pre-flight check the branch name

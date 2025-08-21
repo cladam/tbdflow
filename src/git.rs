@@ -1,6 +1,6 @@
 // This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
 
-use crate::config::Config;
+use crate::config::{BranchPrefixes, Config};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
@@ -180,22 +180,58 @@ pub fn branch_exists_locally(branch_name: &str, verbose: bool) -> Result<()> {
     }
 }
 
-/// Find a branch by name, case-insensitive, using the provided prefixes.
-/// Someone will name their branch in mixed case, so we need to handle that.
-/// Returns the full branch name if found, or an error if not found.
-pub fn find_branch_case_insensitive(
-    name: &str,
-    r#type: &str,
-    config: &Config, // Use the full config now
-    verbose: bool,
-) -> Result<String> {
+/// Find a branch by name
+pub fn find_branch(name: &str, r#type: &str, config: &Config, verbose: bool) -> Result<String> {
     let prefix = config
         .branch_types
         .get(r#type)
         .ok_or_else(|| GitError::InvalidBranchType(r#type.to_string()))?;
 
-    // This function now needs to be smarter to find the branch regardless of the issue strategy.
-    // TODO: Refactor me please
+    let all_branches = run_git_command("branch", &["--list"], verbose)?;
+    let mut found_branches: Vec<String> = Vec::new();
+
+    for branch in all_branches.lines() {
+        let trimmed_branch = branch.trim().trim_start_matches('*').trim();
+        let lower_branch = trimmed_branch.to_lowercase();
+        let lower_name = name.to_lowercase();
+        let lower_prefix = prefix.to_lowercase();
+
+        // Check if the branch starts with the correct prefix and ends with the name.
+        // This correctly handles branches with or without issue IDs in the middle.
+        if lower_branch.starts_with(&lower_prefix) && lower_branch.ends_with(&lower_name) {
+            found_branches.push(trimmed_branch.to_string());
+        }
+    }
+
+    match found_branches.len() {
+        0 => Err(GitError::BranchNotFound(name.to_string()).into()),
+        1 => Ok(found_branches.remove(0)),
+        _ => Err(anyhow::anyhow!(
+            "Multiple branches found matching type '{}' and name '{}':\n{}",
+            r#type,
+            name,
+            found_branches.join("\n")
+        )
+        .into()),
+    }
+}
+
+/// Find a branch by name, case-insensitive, using the provided prefixes.
+/// Someone will name their branch in mixed case, so we need to handle that.
+/// Returns the full branch name if found, or an error if not found.
+pub fn find_branch_case_insensitive2(
+    name: &str,
+    r#type: &str,
+    prefixes: &BranchPrefixes,
+    verbose: bool,
+) -> Result<String> {
+    let prefix = match r#type {
+        "feature" => &prefixes.feature,
+        "release" => &prefixes.release,
+        "hotfix" => &prefixes.hotfix,
+        _ => return Err(GitError::InvalidBranchType(r#type.to_string()).into()),
+    };
+
     let full_name_guess = if name.starts_with(prefix) {
         name.to_lowercase()
     } else {
@@ -205,9 +241,8 @@ pub fn find_branch_case_insensitive(
     let all_branches = run_git_command("branch", &["--list"], verbose)?;
 
     for branch in all_branches.lines() {
-        // Such a hack, but it works for now.
         let trimmed_branch = branch.trim().trim_start_matches('*').trim();
-        if trimmed_branch.to_lowercase().contains(&full_name_guess) {
+        if trimmed_branch.to_lowercase() == full_name_guess {
             return Ok(trimmed_branch.to_string());
         }
     }
