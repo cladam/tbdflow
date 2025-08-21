@@ -185,6 +185,19 @@ fn test_complete_release_branch_command() {
         .arg("1.0.0");
     create_cmd.assert().success();
 
+    // Ensure the branch exists locally
+    let output = std::process::Command::new("git")
+        .args(&["branch", "--list"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    let branches = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        branches.contains("release_1.0.0"),
+        "Expected branch release_1.0.0 not found. Branches: {}",
+        branches
+    );
+
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
     cmd.arg("--verbose")
         .arg("complete")

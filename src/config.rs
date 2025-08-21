@@ -140,6 +140,9 @@ impl Default for Config {
         branch_types.insert("refactor".to_string(), "refactor/".to_string());
         branch_types.insert("ci".to_string(), "ci/".to_string());
         branch_types.insert("release".to_string(), "release/".to_string());
+        // Adding feature and hotfix branch types for backward compatibility
+        branch_types.insert("feature".to_string(), "feature_".to_string());
+        branch_types.insert("hotfix".to_string(), "hotfix_".to_string());
         Config {
             main_branch_name: "main".to_string(),
             release_url_template: Some(

@@ -4,6 +4,8 @@ stale_branch_threshold_days: 1
 issue_handling:
   strategy: branch-name
 branch_types:
+  feature: feature/
+  hotfix: hotfix/
   release: release/
   docs: docs/
   chore: chore/
