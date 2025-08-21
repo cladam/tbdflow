@@ -33,6 +33,111 @@ fn test_current_branch_command() {
         .stdout(contains("Current branch is:"));
 }
 
+#[test]
+#[serial]
+fn test_branch_command() {
+    // 'branch-name' strategy
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    // Create a minimal but complete .tbdflow.yml file
+    let config_content = r#"
+main_branch_name: main
+stale_branch_threshold_days: 1
+issue_handling:
+  strategy: "branch-name"
+branch_types:
+  feat: "feat/"
+  fix: "fix/"
+branch_prefixes:
+  feature: "feature_"
+  release: "release_"
+  hotfix: "hotfix_"
+automatic_tags:
+  release_prefix: "v"
+  hotfix_prefix: "hotfix-tag_"
+"#;
+    std::fs::write(repo_path.join(".tbdflow.yml"), config_content).unwrap();
+
+    // Commit the config file to clean the working directory
+    std::process::Command::new("git")
+        .args(&["add", ".tbdflow.yml"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["commit", "-m", "Add tbdflow config"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+
+    // Test creating a branch WITH an issue ID
+    let mut cmd_with_issue = Command::cargo_bin("tbdflow").unwrap();
+    cmd_with_issue
+        .arg("branch")
+        .arg("--type")
+        .arg("feat")
+        .arg("--name")
+        .arg("new-dashboard")
+        .arg("--issue")
+        .arg("PROJ-123");
+
+    cmd_with_issue.assert().success().stdout(contains(
+        "Success! Switched to new branch: 'feat/PROJ-123-new-dashboard'",
+    ));
+
+    // 'commit-scope' strategy
+    let (_dir2, _bare_dir2, repo_path2) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path2).unwrap();
+
+    // Create a minimal but complete .tbdflow.yml file
+    let config_content_2 = r#"
+main_branch_name: main
+stale_branch_threshold_days: 1
+issue_handling:
+  strategy: "commit-scope"
+branch_types:
+  feat: "feat/"
+  fix: "fix/"
+branch_prefixes:
+  feature: "feature_"
+  release: "release_"
+  hotfix: "hotfix_"
+automatic_tags:
+  release_prefix: "v"
+  hotfix_prefix: "hotfix-tag_"
+"#;
+    std::fs::write(repo_path2.join(".tbdflow.yml"), config_content_2).unwrap();
+
+    // Commit the config file to clean the working directory
+    std::process::Command::new("git")
+        .args(&["add", ".tbdflow.yml"])
+        .current_dir(&repo_path2)
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["commit", "-m", "Add tbdflow config"])
+        .current_dir(&repo_path2)
+        .output()
+        .unwrap();
+
+    // Test creating a branch WITHOUT an issue ID in the name
+    let mut cmd_without_issue = Command::cargo_bin("tbdflow").unwrap();
+    cmd_without_issue
+        .arg("branch")
+        .arg("--type")
+        .arg("fix")
+        .arg("--name")
+        .arg("login-bug")
+        .arg("--issue")
+        .arg("PROJ-456"); // This should be ignored for the branch name
+
+    cmd_without_issue
+        .assert()
+        .success()
+        .stdout(contains("Success! Switched to new branch: 'fix/login-bug'"));
+}
+
 /// Tests that creating a new feature branch called "new-feature" works correctly.
 #[test]
 #[serial]
