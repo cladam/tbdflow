@@ -13,7 +13,7 @@ pub struct DodConfig {
     pub checklist: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum IssueHandlingStrategy {
     BranchName,

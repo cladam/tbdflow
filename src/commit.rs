@@ -203,6 +203,23 @@ pub fn handle_commit(
 ) -> Result<()> {
     println!("{}", "--- Committing changes ---".blue());
 
+    // Check for conflicting flags based on issue handling strategy
+    if config.issue_handling.strategy == config::IssueHandlingStrategy::CommitScope {
+        if scope.is_some() && issue.is_some() {
+            println!(
+                "{}",
+                "Error: Cannot use both --scope and --issue when the 'commit-scope' strategy is active.".red()
+            );
+            println!(
+                "{}",
+                "Hint: To associate this commit with the issue, please provide only the --issue flag.".yellow()
+            );
+            return Err(anyhow::anyhow!(
+                "Aborted: Conflicting flags for commit-scope strategy."
+            ));
+        }
+    }
+
     // Linting based on the provided configuration
     if !is_valid_commit_type(&r#type, config) {
         println!(
