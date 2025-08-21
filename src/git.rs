@@ -31,24 +31,19 @@ pub enum GitError {
 }
 
 /// Runs a Git command with the specified subcommand and arguments.
-///
-/// # Arguments
-///
-/// * `command` - The Git subcommand to execute (e.g. `"checkout"`, `"status"`).
-/// * `args` - A slice of argument strings to pass to the Git command.
-///
-/// # Returns
-///
-/// A `Result<String>` containing the command's output if successful, or an error if the command fails.
-///
-/// # Errors
-///
-/// If the command fails, it returns a `GitError` with the error message from Git.
-///
-fn run_git_command(command: &str, args: &[&str], verbose: bool) -> Result<String> {
-    if verbose {
+fn run_git_command(command: &str, args: &[&str], verbose: bool, dry_run: bool) -> Result<String> {
+    if verbose || dry_run {
         println!("{} git {} {}", "[RUNNING] ".cyan(), command, args.join(" "));
     }
+
+    if dry_run {
+        println!(
+            "{}",
+            "[DRY RUN] Command would execute but no changes made".yellow()
+        );
+        return Ok(String::new()); // Return empty string for dry run
+    }
+
     let output = Command::new("git")
         .arg(command)
         .args(args)
@@ -65,8 +60,8 @@ fn run_git_command(command: &str, args: &[&str], verbose: bool) -> Result<String
 }
 
 /// Checks if the git working directory is clean.
-pub fn is_working_directory_clean(verbose: bool) -> Result<()> {
-    let output = run_git_command("status", &["--porcelain"], verbose)?;
+pub fn is_working_directory_clean(verbose: bool, dry_run: bool) -> Result<()> {
+    let output = run_git_command("status", &["--porcelain"], verbose, dry_run)?;
     if output.is_empty() {
         Ok(())
     } else {
@@ -82,6 +77,7 @@ fn run_git_status_check(
     command: &str,
     args: &[&str],
     verbose: bool,
+    _dry_run: bool,
 ) -> Result<std::process::ExitStatus> {
     if verbose {
         println!(
@@ -101,41 +97,52 @@ fn run_git_status_check(
 }
 
 /// Checks if there are any changes in the staging area.
-pub fn has_staged_changes(verbose: bool) -> Result<bool> {
-    let status = run_git_status_check("diff", &["--staged", "--quiet"], verbose)?;
+pub fn has_staged_changes(verbose: bool, dry_run: bool) -> Result<bool> {
+    let status = run_git_status_check("diff", &["--staged", "--quiet"], verbose, dry_run)?;
     // `git diff --quiet` exits with 1 if there are changes, 0 if not.
     Ok(status.code() == Some(1))
 }
 
 /// Add a new remote repository to the current Git repository.
 /// git remote add origin <your-repository-url>
-pub fn add_remote(remote_name: &str, remote_url: &str, verbose: bool) -> Result<String> {
-    run_git_command("remote", &["add", remote_name, remote_url], verbose)
+pub fn add_remote(
+    remote_name: &str,
+    remote_url: &str,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<String> {
+    run_git_command(
+        "remote",
+        &["add", remote_name, remote_url],
+        verbose,
+        dry_run,
+    )
 }
 
 /// Check out the main branch.
-pub fn checkout_main(verbose: bool, main_branch: &str) -> Result<String> {
-    run_git_command("checkout", &[main_branch], verbose)
+pub fn checkout_main(verbose: bool, dry_run: bool, main_branch: &str) -> Result<String> {
+    run_git_command("checkout", &[main_branch], verbose, dry_run)
 }
 
 /// Pull the latest changes with rebase.
-pub fn pull_latest_with_rebase(verbose: bool) -> Result<String> {
+pub fn pull_latest_with_rebase(verbose: bool, dry_run: bool) -> Result<String> {
     // Using --autostash to safely handle local changes before pulling.
-    run_git_command("pull", &["--rebase", "--autostash"], verbose)
+    run_git_command("pull", &["--rebase", "--autostash"], verbose, dry_run)
 }
 
 /// Fetch the latest changes from the origin remote.
-pub fn fetch_origin(verbose: bool) -> Result<String> {
-    run_git_command("fetch", &["origin"], verbose)
+pub fn fetch_origin(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("fetch", &["origin"], verbose, dry_run)
 }
 
 /// Check if a remote branch exists.
 /// This checks if a branch exists on the remote repository (e.g. `origin`).
-pub fn remote_branch_exists(branch_name: &str, verbose: bool) -> Result<()> {
+pub fn remote_branch_exists(branch_name: &str, verbose: bool, dry_run: bool) -> Result<()> {
     let output = run_git_command(
         "ls-remote",
         &["--exit-code", "--heads", "origin", branch_name],
         verbose,
+        dry_run,
     );
     match output {
         Ok(_) => Ok(()),
@@ -144,48 +151,60 @@ pub fn remote_branch_exists(branch_name: &str, verbose: bool) -> Result<()> {
 }
 
 /// Rebase the current branch onto the main branch.
-pub fn rebase_onto_main(main_branch_name: &str, verbose: bool) -> Result<String> {
+pub fn rebase_onto_main(main_branch_name: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command(
         "rebase",
         &["--autostash", &format!("origin/{}", main_branch_name)],
         verbose,
+        dry_run,
     )
 }
 
 /// Add all changes to the staging area.
-pub fn add_all(verbose: bool) -> Result<String> {
-    run_git_command("add", &["."], verbose)
+pub fn add_all(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("add", &["."], verbose, dry_run)
 }
 
 /// Commit changes with a message.
-pub fn commit(message: &str, verbose: bool) -> Result<String> {
-    run_git_command("commit", &["-m", message], verbose)
+pub fn commit(message: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("commit", &["-m", message], verbose, dry_run)
 }
 
 /// Push changes to the remote repository.
-pub fn push(verbose: bool) -> Result<String> {
-    run_git_command("push", &[], verbose)
+pub fn push(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("push", &[], verbose, dry_run)
 }
 
 /// Push all tags to the remote repository.
-pub fn push_tags(verbose: bool) -> Result<String> {
-    run_git_command("push", &["--tags"], verbose)
+pub fn push_tags(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("push", &["--tags"], verbose, dry_run)
 }
 
 /// Check if the branch exists locally.
-pub fn branch_exists_locally(branch_name: &str, verbose: bool) -> Result<()> {
-    let output = run_git_command("rev-parse", &["--verify", "--quiet", branch_name], verbose);
+pub fn branch_exists_locally(branch_name: &str, verbose: bool, dry_run: bool) -> Result<()> {
+    let output = run_git_command(
+        "rev-parse",
+        &["--verify", "--quiet", branch_name],
+        verbose,
+        dry_run,
+    )?;
     match output {
-        Ok(_) => Ok(()),
-        Err(_) => Err(GitError::BranchNotFound(branch_name.to_string()).into()),
+        _ if output.is_empty() => Err(GitError::BranchNotFound(branch_name.to_string()).into()),
+        _ => Ok(()),
     }
 }
 
 /// Find a branch by name
-pub fn find_branch(name: &str, r#type: &str, config: &Config, verbose: bool) -> Result<String> {
+pub fn find_branch(
+    name: &str,
+    r#type: &str,
+    config: &Config,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<String> {
     let prefix = misc::get_branch_prefix_or_error(&config.branch_types, &r#type)?;
 
-    let all_branches = run_git_command("branch", &["--list"], verbose)?;
+    let all_branches = run_git_command("branch", &["--list"], verbose, dry_run)?;
     let mut found_branches: Vec<String> = Vec::new();
 
     for branch in all_branches.lines() {
@@ -215,59 +234,69 @@ pub fn find_branch(name: &str, r#type: &str, config: &Config, verbose: bool) -> 
 }
 
 /// Check if the tag exists in the repository.
-pub fn tag_exists(tag_name: &str, verbose: bool) -> Result<bool> {
-    let output = run_git_command("tag", &["-l", tag_name], verbose)?;
+pub fn tag_exists(tag_name: &str, verbose: bool, dry_run: bool) -> Result<bool> {
+    let output = run_git_command("tag", &["-l", tag_name], verbose, dry_run)?;
     Ok(!output.is_empty())
 }
 
 /// Merge the current branch with another branch.
-pub fn merge_branch(branch_name: &str, verbose: bool) -> Result<String> {
-    run_git_command("merge", &["--no-ff", branch_name], verbose)
+pub fn merge_branch(branch_name: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("merge", &["--no-ff", branch_name], verbose, dry_run)
 }
 
 /// Delete a local short-lived branch.
-pub fn delete_local_branch(branch_name: &str, verbose: bool) -> Result<String> {
-    run_git_command("branch", &["-d", branch_name], verbose)
+pub fn delete_local_branch(branch_name: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("branch", &["-d", branch_name], verbose, dry_run)
 }
 
 /// Delete a remote branch.
-pub fn delete_remote_branch(branch_name: &str, verbose: bool) -> Result<String> {
-    run_git_command("push", &["origin", "--delete", branch_name], verbose)
+pub fn delete_remote_branch(branch_name: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command(
+        "push",
+        &["origin", "--delete", branch_name],
+        verbose,
+        dry_run,
+    )
 }
 
 /// Get the current branch name.
-pub fn get_current_branch(verbose: bool) -> Result<String> {
-    run_git_command("branch", &["--show-current"], verbose)
+pub fn get_current_branch(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("branch", &["--show-current"], verbose, dry_run)
 }
 
 /// Create a new branch from the current HEAD or a specified point.
-pub fn create_branch(branch_name: &str, from_point: Option<&str>, verbose: bool) -> Result<String> {
+pub fn create_branch(
+    branch_name: &str,
+    from_point: Option<&str>,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<String> {
     let mut args = vec!["-b", branch_name];
     if let Some(point) = from_point {
         args.push(point);
     }
-    run_git_command("checkout", &args, verbose)
+    run_git_command("checkout", &args, verbose, dry_run)
 }
 
 /// Get the hash of the current HEAD commit.
-pub fn get_head_commit_hash(verbose: bool) -> Result<String> {
-    run_git_command("rev-parse", &["HEAD"], verbose)
+pub fn get_head_commit_hash(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("rev-parse", &["HEAD"], verbose, dry_run)
 }
 
 /// Get the latest tag in the repository.
 /// This returns the most recent tag, which is useful for versioning.
-pub fn get_latest_tag(verbose: bool) -> Result<String> {
-    run_git_command("describe", &["--tags", "--abbrev=0"], verbose)
+pub fn get_latest_tag(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("describe", &["--tags", "--abbrev=0"], verbose, dry_run)
 }
 
 /// Get the commit history in a specific range.
-pub fn get_commit_history(range: &str, verbose: bool) -> Result<String> {
-    run_git_command("log", &[range, "--pretty=format:%H|%s"], verbose)
+pub fn get_commit_history(range: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("log", &[range, "--pretty=format:%H|%s"], verbose, dry_run)
 }
 
 /// Get the remote URL of the repository.
-pub fn get_remote_url(verbose: bool) -> Result<String> {
-    let url = run_git_command("remote", &["get-url", "origin"], verbose)?;
+pub fn get_remote_url(verbose: bool, dry_run: bool) -> Result<String> {
+    let url = run_git_command("remote", &["get-url", "origin"], verbose, dry_run)?;
     // Remove the .git suffix for cleaner URLs
     Ok(url.trim_end_matches(".git").to_string())
 }
@@ -278,48 +307,61 @@ pub fn create_tag(
     message: &str,
     commit_hash: &str,
     verbose: bool,
+    dry_run: bool,
 ) -> Result<String> {
     run_git_command(
         "tag",
         &["-a", tag_name, "-m", message, commit_hash],
         verbose,
+        dry_run,
     )
 }
 
 /// Push a new branch to the remote repository and set it as upstream.
 /// This is useful for new branches that have not been pushed before.
-pub fn push_set_upstream(branch_name: &str, verbose: bool) -> Result<String> {
-    run_git_command("push", &["--set-upstream", "origin", branch_name], verbose)
+pub fn push_set_upstream(branch_name: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command(
+        "push",
+        &["--set-upstream", "origin", branch_name],
+        verbose,
+        dry_run,
+    )
 }
 
 /// Show the current status of the repository.
-pub fn status(verbose: bool) -> Result<String> {
-    run_git_command("status", &["--short"], verbose)
+pub fn status(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("status", &["--short"], verbose, dry_run)
 }
 
 /// Show recent commits in the repository, 15 by default.
-pub fn log_graph(verbose: bool) -> Result<String> {
-    run_git_command("log", &["--graph", "--oneline", "-n", "15"], verbose)
+pub fn log_graph(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command(
+        "log",
+        &["--graph", "--oneline", "-n", "15"],
+        verbose,
+        dry_run,
+    )
 }
 
 /// Check if the current dir is a valid Git repository.
-pub fn is_git_repository(verbose: bool) -> Result<String> {
-    run_git_command("rev-parse", &["--is-inside-work-tree"], verbose)
+pub fn is_git_repository(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("rev-parse", &["--is-inside-work-tree"], verbose, dry_run)
 }
 
 /// Find the root directory of the Git repository and return its path.
-pub fn get_git_root(verbose: bool) -> Result<String> {
-    run_git_command("rev-parse", &["--show-toplevel"], verbose)
+pub fn get_git_root(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("rev-parse", &["--show-toplevel"], verbose, dry_run)
 }
 
 /// Initialise a new Git repository in the current directory.
-pub fn init_git_repository(verbose: bool) -> Result<String> {
-    run_git_command("init", &[], verbose)
+pub fn init_git_repository(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("init", &[], verbose, dry_run)
 }
 
 /// Check for stale branches in the repository.
 pub fn get_stale_branches(
     verbose: bool,
+    dry_run: bool,
     main_branch: &str,
     stale_days: i64,
 ) -> Result<Vec<(String, i64)>> {
@@ -334,6 +376,7 @@ pub fn get_stale_branches(
             "refs/heads/",
         ],
         verbose,
+        dry_run,
     )?;
     let stale_branches = output
         .lines()
@@ -383,7 +426,8 @@ mod tests {
     #[test]
     fn test_run_git_command_version() {
         let verbose = true;
-        let result = run_git_command("--version", &[], verbose);
+        let dry_run = false;
+        let result = run_git_command("--version", &[], verbose, dry_run);
         assert!(result.is_ok(), "Expected Ok, got {:?}", result);
         let output = result.unwrap();
         assert!(output.contains("git version"), "Output was: {}", output);
@@ -393,7 +437,8 @@ mod tests {
     #[test]
     fn test_status() {
         let verbose = true;
-        let result = status(verbose);
+        let dry_run = false;
+        let result = status(verbose, dry_run);
         assert!(result.is_ok(), "Expected Ok, got {:?}", result);
         let output = result.unwrap();
         // Accept any output (including empty if clean)

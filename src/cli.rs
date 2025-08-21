@@ -20,6 +20,9 @@ pub struct Cli {
     /// Enable verbose output for debugging. Use this to troubleshoot issues or understand the flow better.
     #[arg(long)]
     pub verbose: bool,
+    /// Enable dry run mode. This will simulate the command without making any changes.
+    #[arg(long)]
+    pub dry_run: bool,
 }
 
 /// Subcommands for the tbdflow CLI tool.

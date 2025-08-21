@@ -27,10 +27,10 @@ pub fn handle_update_command() -> Result<(), anyhow::Error> {
 }
 
 /// Handle init command for tbdflow
-pub fn handle_init_command(verbose: bool) -> Result<()> {
+pub fn handle_init_command(verbose: bool, dry_run: bool) -> Result<()> {
     println!("--- Initialising tbdflow configuration ---");
 
-    if git::is_git_repository(verbose).is_err() {
+    if git::is_git_repository(verbose, dry_run).is_err() {
         let current_dir = std::env::current_dir()?.to_string_lossy().to_string();
         if Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt(format!(
@@ -39,7 +39,7 @@ pub fn handle_init_command(verbose: bool) -> Result<()> {
             ))
             .interact()?
         {
-            git::init_git_repository(verbose)?;
+            git::init_git_repository(verbose, dry_run)?;
             println!("{}", "New git repository initialised.".green());
         } else {
             println!("Aborted. Please run `tbdflow init` from within a git repository.");
@@ -47,7 +47,7 @@ pub fn handle_init_command(verbose: bool) -> Result<()> {
         }
     }
 
-    let git_root = git::get_git_root(verbose)?;
+    let git_root = git::get_git_root(verbose, dry_run)?;
     let tbdflow_path = std::path::Path::new(&git_root).join(".tbdflow.yml");
     let dod_path = std::path::Path::new(&git_root).join(".dod.yml");
 
@@ -87,8 +87,8 @@ checklist:
             "\n{}",
             "Creating initial commit for configuration files...".blue()
         );
-        git::add_all(verbose)?;
-        git::commit("chore: Initialise tbdflow configuration", verbose)?;
+        git::add_all(verbose, dry_run)?;
+        git::commit("chore: Initialise tbdflow configuration", verbose, dry_run)?;
         println!("{}", "Initial commit created.".green());
 
         if Confirm::with_theme(&ColorfulTheme::default())
@@ -102,18 +102,18 @@ checklist:
                 .interact_text()?;
 
             if !remote_url.is_empty() {
-                git::add_remote("origin", &remote_url, verbose)?;
-                git::fetch_origin(verbose)?;
+                git::add_remote("origin", &remote_url, verbose, dry_run)?;
+                git::fetch_origin(verbose, dry_run)?;
 
-                if git::remote_branch_exists("main", verbose).is_ok() {
+                if git::remote_branch_exists("main", verbose, dry_run).is_ok() {
                     println!(
                         "{}",
                         "Remote 'main' branch found. Reconciling histories...".yellow()
                     );
-                    git::rebase_onto_main("main", verbose)?;
+                    git::rebase_onto_main("main", verbose, dry_run)?;
                 }
 
-                git::push_set_upstream("main", verbose)?;
+                git::push_set_upstream("main", verbose, dry_run)?;
                 println!(
                     "{}",
                     "Successfully linked remote and pushed initial commit.".green()
@@ -126,44 +126,44 @@ checklist:
     Ok(())
 }
 
-pub fn handle_sync(verbose: bool, config: &config::Config) -> Result<()> {
+pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Result<()> {
     println!(
         "{}",
         "--- Syncing with remote and showing status ---"
             .to_string()
             .blue()
     );
-    let current_branch = git::get_current_branch(verbose)?;
+    let current_branch = git::get_current_branch(verbose, dry_run)?;
 
     if current_branch == config.main_branch_name {
         println!("On main branch, pulling latest changes...");
-        git::pull_latest_with_rebase(verbose)?;
+        git::pull_latest_with_rebase(verbose, dry_run)?;
     } else {
         println!(
             "On feature branch '{}', rebasing onto latest '{}'...",
             current_branch, config.main_branch_name
         );
-        git::fetch_origin(verbose)?;
-        git::rebase_onto_main(&config.main_branch_name, verbose)?;
+        git::fetch_origin(verbose, dry_run)?;
+        git::rebase_onto_main(&config.main_branch_name, verbose, dry_run)?;
     }
 
     println!("\n{}", "Current status:".bold());
-    let status_output = git::status(verbose)?;
+    let status_output = git::status(verbose, dry_run)?;
     if status_output.is_empty() {
         println!("{}", "Working directory is clean.".green());
     } else {
         println!("{}", status_output.yellow());
     }
 
-    let log_output = git::log_graph(verbose)?;
+    let log_output = git::log_graph(verbose, dry_run)?;
     println!("\n{}", "Recent activity:".bold());
     println!("{}", log_output.cyan());
 
-    check_and_warn_for_stale_branches(verbose, &current_branch, config)?;
+    check_and_warn_for_stale_branches(verbose, dry_run, &current_branch, config)?;
     Ok(())
 }
 
-pub fn handle_check_branches(verbose: bool, config: &config::Config) -> Result<()> {
+pub fn handle_check_branches(verbose: bool, dry_run: bool, config: &config::Config) -> Result<()> {
     println!(
         "{}",
         "--- Checking current branch and stale branches ---"
@@ -171,21 +171,26 @@ pub fn handle_check_branches(verbose: bool, config: &config::Config) -> Result<(
             .blue()
     );
 
-    let current_branch = git::get_current_branch(verbose)?;
+    let current_branch = git::get_current_branch(verbose, dry_run)?;
     if current_branch != config.main_branch_name {
         return Err(git::GitError::NotOnMainBranch(current_branch).into());
     }
-    check_and_warn_for_stale_branches(verbose, &current_branch, config)?;
+    check_and_warn_for_stale_branches(verbose, dry_run, &current_branch, config)?;
     Ok(())
 }
 
 pub fn check_and_warn_for_stale_branches(
     verbose: bool,
+    dry_run: bool,
     current_branch: &str,
     config: &config::Config,
 ) -> Result<()> {
-    let stale_branches =
-        git::get_stale_branches(verbose, current_branch, config.stale_branch_threshold_days)?;
+    let stale_branches = git::get_stale_branches(
+        verbose,
+        dry_run,
+        current_branch,
+        config.stale_branch_threshold_days,
+    )?;
     if !stale_branches.is_empty() {
         println!(
             "\n{}",

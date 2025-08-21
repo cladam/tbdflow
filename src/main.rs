@@ -17,6 +17,7 @@ use tbdflow::{changelog, cli, commit, config, git, misc};
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
     let verbose = cli.verbose;
+    let dry_run = cli.dry_run;
 
     // Before running any command, check if we are in a git repository,
     // unless the command is `init` itself.
@@ -24,7 +25,7 @@ fn main() -> anyhow::Result<()> {
         cli.command,
         Commands::Init | Commands::Update | Commands::Completion { .. }
     ) {
-        if git::is_git_repository(verbose).is_err() {
+        if git::is_git_repository(verbose, dry_run).is_err() {
             println!(
                 "{}",
                 "Error: Not a git repository (or any of the parent directories).".red()
@@ -42,7 +43,7 @@ fn main() -> anyhow::Result<()> {
     // Match the commands and execute the functionality.
     match cli.command {
         Commands::Init => {
-            misc::handle_init_command(verbose)?;
+            misc::handle_init_command(verbose, dry_run)?;
         }
         Commands::Update => {
             misc::handle_update_command()?;
@@ -60,6 +61,7 @@ fn main() -> anyhow::Result<()> {
         } => {
             commit::handle_commit(
                 verbose,
+                dry_run,
                 &config,
                 r#type,
                 scope,
@@ -75,11 +77,11 @@ fn main() -> anyhow::Result<()> {
         Commands::Feature { name } => {
             println!("{}", "--- Creating feature branch ---".to_string().blue());
             let branch_name = format!("{}{}", config.branch_prefixes.feature, name);
-            git::is_working_directory_clean(verbose)?;
-            git::checkout_main(verbose, main_branch_name)?;
-            git::pull_latest_with_rebase(verbose)?;
-            git::create_branch(&branch_name, None, verbose)?;
-            git::push_set_upstream(&branch_name, verbose)?;
+            git::is_working_directory_clean(verbose, dry_run)?;
+            git::checkout_main(verbose, dry_run, main_branch_name)?;
+            git::pull_latest_with_rebase(verbose, dry_run)?;
+            git::create_branch(&branch_name, None, verbose, dry_run)?;
+            git::push_set_upstream(&branch_name, verbose, dry_run)?;
             println!(
                 "\n{}",
                 format!("Success! Switched to new feature branch: '{}'", branch_name).green()
@@ -91,11 +93,11 @@ fn main() -> anyhow::Result<()> {
         } => {
             println!("{}", "--- Creating release branch ---".to_string().blue());
             let branch_name = format!("{}{}", config.branch_prefixes.release, version);
-            git::is_working_directory_clean(verbose)?;
-            git::checkout_main(verbose, main_branch_name)?;
-            git::pull_latest_with_rebase(verbose)?;
-            git::create_branch(&branch_name, from_commit.as_deref(), verbose)?;
-            git::push_set_upstream(&branch_name, verbose)?;
+            git::is_working_directory_clean(verbose, dry_run)?;
+            git::checkout_main(verbose, dry_run, main_branch_name)?;
+            git::pull_latest_with_rebase(verbose, dry_run)?;
+            git::create_branch(&branch_name, from_commit.as_deref(), verbose, dry_run)?;
+            git::push_set_upstream(&branch_name, verbose, dry_run)?;
             println!(
                 "\n{}",
                 format!("Success! Switched to new release branch: '{}'", branch_name).green()
@@ -104,11 +106,11 @@ fn main() -> anyhow::Result<()> {
         Commands::Hotfix { name } => {
             println!("{}", "--- Creating hotfix branch ---".to_string().blue());
             let branch_name = format!("{}{}", config.branch_prefixes.hotfix, name);
-            git::is_working_directory_clean(verbose)?;
-            git::checkout_main(verbose, main_branch_name)?;
-            git::pull_latest_with_rebase(verbose)?;
-            git::create_branch(&branch_name, None, verbose)?;
-            git::push_set_upstream(&branch_name, verbose)?;
+            git::is_working_directory_clean(verbose, dry_run)?;
+            git::checkout_main(verbose, dry_run, main_branch_name)?;
+            git::pull_latest_with_rebase(verbose, dry_run)?;
+            git::create_branch(&branch_name, None, verbose, dry_run)?;
+            git::push_set_upstream(&branch_name, verbose, dry_run)?;
             println!(
                 "\n{}",
                 format!("Success! Switched to new hotfix branch: '{}'", branch_name).green()
@@ -137,11 +139,11 @@ fn main() -> anyhow::Result<()> {
                 }
             };
 
-            git::is_working_directory_clean(verbose)?;
-            git::checkout_main(verbose, main_branch_name)?;
-            git::pull_latest_with_rebase(verbose)?;
-            git::create_branch(&branch_name, None, verbose)?;
-            git::push_set_upstream(&branch_name, verbose)?;
+            git::is_working_directory_clean(verbose, dry_run)?;
+            git::checkout_main(verbose, dry_run, main_branch_name)?;
+            git::pull_latest_with_rebase(verbose, dry_run)?;
+            git::create_branch(&branch_name, None, verbose, dry_run)?;
+            git::push_set_upstream(&branch_name, verbose, dry_run)?;
             println!(
                 "\n{}",
                 format!("Success! Switched to new branch: '{}'", branch_name).green()
@@ -158,34 +160,35 @@ fn main() -> anyhow::Result<()> {
                 return Err(GitError::CannotCompleteMainBranch.into());
             }
 
-            let branch_name = git::find_branch(&name, &r#type, &config, verbose)?;
+            let branch_name = git::find_branch(&name, &r#type, &config, verbose, dry_run)?;
             println!("{}", format!("Branch to complete: {}", branch_name).blue());
 
             // pre-flight check the branch name
-            git::branch_exists_locally(&branch_name, verbose)?;
+            git::branch_exists_locally(&branch_name, verbose, dry_run)?;
 
             if r#type == "release" {
                 let tag_name = format!("{}{}", config.automatic_tags.release_prefix, name);
 
-                if git::tag_exists(&tag_name, verbose)? {
+                if git::tag_exists(&tag_name, verbose, dry_run)? {
                     return Err(GitError::TagAlreadyExists(tag_name).into());
                 }
             }
 
-            git::is_working_directory_clean(verbose)?;
-            git::checkout_main(verbose, main_branch_name)?;
-            git::pull_latest_with_rebase(verbose)?;
-            git::merge_branch(&branch_name, verbose)?;
+            git::is_working_directory_clean(verbose, dry_run)?;
+            git::checkout_main(verbose, dry_run, main_branch_name)?;
+            git::pull_latest_with_rebase(verbose, dry_run)?;
+            git::merge_branch(&branch_name, verbose, dry_run)?;
 
             // Create tag for release branches
             if r#type == "release" {
                 let tag_name = format!("{}{}", config.automatic_tags.release_prefix, name);
-                let merge_commit_hash = git::get_head_commit_hash(verbose)?;
+                let merge_commit_hash = git::get_head_commit_hash(verbose, dry_run)?;
                 git::create_tag(
                     &tag_name,
                     &format!("Release {}", name),
                     &merge_commit_hash,
                     verbose,
+                    dry_run,
                 )?;
                 println!(
                     "{}",
@@ -193,14 +196,14 @@ fn main() -> anyhow::Result<()> {
                 );
             }
 
-            git::push(verbose)?;
+            git::push(verbose, dry_run)?;
             if r#type == "release" {
-                git::push_tags(verbose)?;
+                git::push_tags(verbose, dry_run)?;
             }
 
-            git::push(verbose)?;
-            git::delete_local_branch(&branch_name, verbose)?;
-            git::delete_remote_branch(&branch_name, verbose)?;
+            git::push(verbose, dry_run)?;
+            git::delete_local_branch(&branch_name, verbose, dry_run)?;
+            git::delete_remote_branch(&branch_name, verbose, dry_run)?;
             println!(
                 "\n{}",
                 format!(
@@ -211,20 +214,20 @@ fn main() -> anyhow::Result<()> {
             );
         }
         Commands::Sync => {
-            misc::handle_sync(verbose, &config)?;
+            misc::handle_sync(verbose, dry_run, &config)?;
         }
         Commands::Status => {
             println!("{}", "--- Checking status ---".to_string().blue());
-            let output = git::status(verbose)?;
+            let output = git::status(verbose, dry_run)?;
             println!("{}", output.blue());
         }
         Commands::CurrentBranch => {
             println!("{}", "--- Current branch ---".to_string().blue());
-            let branch_name = get_current_branch(verbose)?;
+            let branch_name = get_current_branch(verbose, dry_run)?;
             println!("{}", format!("Current branch is: {}", branch_name).green());
         }
         Commands::CheckBranches => {
-            misc::handle_check_branches(verbose, &config)?;
+            misc::handle_check_branches(verbose, dry_run, &config)?;
         }
         Commands::GenerateManPage => {
             println!("{}", "--- Generating a man page ---".to_string().blue());
@@ -253,7 +256,8 @@ fn main() -> anyhow::Result<()> {
         } => {
             //println!("{}", "--- Generating changelog ---".blue());
             // Don't print the header, good for when piping to a file
-            let changelog = changelog::handle_changelog(verbose, &config, from, to, unreleased)?;
+            let changelog =
+                changelog::handle_changelog(verbose, dry_run, &config, from, to, unreleased)?;
             if changelog.is_empty() {
                 println!(
                     "{}",

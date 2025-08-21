@@ -18,6 +18,7 @@ fn get_section_header(commit_type: &str) -> &'static str {
 
 pub fn handle_changelog(
     verbose: bool,
+    dry_run: bool,
     config: &Config,
     from: Option<String>,
     to: Option<String>,
@@ -25,7 +26,7 @@ pub fn handle_changelog(
 ) -> Result<String> {
     // Range from last tag to HEAD if unreleased
     let range = if unreleased {
-        let latest_tag = git::get_latest_tag(verbose)?;
+        let latest_tag = git::get_latest_tag(verbose, dry_run)?;
         format!("{}..HEAD", latest_tag)
     } else {
         // Get the range from the specified 'from' commit to 'to' commit
@@ -37,10 +38,10 @@ pub fn handle_changelog(
     };
 
     // Fetch the commit history in a friendly format
-    let history = git::get_commit_history(&range, verbose)?;
+    let history = git::get_commit_history(&range, verbose, dry_run)?;
     let mut sections: HashMap<&'static str, Vec<String>> = HashMap::new();
     let mut breaking_changes: Vec<String> = Vec::new();
-    let remote_url = git::get_remote_url(verbose).unwrap_or_default();
+    let remote_url = git::get_remote_url(verbose, dry_run).unwrap_or_default();
 
     // Parse each line of the commit history
     // Expected format: "hash|message"

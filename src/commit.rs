@@ -190,6 +190,7 @@ pub fn is_valid_body_lines(body: &str, config: &config::Config) -> bool {
 
 pub fn handle_commit(
     verbose: bool,
+    dry_run: bool,
     config: &Config,
     r#type: String,
     scope: Option<String>,
@@ -293,26 +294,26 @@ pub fn handle_commit(
             format!("Commit message will be:\n---\n{}\n---", commit_message).blue()
         );
 
-        git::add_all(verbose)?;
-        if !git::has_staged_changes(verbose)? {
+        git::add_all(verbose, dry_run)?;
+        if !git::has_staged_changes(verbose, dry_run)? {
             println!("{}", "No changes added to commit.".yellow());
             return Ok(());
         }
 
-        let current_branch = git::get_current_branch(verbose)?;
+        let current_branch = git::get_current_branch(verbose, dry_run)?;
         if current_branch == config.main_branch_name {
             println!("--- Committing directly to main branch ---");
-            git::pull_latest_with_rebase(verbose)?;
-            git::commit(&commit_message, verbose)?;
-            git::push(verbose)?;
+            git::pull_latest_with_rebase(verbose, dry_run)?;
+            git::commit(&commit_message, verbose, dry_run)?;
+            git::push(verbose, dry_run)?;
             println!(
                 "\n{}",
                 "Successfully committed and pushed changes to main.".green()
             );
         } else {
             println!("--- Committing to feature branch '{}' ---", current_branch);
-            git::commit(&commit_message, verbose)?;
-            git::push(verbose)?;
+            git::commit(&commit_message, verbose, dry_run)?;
+            git::push(verbose, dry_run)?;
             println!(
                 "\n{}",
                 format!("Successfully pushed changes to '{}'.", current_branch).green()
@@ -320,9 +321,9 @@ pub fn handle_commit(
         }
 
         if let Some(tag_name) = tag {
-            let commit_hash = git::get_head_commit_hash(verbose)?;
-            git::create_tag(&tag_name, &commit_message, &commit_hash, verbose)?;
-            git::push_tags(verbose)?;
+            let commit_hash = git::get_head_commit_hash(verbose, dry_run)?;
+            git::create_tag(&tag_name, &commit_message, &commit_hash, verbose, dry_run)?;
+            git::push_tags(verbose, dry_run)?;
             println!(
                 "{}",
                 format!("Success! Created and pushed tag '{}'", tag_name).green()
