@@ -109,8 +109,20 @@ If a `.tbdflow.yml` file is present and contains a lint section, the commit comm
 
 ```yaml
 main_branch_name: main
-release_url_template: https://github.com/{repo_owner}/{repo_name}/releases/tag/{{version}}
+release_url_template: https://github.com/repo_owner/repo_name/releases/tag/{{version}}
 stale_branch_threshold_days: 1
+issue_handling:
+  strategy: branch-name
+branch_types:
+  feature: feature/
+  hotfix: hotfix/
+  release: release/
+  docs: docs/
+  chore: chore/
+  fix: fix/
+  refactor: refactor/
+  feat: feat/
+  ci: ci/
 branch_prefixes:
   feature: feature_
   release: release_
@@ -154,6 +166,7 @@ lint:
 | Flag        | Description                                              | Required |
 |-------------|----------------------------------------------------------|----------|
 | --verbose   | Prints the underlying Git commands as they are executed. | No       |
+| --dry-run   | Simulate the command without making any changes.         | No       |
 
 ## Commands
 
@@ -200,41 +213,34 @@ tbdflow commit -t refactor -m "rename internal API" --breaking --breaking-descri
 tbdflow commit -t fix -m "correct user permission logic" --tag "v1.1.1"
 ```
 
-### 2.`feature` / `release` / `hotfix`
+### 2. `branch`
 
-Creates a new, short-lived branch from the latest version of `main.
+Creates and pushes a new, short-lived branch from the latest version of `main`. This is the primary command for starting new work that isn't a direct commit to `main`.
 
 **Usage:**
 
 ```bash
-# For features or hotfixes
-tbdflow <feature|hotfix> --name <branch-name>
-
-# For releases
-tbdflow release --version <version-number> [options]
+tbdflow branch --type <type> --name <name> [--issue <issue-id>]
 ```
 
 **Options (release):**
 
-| Flag | Option        | Description                                    | Required |
-|------|---------------|------------------------------------------------|----------|
-| -f   | --from-commit | Optional commit hash on `main` to branch from. | No       |
+| Flag       | Description                                                                     | Required |
+|------------|---------------------------------------------------------------------------------|----------|
+| -t, --type | The type of branch (e.g. feat, fix, chore). See .tbdflow.yml for allowed types. | Yes      |
+| -n, --name | A short, desriptive name for the branch.                                        | Yes      |
+| --issue    | Optional issue reference to include in the branch name or commit scope.         | No       |
 
 
 **Examples:**
 
 ```bash
-# Create a feature branch
-tbdflow feature -n "user-profile-page"
+# Create a simple feature branch named "feat/new-dashboard"
+tbdflow branch -t feat -n "new-dashboard"
 
-# Create a release branch
-tbdflow release -v "2.1.0"
-
-# Create a release branch from a specific commit
-tbdflow release -v "2.1.0" -f "39b68b5"
-
-# Create a hotfix branch
-tbdflow hotfix -n "critical-auth-bug"
+# Create a fix branch with an issue reference in the name
+# (This will be named "fix/PROJ-123-login-bug" by default)
+tbdflow branch -t fix -n "login-bug" --issue "PROJ-123"
 ```
 
 ### 3. complete
@@ -243,8 +249,7 @@ Merges a short-lived branch back into main, then deletes the local and remote co
 
 **Automatic Tagging:**
 
-* When completing a release branch, a tag (e.g., v1.2.0) is automatically created and pushed.
-* When completing a hotfix branch, a tag (e.g., hotfix_name-of-fix) is automatically created and pushed.
+* When completing a release branch, a tag (e.g. v1.2.0) is automatically created and pushed.
 
 **Usage:**
 
@@ -352,4 +357,11 @@ You can generate a man page for `tbdflow` by running the following command:
 tbdflow generate-man-page > tbdflow.1
 ```
 
+### Deprecated Commands
+
+The following commands are deprecated and will be removed in a future version. Please use the new `branch` command instead.
+
+- **`feature`**
+- **`release`**
+- **`hotfix`**
 

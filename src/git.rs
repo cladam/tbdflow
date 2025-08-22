@@ -33,15 +33,17 @@ pub enum GitError {
 /// Runs a Git command with the specified subcommand and arguments.
 fn run_git_command(command: &str, args: &[&str], verbose: bool, dry_run: bool) -> Result<String> {
     if verbose || dry_run {
-        println!("{} git {} {}", "[RUNNING] ".cyan(), command, args.join(" "));
-    }
-
-    if dry_run {
-        println!(
-            "{}",
-            "[DRY RUN] Command would execute but no changes made".yellow()
-        );
-        return Ok(String::new()); // Return empty string for dry run
+        if dry_run {
+            println!(
+                "{}",
+                "[DRY RUN] Command would execute but no changes made".yellow()
+            );
+            println!("git {} {}", command, args.join(" "));
+            println!(); // Add blank line for spacing
+            return Ok(String::new());
+        } else {
+            println!("{} git {} {}", "[RUNNING] ".cyan(), command, args.join(" "));
+        }
     }
 
     let output = Command::new("git")
