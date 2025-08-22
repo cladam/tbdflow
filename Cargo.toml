@@ -1,9 +1,9 @@
 [package]
 name = "tbdflow"
-version = "0.14.0"
+version = "0.15.0"
 authors = ["Claes Adamsson <claes.adamsson@gmail.com>"]
 repository = "https://github.com/cladam/tbdflow"
-readme="README.md"
+readme = "README.md"
 license = "MIT"
 description = "A CLI to streamline your Git workflow for Trunk-Based Development."
 keywords = ["git", "cli", "workflow", "tbd"]
