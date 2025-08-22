@@ -73,12 +73,13 @@ sudo cargo install --path . --root /usr/local
 `tbdflow` is configurable via two optional files in the root of your repository. To get started quickly, run `tbdflow init` to generate default versions of these files.
 
 `.tbdflow.yml`
-This file controls the core workflow of the tool. You can customize:
-* The name of your main branch (e.g., main, trunk).
-* Branch name prefixes (e.g. feat- instead of feature_).
-* The threshold for stale branch warnings.
-* Automatic tagging formats.
-* Commit message linting rules.
+This file controls the core workflow of the tool. You can customise:
+- The name of your main branch (e.g. main, trunk).
+- Allowed branch types and their prefixes (e.g feat/, chore/)
+- A strategy for handling issue references ("branch-name" or "commit-scope")
+- The threshold for stale branch warnings.
+- Automatic tagging formats.
+- Commit message linting rules.
 
 `.dod.yml`
 This file controls the interactive Definition of Done checklist for the commit command. 
@@ -108,28 +109,6 @@ If a `.tbdflow.yml` file is present and contains a lint section, the commit comm
 **Default linting rules:**
 
 ```yaml
-main_branch_name: main
-release_url_template: https://github.com/repo_owner/repo_name/releases/tag/{{version}}
-stale_branch_threshold_days: 1
-issue_handling:
-  strategy: branch-name
-branch_types:
-  feature: feature/
-  hotfix: hotfix/
-  release: release/
-  docs: docs/
-  chore: chore/
-  fix: fix/
-  refactor: refactor/
-  feat: feat/
-  ci: ci/
-branch_prefixes:
-  feature: feature_
-  release: release_
-  hotfix: hotfix_
-automatic_tags:
-  release_prefix: v
-  hotfix_prefix: hotfix-tag_
 lint:
   conventional_commit_type:
     enabled: true
@@ -364,4 +343,5 @@ The following commands are deprecated and will be removed in a future version. P
 - **`feature`**
 - **`release`**
 - **`hotfix`**
+
 
