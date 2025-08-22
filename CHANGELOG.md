@@ -1,3 +1,36 @@
+# [0.15.0](https://github.com/cladam/tbdflow/releases/tag/v0.15.0) (2025-08-22)
+
+### ⚠️ BREAKING CHANGES
+- **(branch):** add new branch command [`489ee8a`](https://github.com/cladam/tbdflow/commit/489ee8ae263c1ccd481989682a9c3f2169cce9ac)
+
+### ✨ Features
+- **(dryrun):** add global --dry-run flag [`3a186b2`](https://github.com/cladam/tbdflow/commit/3a186b240afd760dab459426cd6f91c10bb22432)
+- check for conflicting flags when issu handling strategy is commit-scope [`cca7cb8`](https://github.com/cladam/tbdflow/commit/cca7cb8876986cfe793148f9722fa54295837f21)
+- **(branch):** add new branch command [`489ee8a`](https://github.com/cladam/tbdflow/commit/489ee8ae263c1ccd481989682a9c3f2169cce9ac)
+
+### 🐛 Bug Fixes
+- **(branch):** fix failing test, prefix was set wrong [`0013fd7`](https://github.com/cladam/tbdflow/commit/0013fd7b7ca5e75948f2773d0da31d3d365f4e23)
+- **(branch):** fix failing test due to backward compability of release/feature/hotfix [`2dc5d48`](https://github.com/cladam/tbdflow/commit/2dc5d48d8d588d920c0729c3042d1116d7b118f3)
+- **(branch):** small fix in main [`40c3f38`](https://github.com/cladam/tbdflow/commit/40c3f3869c9a59d6c81dcd25316fb2ae9624bbcd)
+- **(branch):** update logic of the command [`c1a85cc`](https://github.com/cladam/tbdflow/commit/c1a85cc7fc9f36239eb95dd31f6f31caa870f658)
+
+### 🔨 Code Refactoring
+- move branch type and error handling to misc, remove duplication [`50daade`](https://github.com/cladam/tbdflow/commit/50daade01c991348db213af35f3836ecf61c84be)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`0cb1794`](https://github.com/cladam/tbdflow/commit/0cb1794dd2b9d575f8cd35bd4bbcaae5c295fa85)
+- update README markdown [`a3906d0`](https://github.com/cladam/tbdflow/commit/a3906d06e5354e374256aca7b55a5718a9ef0b91)
+- clean up README [`995ccf4`](https://github.com/cladam/tbdflow/commit/995ccf481cc9591b73bcfcfac8b4aac1e99c2489)
+- update README with branch command, and dry-run [`bba72e8`](https://github.com/cladam/tbdflow/commit/bba72e804f1086b8755edf782460e5e1b4831d47)
+- **(branch):** add testcase for the new branch command [`652dd51`](https://github.com/cladam/tbdflow/commit/652dd5156c253202380d4ab2959785885ed2beec)
+- **(fmt):** run cargo fmt on the code base [`a5c936d`](https://github.com/cladam/tbdflow/commit/a5c936db45be3ace7cb6e8c957c9d29caf0c21af)
+- update config with my username and repo [`d62b88e`](https://github.com/cladam/tbdflow/commit/d62b88ef7f3d2a488a8bf9c637e3dbf6076a0491)
+- update broken link in CHANGELOG.md [`12f4579`](https://github.com/cladam/tbdflow/commit/12f4579c85cef274852bf440280d981c028e202d)
+- update CHANGELOG.md [`a8955d0`](https://github.com/cladam/tbdflow/commit/a8955d0d5e1c26745e399d3b659240b071c4388b)
+- generate a new changelog entry for v0.14.0 [`b0434d3`](https://github.com/cladam/tbdflow/commit/b0434d3aedb978440802043bc942059b0a8dbf1a)
+- add cargo fmt check to CI [`5f2e2fc`](https://github.com/cladam/tbdflow/commit/5f2e2fc56bcf28fa8af2dd8e6e70f04d29882300)
+
+
 # [0.14.0](https://github.com/cladam/tbdflow/releases/tag/v0.14.0) (2025-08-20)
 
 ### ✨ Features
