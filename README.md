@@ -20,8 +20,8 @@ This CLI supports both the default commit-to-main workflow and the structured ha
 This tool is built around a specific philosophy of Trunk-Based Development:
 
 * **Main is the default.** The `commit` command is your everyday go-to. It automates pulling the latest changes, committing, and pushing directly to `main`, promoting small, frequent integrations.
-* **Branches are the exception.** While feature, release, and hotfix branches are supported, they’re treated as short-lived exceptions and not the norm.
-* **Cleanup is automatic.** The complete command enforces branch short-livedness by merging and automatically tagging (release/hotfix) and deleting completed branches, helping keep your repo tidy.
+* **Branches are the exception.** While branches are supported, they’re treated as short-lived exceptions and not the norm.
+* **Cleanup is automatic.** The complete command enforces branch short-livedness by merging and automatically tagging (release) and deleting completed branches, helping keep your repo tidy.
 * **Conventional Commits encouraged.** Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) for clarity and consistency.
 
 ### Why not just use Git?
