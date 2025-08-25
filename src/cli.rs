@@ -97,6 +97,9 @@ pub enum Commands {
         /// Optional issue reference to include in the branch name.
         #[arg(long)]
         issue: Option<String>,
+        /// Optional commit hash on 'main' to branch from.
+        #[arg(short, long)]
+        from_commit: Option<String>,
     },
     /// Creates a new short-lived feature branch from 'main'.
     #[command(hide = true)] // Deprecated

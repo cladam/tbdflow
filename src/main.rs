@@ -120,6 +120,7 @@ fn main() -> anyhow::Result<()> {
             r#type,
             name,
             issue,
+            from_commit,
         } => {
             println!(
                 "{}",
@@ -142,7 +143,7 @@ fn main() -> anyhow::Result<()> {
             git::is_working_directory_clean(verbose, dry_run)?;
             git::checkout_main(verbose, dry_run, main_branch_name)?;
             git::pull_latest_with_rebase(verbose, dry_run)?;
-            git::create_branch(&branch_name, None, verbose, dry_run)?;
+            git::create_branch(&branch_name, from_commit.as_deref(), verbose, dry_run)?;
             git::push_set_upstream(&branch_name, verbose, dry_run)?;
             println!(
                 "\n{}",
