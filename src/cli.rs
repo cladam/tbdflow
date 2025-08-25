@@ -86,7 +86,8 @@ pub enum Commands {
     /// Creates and pushes a new short-lived branch.
     #[command(after_help = "EXAMPLES:\n  \
     tbdflow branch --type feat --name \"user-profile-page\" --issue \"ABC-123\"\n  \
-    tbdflow branch -t fix -n \"login-bug\" --issue \"CBA-456\"")]
+    tbdflow branch -t fix -n \"login-bug\" --issue \"CBA-456\n  \
+    tbdflow branch -t chore -n \"update-dependencies\" -f \"39b68b5\"")]
     Branch {
         /// Type of branch (e.g., feat, fix, chore). See .tbdflow.yml for allowed types.
         #[arg(short, long)]

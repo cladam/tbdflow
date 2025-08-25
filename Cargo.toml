@@ -20,7 +20,7 @@ anyhow = "1.0.98"
 chrono = "0.4.41"
 serde_yaml = "0.9.33"
 serde = { version = "1.0.219", features = ["derive"] }
-dialoguer = "0.11.0"
+dialoguer = "0.12.0"
 self_update = "0.42.0"
 regex = "1.11.1"
 git-conventional = "0.12.9"

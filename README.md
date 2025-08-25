@@ -199,16 +199,17 @@ Creates and pushes a new, short-lived branch from the latest version of `main`. 
 **Usage:**
 
 ```bash
-tbdflow branch --type <type> --name <name> [--issue <issue-id>]
+tbdflow branch --type <type> --name <name> [--issue <issue-id>] [--from_commit <commit hash>]
 ```
 
 **Options (release):**
 
-| Flag       | Description                                                                     | Required |
-|------------|---------------------------------------------------------------------------------|----------|
-| -t, --type | The type of branch (e.g. feat, fix, chore). See .tbdflow.yml for allowed types. | Yes      |
-| -n, --name | A short, desriptive name for the branch.                                        | Yes      |
-| --issue    | Optional issue reference to include in the branch name or commit scope.         | No       |
+| Flag              | Description                                                                     | Required |
+|-------------------|---------------------------------------------------------------------------------|----------|
+| -t, --type        | The type of branch (e.g. feat, fix, chore). See .tbdflow.yml for allowed types. | Yes      |
+| -n, --name        | A short, desriptive name for the branch.                                        | Yes      |
+| --issue           | Optional issue reference to include in the branch name or commit scope.         | No       |
+| -f, --from_commit | Optional commit hash on `main` to branch from.                                  | No       |
 
 
 **Examples:**
@@ -220,6 +221,9 @@ tbdflow branch -t feat -n "new-dashboard"
 # Create a fix branch with an issue reference in the name
 # (This will be named "fix/PROJ-123-login-bug" by default)
 tbdflow branch -t fix -n "login-bug" --issue "PROJ-123"
+
+# Create a release branch from a specific commit
+tbdflow branch -t release -v "2.1.0" -f "39b68b5"
 ```
 
 ### 3. `complete`
@@ -343,5 +347,6 @@ The following commands are deprecated and will be removed in a future version. P
 - **`feature`**
 - **`release`**
 - **`hotfix`**
+
 
 
