@@ -1,3 +1,15 @@
+# [0.15.1](https://github.com/cladam/tbdflow/releases/tag/v0.15.1) (2025-08-25)
+
+### 🐛 Bug Fixes
+- **(cli):** add --from_commit option to branch command [`c15bcc9`](https://github.com/cladam/tbdflow/commit/c15bcc998c6b4203022ae5d7b8eef4413f7a801d)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`5cd1bd0`](https://github.com/cladam/tbdflow/commit/5cd1bd07ff0446211dac135ad586844e42347aed)
+- update example in README [`65e5440`](https://github.com/cladam/tbdflow/commit/65e5440f32b4ebe6328e1771778347f0bb338646)
+- update README with branch --from_commit [`b16e8bb`](https://github.com/cladam/tbdflow/commit/b16e8bb999e7ec46b20642d956a2ab3f8cc50c51)
+- update CHANGELOG with latest changes [`5a36c9f`](https://github.com/cladam/tbdflow/commit/5a36c9fd1130dd8dfb0ffb473a642b16c582f4ab)
+
+
 # [0.15.0](https://github.com/cladam/tbdflow/releases/tag/v0.15.0) (2025-08-22)
 
 ### ⚠️ BREAKING CHANGES
