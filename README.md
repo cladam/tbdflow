@@ -232,7 +232,7 @@ Merges a short-lived branch back into main, then deletes the local and remote co
 
 **Automatic Tagging:**
 
-* When completing a release branch, a tag (e.g. v1.2.0) is automatically created and pushed.
+* When completing a release branch, a tag (e.g. v2.1.0) is automatically created and pushed.
 
 **Usage:**
 
@@ -251,7 +251,7 @@ tbdflow complete --type <branch-type> --name <branch-name>
 
 ```bash
 # Complete a feature branch
-tbdflow complete -t feature -n "user-profile-page"
+tbdflow complete -t feat -n "user-profile-page"
 
 # Complete a release branch (this will be tagged v2.1.0)
 tbdflow complete -t release -n "2.1.0"
