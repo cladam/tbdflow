@@ -5,7 +5,7 @@ use predicates::str::is_match;
 use serial_test::serial;
 
 mod util;
-use util::{setup_temp_git_repo, init_default_branch};
+use util::{init_default_branch, setup_temp_git_repo};
 
 /// Tests that the status command outputs the expected status message.
 #[test]
