@@ -5,7 +5,7 @@ use predicates::str::is_match;
 use serial_test::serial;
 
 mod util;
-use util::{init_default_branch, setup_temp_git_repo};
+use util::setup_temp_git_repo;
 
 /// Tests that the status command outputs the expected status message.
 #[test]
@@ -41,10 +41,8 @@ fn test_branch_command() {
     std::env::set_current_dir(&repo_path).unwrap();
 
     // Create a minimal but complete .tbdflow.yml file
-    let main_branch = init_default_branch();
-    let config_content = format!(
-        r#"
-main_branch_name: {main_branch}
+    let config_content = r#"
+main_branch_name: main
 stale_branch_threshold_days: 1
 issue_handling:
   strategy: "branch-name"
@@ -58,8 +56,7 @@ branch_prefixes:
 automatic_tags:
   release_prefix: "v"
   hotfix_prefix: "hotfix-tag_"
-"#
-    );
+"#;
     std::fs::write(repo_path.join(".tbdflow.yml"), config_content).unwrap();
 
     // Commit the config file to clean the working directory
@@ -94,9 +91,8 @@ automatic_tags:
     std::env::set_current_dir(&repo_path2).unwrap();
 
     // Create a minimal but complete .tbdflow.yml file
-    let config_content_2 = format!(
-        r#"
-main_branch_name: {main_branch}
+    let config_content_2 = r#"
+main_branch_name: main
 stale_branch_threshold_days: 1
 issue_handling:
   strategy: "commit-scope"
@@ -110,8 +106,7 @@ branch_prefixes:
 automatic_tags:
   release_prefix: "v"
   hotfix_prefix: "hotfix-tag_"
-"#
-    );
+"#;
     std::fs::write(repo_path2.join(".tbdflow.yml"), config_content_2).unwrap();
 
     // Commit the config file to clean the working directory

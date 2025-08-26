@@ -77,24 +77,3 @@ pub fn setup_temp_git_repo() -> (TempDir, TempDir, std::path::PathBuf) {
 
     (dir, bare_dir, repo_path)
 }
-
-/// Read the default branch name from Git config. If not configured
-/// fall back to "master" (git default).
-#[allow(dead_code)]
-pub fn init_default_branch() -> String {
-    let output = Command::new("git")
-        .args(["config", "--global", "--get", "init.defaultBranch"])
-        .output()
-        .expect("Failed to read git config");
-
-    if output.status.success() {
-        let branch = str::from_utf8(&output.stdout).unwrap().trim().to_string();
-        if branch.is_empty() {
-            "master".to_string()
-        } else {
-            branch
-        }
-    } else {
-        "master".to_string()
-    }
-}
