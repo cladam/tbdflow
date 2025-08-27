@@ -98,7 +98,7 @@ checklist:
             .interact()?
         {
             let remote_url: String = Input::with_theme(&ColorfulTheme::default())
-                .with_prompt("Please enter the remote repository URL (e.g., from GitHub)")
+                .with_prompt("Please enter the remote repository URL (e.g. from GitHub)")
                 .interact_text()?;
 
             if !remote_url.is_empty() {
