@@ -1,6 +1,11 @@
 <div align="center">
+  <p align="center">
+    <img src="assets/tbdflow-logo.png" alt="tbdflow logo" width="200"/>
+  </p>
 
-# tbdflow
+  <p align="center">
+    <i><b>Keep your code flowing</b></i><br/>
+  </p>
 
 [![Crates.io](https://img.shields.io/crates/v/tbdflow.svg)](https://crates.io/crates/tbdflow)
 [![Downloads](https://img.shields.io/crates/d/tbdflow.svg)](https://crates.io/crates/tbdflow)
