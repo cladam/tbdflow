@@ -19,6 +19,9 @@ pub fn setup_temp_git_repo() -> (TempDir, TempDir, std::path::PathBuf) {
 
     Command::new("git")
         .arg("init")
+        .env("GIT_CONFIG_COUNT", "1")
+        .env("GIT_CONFIG_KEY_0", "init.defaultBranch")
+        .env("GIT_CONFIG_VALUE_0", "main")
         .current_dir(&repo_path)
         .output()
         .unwrap();
