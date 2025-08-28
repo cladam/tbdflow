@@ -43,20 +43,10 @@ impl Default for IssueHandling {
     }
 }
 
-/// The thre main prefixes for different types of branches in the project.
-/// These prefixes are used to categorize branches as features, releases, or hotfixes.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BranchPrefixes {
-    pub feature: String,
-    pub release: String,
-    pub hotfix: String,
-}
-
 /// Represents the automatic tagging configuration for releases and hotfixes.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AutomaticTags {
     pub release_prefix: String,
-    pub hotfix_prefix: String,
 }
 
 /// Represents the configuration for linting commit messages.
@@ -134,7 +124,6 @@ pub struct Config {
     #[serde(default)]
     pub issue_handling: IssueHandling,
     pub branch_types: HashMap<String, String>,
-    pub branch_prefixes: BranchPrefixes,
     pub automatic_tags: AutomaticTags,
     pub lint: Option<LintConfig>,
 }
@@ -167,14 +156,8 @@ impl Default for Config {
             monorepo: MonorepoConfig::default(),
             issue_handling: IssueHandling::default(),
             branch_types,
-            branch_prefixes: BranchPrefixes {
-                feature: "feature_".to_string(),
-                release: "release_".to_string(),
-                hotfix: "hotfix_".to_string(),
-            },
             automatic_tags: AutomaticTags {
                 release_prefix: "v".to_string(),
-                hotfix_prefix: "hotfix-tag_".to_string(),
             },
             // Add default lint configuration
             lint: Some(LintConfig {

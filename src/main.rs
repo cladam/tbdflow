@@ -75,48 +75,6 @@ fn main() -> anyhow::Result<()> {
                 issue,
             )?;
         }
-        Commands::Feature { name } => {
-            println!("{}", "--- Creating feature branch ---".to_string().blue());
-            let branch_name = format!("{}{}", config.branch_prefixes.feature, name);
-            git::is_working_directory_clean(verbose, dry_run)?;
-            git::checkout_main(verbose, dry_run, main_branch_name)?;
-            git::pull_latest_with_rebase(verbose, dry_run)?;
-            git::create_branch(&branch_name, None, verbose, dry_run)?;
-            git::push_set_upstream(&branch_name, verbose, dry_run)?;
-            println!(
-                "\n{}",
-                format!("Success! Switched to new feature branch: '{}'", branch_name).green()
-            );
-        }
-        Commands::Release {
-            version,
-            from_commit,
-        } => {
-            println!("{}", "--- Creating release branch ---".to_string().blue());
-            let branch_name = format!("{}{}", config.branch_prefixes.release, version);
-            git::is_working_directory_clean(verbose, dry_run)?;
-            git::checkout_main(verbose, dry_run, main_branch_name)?;
-            git::pull_latest_with_rebase(verbose, dry_run)?;
-            git::create_branch(&branch_name, from_commit.as_deref(), verbose, dry_run)?;
-            git::push_set_upstream(&branch_name, verbose, dry_run)?;
-            println!(
-                "\n{}",
-                format!("Success! Switched to new release branch: '{}'", branch_name).green()
-            );
-        }
-        Commands::Hotfix { name } => {
-            println!("{}", "--- Creating hotfix branch ---".to_string().blue());
-            let branch_name = format!("{}{}", config.branch_prefixes.hotfix, name);
-            git::is_working_directory_clean(verbose, dry_run)?;
-            git::checkout_main(verbose, dry_run, main_branch_name)?;
-            git::pull_latest_with_rebase(verbose, dry_run)?;
-            git::create_branch(&branch_name, None, verbose, dry_run)?;
-            git::push_set_upstream(&branch_name, verbose, dry_run)?;
-            println!(
-                "\n{}",
-                format!("Success! Switched to new hotfix branch: '{}'", branch_name).green()
-            );
-        }
         Commands::Branch {
             r#type,
             name,

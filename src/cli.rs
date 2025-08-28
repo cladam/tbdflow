@@ -102,40 +102,6 @@ pub enum Commands {
         #[arg(short, long)]
         from_commit: Option<String>,
     },
-    /// Creates a new short-lived feature branch from 'main'.
-    #[command(hide = true)] // Deprecated
-    #[command(after_help = "EXAMPLE:\n  \
-    tbdflow feature --name \"user-profile-page\"")]
-    Feature {
-        /// Name of the feature (e.g. 'user-profile-page').
-        #[arg(short, long)]
-        name: String,
-    },
-    /// Creates a new short-lived release branch from 'main'.
-    #[command(hide = true)] // Deprecated
-    #[command(
-        after_help = "EXAMPLES:\n  \
-    tbdflow release --version \"2.1.0\"\n  \
-    tbdflow release -v \"2.1.0\" -f \"39b68b5\"",
-        disable_version_flag = true
-    )]
-    Release {
-        /// Version for the release branch (e.g. '1.0.0').
-        #[arg(short, long)]
-        version: String,
-        /// Optional commit hash on 'main' to branch from.
-        #[arg(short, long)]
-        from_commit: Option<String>,
-    },
-    /// Creates a new short-lived hotfix branch from 'main'.
-    #[command(hide = true)] // Deprecated
-    #[command(after_help = "EXAMPLE:\n  \
-    tbdflow hotfix --name \"critical-auth-bug\"")]
-    Hotfix {
-        /// Name of the hotfix (e.g. 'critical-auth-bug').
-        #[arg(short, long)]
-        name: String,
-    },
     /// Merges a short-lived branch into 'main' and deletes it.
     #[command(after_help = "EXAMPLES:\n  \
     tbdflow complete --type \"feature\" --name \"user-profile-page\"\n  \
