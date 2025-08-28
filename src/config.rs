@@ -292,3 +292,8 @@ pub fn load_dod_config() -> anyhow::Result<DodConfig> {
     let config: DodConfig = serde_yaml::from_str(&content).context("Failed to parse .dod.yml")?;
     Ok(config)
 }
+
+/// Checks if the current context is the root of a configured monorepo.
+pub fn is_monorepo_root(config: &Config, current_dir: &Path, git_root: &Path) -> bool {
+    current_dir == git_root && config.monorepo.enabled && !config.monorepo.project_dirs.is_empty()
+}

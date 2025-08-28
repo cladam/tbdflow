@@ -303,10 +303,7 @@ pub fn handle_commit(
             println!("Current dir: {:?}", current_dir);
             println!("monorepo: {:?}", config.monorepo);
         }
-        if current_dir == git_root
-            && config.monorepo.enabled
-            && !config.monorepo.project_dirs.is_empty()
-        {
+        if config::is_monorepo_root(&config, &current_dir, &git_root) {
             // We are at the root of a configured monorepo.
             // Exclude project directories from the commit.
             println!(

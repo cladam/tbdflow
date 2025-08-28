@@ -223,10 +223,7 @@ fn main() -> anyhow::Result<()> {
             let git_root = PathBuf::from(git::get_git_root(verbose, dry_run)?);
             let current_dir = std::env::current_dir()?;
 
-            let status_output = if current_dir == git_root
-                && config.monorepo.enabled
-                && !config.monorepo.project_dirs.is_empty()
-            {
+            let status_output = if config::is_monorepo_root(&config, &current_dir, &git_root) {
                 println!(
                     "{}",
                     "Monorepo root detected. Showing status for root-level files only.".yellow()
