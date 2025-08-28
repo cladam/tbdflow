@@ -145,9 +145,13 @@ fn test_create_feature_branch_command() {
     let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
     std::env::set_current_dir(&repo_path).unwrap();
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
-    cmd.arg("feature").arg("--name").arg("new-feature");
+    cmd.arg("branch")
+        .arg("--type")
+        .arg("feature")
+        .arg("--name")
+        .arg("new-feature");
     cmd.assert().success().stdout(contains(
-        "Success! Switched to new feature branch: 'feature_new-feature'",
+        "Success! Switched to new branch: 'feature_new-feature'",
     ));
 }
 
@@ -158,23 +162,14 @@ fn test_create_release_branch_command() {
     let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
     std::env::set_current_dir(&repo_path).unwrap();
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
-    cmd.arg("release").arg("--version").arg("1.0.0");
-    cmd.assert().success().stdout(contains(
-        "Success! Switched to new release branch: 'release_1.0.0'",
-    ));
-}
-
-/// Tests that creating a new hotfix branch called "urgent-fix" works correctly.
-#[test]
-#[serial]
-fn test_create_hotfix_branch_command() {
-    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
-    std::env::set_current_dir(&repo_path).unwrap();
-    let mut cmd = Command::cargo_bin("tbdflow").unwrap();
-    cmd.arg("hotfix").arg("--name").arg("urgent-fix");
-    cmd.assert().success().stdout(contains(
-        "Success! Switched to new hotfix branch: 'hotfix_urgent-fix'",
-    ));
+    cmd.arg("branch")
+        .arg("--type")
+        .arg("release")
+        .arg("--name")
+        .arg("1.0.0");
+    cmd.assert()
+        .success()
+        .stdout(contains("Success! Switched to new branch: 'release_1.0.0'"));
 }
 
 /// Tests that adding a new file and committing it with the commit command works correctly.
@@ -260,7 +255,12 @@ fn test_complete_feature_branch_command() {
 
     // Create the feature branch first
     let mut create_cmd = Command::cargo_bin("tbdflow").unwrap();
-    create_cmd.arg("feature").arg("--name").arg("new-feature");
+    create_cmd
+        .arg("branch")
+        .arg("--type")
+        .arg("feature")
+        .arg("--name")
+        .arg("new-feature");
     create_cmd.assert().success();
 
     let mut cmd = Command::cargo_bin("tbdflow").unwrap();
@@ -284,9 +284,10 @@ fn test_complete_release_branch_command() {
     // Create the release branch first
     let mut create_cmd = Command::cargo_bin("tbdflow").unwrap();
     create_cmd
-        .arg("--verbose")
+        .arg("branch")
+        .arg("--type")
         .arg("release")
-        .arg("--version")
+        .arg("--name")
         .arg("1.0.0");
     create_cmd.assert().success();
 
@@ -391,7 +392,12 @@ fn test_check_branches_command() {
 
     // Create a feature branch that is stale
     let mut create_cmd = Command::cargo_bin("tbdflow").unwrap();
-    create_cmd.arg("feature").arg("--name").arg("stale-feature");
+    create_cmd
+        .arg("branch")
+        .arg("--type")
+        .arg("feature")
+        .arg("--name")
+        .arg("stale-feature");
     create_cmd.assert().success();
 
     let old_date = (Utc::now() - Duration::hours(25)).to_rfc3339();
