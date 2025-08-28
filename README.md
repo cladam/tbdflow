@@ -77,7 +77,7 @@ sudo cargo install --path . --root /usr/local
 ### Monorepo Support
 `tbdflow` is "monorepo-aware." It understands that in a monorepo, you often want commands to be scoped to a specific project or subdirectory.
 
-When you run `tbdflow commit` or `tbdflow status` from the root of a configured monorepo, the tool will intelligently ignore project subdirectories, making sure you only commit changes to root-level files (like `README.md`, `LICENSE`, or `CI configuration`). When run from within a project subdirectory, the commands are automatically scoped to just that directory.
+When you run `tbdflow commit`, `tbdflow sync` or `tbdflow status` from the root of a configured monorepo, the tool will intelligently ignore project subdirectories, making sure you only commit changes to root-level files (like `README.md`, `LICENSE`, or `CI configuration`). When run from within a project subdirectory, the commands are automatically scoped to just that directory (**N.B.** you need to run `tbdflow init` from within the subdirectory).
 
 This is configured in your root `.tbdflow.yml` file:
 ```
@@ -91,8 +91,6 @@ enabled: true
     - "backend-api"
     - "infra"
 ```
-
-You will also need a project specific `.tbdflow.yml` by running `tbdflow init` from within a sub-directory
 
 ### Configuration
 `tbdflow` is configurable via two optional files in the root of your repository. To get started quickly, run `tbdflow init` to generate default versions of these files.
