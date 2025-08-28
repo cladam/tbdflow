@@ -363,13 +363,4 @@ You can generate a man page for `tbdflow` by running the following command:
 tbdflow generate-man-page > tbdflow.1
 ```
 
-### Deprecated Commands
-
-The following commands are deprecated and will be removed in a future version. Please use the new `branch` command instead.
-
-- **`feature`**
-- **`release`**
-- **`hotfix`**
-
-
 
