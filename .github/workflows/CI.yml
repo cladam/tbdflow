@@ -24,9 +24,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set git default branch to main
-        run: git config --global init.defaultBranch main
-
       - name: Check cargo formatting
         run: cargo fmt -- --check
 
