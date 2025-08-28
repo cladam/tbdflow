@@ -3,6 +3,7 @@ use crate::{config, git};
 use anyhow::Result;
 use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect};
+use std::path::PathBuf;
 
 /// Runs the checklist interactively, allowing the user to confirm each item before committing.
 pub fn run_checklist_interactive(checklist: &[String]) -> anyhow::Result<Vec<usize>> {
@@ -294,7 +295,31 @@ pub fn handle_commit(
             format!("Commit message will be:\n---\n{}\n---", commit_message).blue()
         );
 
-        git::add_all(verbose, dry_run)?;
+        let git_root = PathBuf::from(git::get_git_root(verbose, dry_run)?);
+        let current_dir = std::env::current_dir()?;
+        // debug print
+        if verbose {
+            println!("Git root: {:?}", git_root);
+            println!("Current dir: {:?}", current_dir);
+            println!("monorepo: {:?}", config.monorepo);
+        }
+        if current_dir == git_root
+            && config.monorepo.enabled
+            && !config.monorepo.project_dirs.is_empty()
+        {
+            // We are at the root of a configured monorepo.
+            // Exclude project directories from the commit.
+            println!(
+                "{}",
+                "Monorepo root detected. Staging root-level files only.".yellow()
+            );
+            git::add_excluding_projects(&config.monorepo.project_dirs, verbose, dry_run)?;
+        } else {
+            // We are in a sub-project or not in a monorepo.
+            // Add all changes from the current directory.
+            git::add_all(verbose, dry_run)?;
+        }
+
         if !git::has_staged_changes(verbose, dry_run)? {
             println!("{}", "No changes added to commit.".yellow());
             return Ok(());

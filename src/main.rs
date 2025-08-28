@@ -10,6 +10,7 @@ use clap::{CommandFactory, Parser};
 use colored::Colorize;
 use std::io;
 use std::io::Write;
+use std::path::PathBuf;
 use tbdflow::cli::Commands;
 use tbdflow::git::{get_current_branch, GitError};
 use tbdflow::{changelog, cli, commit, config, git, misc};
@@ -218,9 +219,28 @@ fn main() -> anyhow::Result<()> {
             misc::handle_sync(verbose, dry_run, &config)?;
         }
         Commands::Status => {
-            println!("{}", "--- Checking status ---".to_string().blue());
-            let output = git::status(verbose, dry_run)?;
-            println!("{}", output.blue());
+            println!("--- Checking status ---");
+            let git_root = PathBuf::from(git::get_git_root(verbose, dry_run)?);
+            let current_dir = std::env::current_dir()?;
+
+            let status_output = if current_dir == git_root
+                && config.monorepo.enabled
+                && !config.monorepo.project_dirs.is_empty()
+            {
+                println!(
+                    "{}",
+                    "Monorepo root detected. Showing status for root-level files only.".yellow()
+                );
+                git::status_excluding_projects(&config.monorepo.project_dirs, verbose, dry_run)?
+            } else {
+                git::status(verbose, dry_run)?
+            };
+
+            if status_output.is_empty() {
+                println!("{}", "Working directory is clean.".green());
+            } else {
+                println!("{}", status_output.yellow());
+            }
         }
         Commands::CurrentBranch => {
             println!("{}", "--- Current branch ---".to_string().blue());

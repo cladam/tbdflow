@@ -4,6 +4,7 @@ use clap::Command as Commands;
 use colored::*;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
 use std::fs;
+use std::path::PathBuf;
 
 /// Handle update command for tbdflow
 pub fn handle_update_command() -> Result<(), anyhow::Error> {
@@ -48,23 +49,48 @@ pub fn handle_init_command(verbose: bool, dry_run: bool) -> Result<()> {
     }
 
     let git_root = git::get_git_root(verbose, dry_run)?;
+    let current_dir = std::env::current_dir()?;
     let tbdflow_path = std::path::Path::new(&git_root).join(".tbdflow.yml");
-    let dod_path = std::path::Path::new(&git_root).join(".dod.yml");
-
     let mut files_created = false;
-    if !tbdflow_path.exists() {
-        let default_config = config::Config::default();
-        let yaml_string = serde_yaml::to_string(&default_config)?;
-        fs::write(&tbdflow_path, yaml_string)?;
-        println!(
-            "{}",
-            "Created default .tbdflow.yml configuration file.".green()
-        );
-        files_created = true;
+
+    // Check if we are in a subdirectory of the git repo
+    if current_dir != PathBuf::from(&git_root) {
+        // We are in a subdirectory, create a project-specific config.
+        let project_config_path = current_dir.join(".tbdflow.yml");
+        if !project_config_path.exists() {
+            let project_config = config::Config {
+                project_root: Some(".".to_string()),
+                ..Default::default()
+            };
+            let yaml_string = serde_yaml::to_string(&project_config)?;
+            fs::write(&project_config_path, yaml_string)?;
+            println!(
+                "{}",
+                "Created project-specific .tbdflow.yml in current directory.".green()
+            );
+        } else {
+            println!(
+                "{}",
+                ".tbdflow.yml already exists in this directory. Skipping.".yellow()
+            );
+        }
     } else {
-        println!("{}", ".tbdflow.yml already exists. Skipping.".yellow());
+        // We are at the root, create the global config files.
+        if !tbdflow_path.exists() {
+            let default_config = config::Config::default();
+            let yaml_string = serde_yaml::to_string(&default_config)?;
+            fs::write(&tbdflow_path, yaml_string)?;
+            println!(
+                "{}",
+                "Created default .tbdflow.yml configuration file.".green()
+            );
+            files_created = true;
+        } else {
+            println!("{}", ".tbdflow.yml already exists. Skipping.".yellow());
+        }
     }
 
+    let dod_path = std::path::Path::new(&git_root).join(".dod.yml");
     if !dod_path.exists() {
         let default_dod = r#"
 checklist:
@@ -148,7 +174,22 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
     }
 
     println!("\n{}", "Current status:".bold());
-    let status_output = git::status(verbose, dry_run)?;
+    let git_root = PathBuf::from(git::get_git_root(verbose, dry_run)?);
+    let current_dir = std::env::current_dir()?;
+
+    let status_output = if current_dir == git_root
+        && config.monorepo.enabled
+        && !config.monorepo.project_dirs.is_empty()
+    {
+        println!(
+            "{}",
+            "Monorepo root detected. Showing status for root-level files only.".yellow()
+        );
+        git::status_excluding_projects(&config.monorepo.project_dirs, verbose, dry_run)?
+    } else {
+        git::status(verbose, dry_run)?
+    };
+
     if status_output.is_empty() {
         println!("{}", "Working directory is clean.".green());
     } else {

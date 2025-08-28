@@ -167,6 +167,31 @@ pub fn add_all(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("add", &["."], verbose, dry_run)
 }
 
+// Add all changes except those in specified project directories.
+// This uses the `:!<dir>` syntax to exclude directories from being added.
+pub fn add_excluding_projects(
+    project_dirs: &[String],
+    verbose: bool,
+    dry_run: bool,
+) -> Result<String> {
+    let mut args = vec!["."];
+    // Use the more explicit and robust `:(exclude)` pathspec syntax.
+    let exclude_args: Vec<String> = project_dirs
+        .iter()
+        .map(|dir| format!(":(exclude){}/", dir))
+        .collect();
+
+    let exclude_args_str: Vec<&str> = exclude_args.iter().map(|s| s.as_str()).collect();
+
+    args.extend_from_slice(&exclude_args_str);
+
+    if verbose {
+        println!("Excluded dirs: \n{:#?}", args);
+    }
+
+    run_git_command("add", &args, verbose, dry_run)
+}
+
 /// Commit changes with a message.
 pub fn commit(message: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("commit", &["-m", message], verbose, dry_run)
@@ -333,6 +358,25 @@ pub fn push_set_upstream(branch_name: &str, verbose: bool, dry_run: bool) -> Res
 /// Show the current status of the repository.
 pub fn status(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("status", &["--short"], verbose, dry_run)
+}
+
+/// Show the current status of the repository, excluding changes in specified project directories.
+pub fn status_excluding_projects(
+    project_dirs: &[String],
+    verbose: bool,
+    dry_run: bool,
+) -> Result<String> {
+    let mut args = vec!["--short", "--"];
+    let exclude_args: Vec<String> = project_dirs
+        .iter()
+        .map(|dir| format!(":(exclude){}/", dir))
+        .collect();
+
+    let exclude_args_str: Vec<&str> = exclude_args.iter().map(|s| s.as_str()).collect();
+
+    args.extend_from_slice(&exclude_args_str);
+
+    run_git_command("status", &args, verbose, dry_run)
 }
 
 /// Show recent commits in the repository, 15 by default.

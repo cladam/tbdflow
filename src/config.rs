@@ -1,16 +1,26 @@
-use anyhow::Context;
+use crate::git;
+use anyhow::{anyhow, Context};
 /// The structs and functions for handling the configuration of the TBDFlow tool.
 /// This includes reading the configuration from `.tbdflow.yml` and `.dod.yml` files,
 /// as well as defining the structure of the configuration data.
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 
 /// Represents the Definition of Done (DoD) configuration.
 #[derive(Debug, Deserialize, Default)]
 pub struct DodConfig {
     #[serde(default)]
     pub checklist: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+pub struct MonorepoConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub project_dirs: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -115,8 +125,12 @@ pub struct LintConfig {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub main_branch_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_root: Option<String>,
     pub release_url_template: Option<String>,
     pub stale_branch_threshold_days: i64,
+    #[serde(default)]
+    pub monorepo: MonorepoConfig,
     #[serde(default)]
     pub issue_handling: IssueHandling,
     pub branch_types: HashMap<String, String>,
@@ -145,10 +159,12 @@ impl Default for Config {
         branch_types.insert("hotfix".to_string(), "hotfix_".to_string());
         Config {
             main_branch_name: "main".to_string(),
+            project_root: None,
             release_url_template: Some(
-                "https://github.com/username/repository/releases/tag/{{version}}".to_string(),
+                "https://github.com/owner/repository/releases/tag/{{version}}".to_string(),
             ),
             stale_branch_threshold_days: 1,
+            monorepo: MonorepoConfig::default(),
             issue_handling: IssueHandling::default(),
             branch_types,
             branch_prefixes: BranchPrefixes {
@@ -200,14 +216,74 @@ impl Default for Config {
     }
 }
 
+// Merges a child config (from a subdirectory) into a parent config.
+fn merge_configs(parent: &mut Config, child: Config) {
+    // Fields that are typically project-specific
+    if child.project_root.is_some() {
+        parent.project_root = child.project_root;
+    }
+
+    // Merge branch_types: child can add or override parent's
+    for (key, value) in child.branch_types {
+        parent.branch_types.insert(key, value);
+    }
+
+    // Overwrite issue handling strategy if specified in child
+    parent.issue_handling = child.issue_handling;
+
+    // Overwrite linting configuration if specified in child
+    if child.lint.is_some() {
+        parent.lint = child.lint;
+    }
+
+    // Fields that are generally global and should not be merged
+    // - main_branch_name
+    // - release_url_template
+    // - stale_branch_threshold_days
+    // - monorepo
+    // - branch_prefixes
+    // - automatic_tags
+}
+
 /// Loads the configuration from the `.tbdflow.yml` file in the current directory (root of the git repository).
 pub fn load_tbdflow_config() -> Result<Config, anyhow::Error> {
-    // Attempt to read the configuration file
-    if let Ok(content) = fs::read_to_string(".tbdflow.yml") {
-        serde_yaml::from_str(&content).context("Failed to parse .tbdflow.yml")
+    // Use a dummy verbose/dry_run setting for this internal operation.
+    let verbose = false;
+    let dry_run = false;
+
+    // Find the root of the git repository.
+    let git_root = match git::get_git_root(verbose, dry_run) {
+        Ok(path) => path,
+        Err(_) => {
+            // Not in a git repo, so we can't find the config.
+            // Return default config silently as before.
+            return Ok(Config::default());
+        }
+    };
+    // 1. Load base config from git root, or use default.
+    let root_config_path = Path::new(&git_root).join(".tbdflow.yml");
+    let mut base_config = if root_config_path.exists() {
+        let config_str = fs::read_to_string(root_config_path)?;
+        serde_yaml::from_str(&config_str)
+            .map_err(|e| anyhow!("Failed to parse root .tbdflow.yml: {}", e))?
     } else {
-        Ok(Config::default())
+        Config::default()
+    };
+
+    // 2. Check if we are in a subdirectory and if a local config exists.
+    let current_dir = std::env::current_dir()?;
+    if current_dir != Path::new(&git_root) {
+        let local_config_path = current_dir.join(".tbdflow.yml");
+        if local_config_path.exists() {
+            // 3. Load local config and merge it into the base config.
+            let local_config_str = fs::read_to_string(local_config_path)?;
+            let local_config: Config = serde_yaml::from_str(&local_config_str)
+                .map_err(|e| anyhow!("Failed to parse local .tbdflow.yml: {}", e))?;
+            merge_configs(&mut base_config, local_config);
+        }
     }
+
+    Ok(base_config)
 }
 
 /// Reads the DoD configuration from the `.dod.yml` file in the current directory (root of the git repository).
