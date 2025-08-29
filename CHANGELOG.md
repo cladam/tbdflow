@@ -1,3 +1,44 @@
+# [0.17.0](https://github.com/cladam/tbdflow/releases/tag/v0.17.0) (2025-08-29)
+
+### ✨ Features
+- **(monorepo):** add an escape hatch --include-projects [`397cbec`](https://github.com/cladam/tbdflow/commit/397cbeca43218e6020d9f33807b418ffafd2d991)
+- **(plugin):** add initial project for the IntelliJ plugin [`63df804`](https://github.com/cladam/tbdflow/commit/63df804a3df804a0f16b0517817fcba84234588b)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`dd11a1a`](https://github.com/cladam/tbdflow/commit/dd11a1a3106426b8b9dc6b5b23b720a58a5cd8b6)
+
+
+# [0.16.1](https://github.com/cladam/tbdflow/releases/tag/v0.16.1) (2025-08-29)
+
+### 🐛 Bug Fixes
+- improve status and sync, and add CHANGELOG [`0aceb0f`](https://github.com/cladam/tbdflow/commit/0aceb0f37041ccbd95d031fb0d6961f75017fd17)
+- improve status and sync, and add CHANGELOG [`f47f5f2`](https://github.com/cladam/tbdflow/commit/f47f5f20ff2875fa1c91c420534c07e5e695e634)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`4cb0598`](https://github.com/cladam/tbdflow/commit/4cb0598cd1c3753fa2e408385cd0bdc9a14fba22)
+
+
+# [0.16.0](https://github.com/cladam/tbdflow/releases/tag/v0.16.0) (2025-08-29)
+
+### ✨ Features
+- **(monorepo):** make init, commit, sync and status monorepo aware [`e3f60f9`](https://github.com/cladam/tbdflow/commit/e3f60f984cb303c986b0f30592263af54cfc86f1)
+
+### 🐛 Bug Fixes
+- update README [`0cc09a2`](https://github.com/cladam/tbdflow/commit/0cc09a27c784ef29f4a6bfeda524f56a5d3942fc)
+- update README with monorepo instructions [`d94cecd`](https://github.com/cladam/tbdflow/commit/d94cecd18f415dfd36548fcf6afac90dfe915dd0)
+- update README with monorepo instructions [`ded6dec`](https://github.com/cladam/tbdflow/commit/ded6dec023651712534d3a609dea900f5c10ed36)
+- update README with monorepo support [`fcccb5f`](https://github.com/cladam/tbdflow/commit/fcccb5f39d0f44fd0a4d9bf82dfda5574cea4896)
+
+### 🔨 Code Refactoring
+- remove deprecated code [`f943a95`](https://github.com/cladam/tbdflow/commit/f943a95d59ee5bcc10297a10484277d10707b8e7)
+- **(tests):** use new branch command in tests [`2f62b7e`](https://github.com/cladam/tbdflow/commit/2f62b7e8944ac67e197dc57ac28fa8fc4793ef9d)
+- **(monorepo):** add a small helper method [`0491fa4`](https://github.com/cladam/tbdflow/commit/0491fa43bac7f638d9cdfb98b9e8314a03a36f9f)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`022db8c`](https://github.com/cladam/tbdflow/commit/022db8c63bd90840e61dc2ed72964879ec0a1793)
+- remove obsolete init branch setup [`75f334f`](https://github.com/cladam/tbdflow/commit/75f334fe4b467ab626d63d6fd05d6983978140dd)
+
+
 # [0.15.2](https://github.com/cladam/tbdflow/releases/tag/v0.15.2) (2025-08-28)
 
 ### 🐛 Bug Fixes
