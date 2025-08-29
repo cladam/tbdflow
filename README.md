@@ -92,6 +92,9 @@ enabled: true
     - "infra"
 ```
 
+#### Handling Cross-Cutting Changes
+For "vertical slice" changes that intentionally touch multiple project directories, you can use the `--include-projects` flag. This flag overrides the default safety mechanism and stages all changes from all directories, allowing you to create a single, cross-cutting commit.
+
 ### Configuration
 `tbdflow` is configurable via two optional files in the root of your repository. To get started quickly, run `tbdflow init` to generate default versions of these files.
 
