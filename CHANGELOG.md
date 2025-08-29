@@ -1,3 +1,17 @@
+# [0.15.2](https://github.com/cladam/tbdflow/releases/tag/v0.15.2) (2025-08-28)
+
+### 🐛 Bug Fixes
+- update header in README, we got a logo! [`fb0dd60`](https://github.com/cladam/tbdflow/commit/fb0dd6085c60aeebb799d9cf12f6e136536dda85)
+- **(tests):** use main branch in tests [`dbf3ca8`](https://github.com/cladam/tbdflow/commit/dbf3ca8beafa44338b68dfe8554a2f3bcd370082)
+- revert last merge [`c082174`](https://github.com/cladam/tbdflow/commit/c0821748ae073449f1a632445f5ae4025912330e)
+- **(tests):** make create branch test detect default init branch name [`3807877`](https://github.com/cladam/tbdflow/commit/3807877dee2e96c2b0e0cd9238bb6ad09876da82)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`412878f`](https://github.com/cladam/tbdflow/commit/412878f8ff95d940006df35c464996cfbcbfbf56)
+- **(fmt):** fix fmt [`1200f0d`](https://github.com/cladam/tbdflow/commit/1200f0d9409c0d2013a1e5384ed25776cbfd671a)
+- update CHANGELOG with latest changes [`7ef473f`](https://github.com/cladam/tbdflow/commit/7ef473f4a08acede4dcf98b469b9c82c6e6b1920)
+
+
 # [0.15.1](https://github.com/cladam/tbdflow/releases/tag/v0.15.1) (2025-08-25)
 
 ### 🐛 Bug Fixes

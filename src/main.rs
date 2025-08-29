@@ -179,16 +179,25 @@ fn main() -> anyhow::Result<()> {
         Commands::Status => {
             println!("--- Checking status ---");
             let git_root = PathBuf::from(git::get_git_root(verbose, dry_run)?);
+            let project_root = config::find_project_root()?;
             let current_dir = std::env::current_dir()?;
 
-            let status_output = if config::is_monorepo_root(&config, &current_dir, &git_root) {
-                println!(
-                    "{}",
-                    "Monorepo root detected. Showing status for root-level files only.".yellow()
-                );
-                git::status_excluding_projects(&config.monorepo.project_dirs, verbose, dry_run)?
+            let status_output = if let Some(proj_root) = project_root {
+                // We are in a sub-project, so scope the status to its root.
+                let relative_path = proj_root.strip_prefix(&git_root).unwrap_or(&proj_root);
+                git::status_for_path(relative_path.to_str().unwrap(), verbose, dry_run)?
             } else {
-                git::status(verbose, dry_run)?
+                // We are at the monorepo root.
+                if config::is_monorepo_root(&config, &current_dir, &git_root) {
+                    println!(
+                        "{}",
+                        "Monorepo root detected. Showing status for root-level files only."
+                            .yellow()
+                    );
+                    git::status_excluding_projects(&config.monorepo.project_dirs, verbose, dry_run)?
+                } else {
+                    git::status(verbose, dry_run)?
+                }
             };
 
             if status_output.is_empty() {

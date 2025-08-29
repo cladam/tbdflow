@@ -1,6 +1,10 @@
 main_branch_name: main
 release_url_template: https://github.com/cladam/tbdflow/releases/tag/{{version}}
 stale_branch_threshold_days: 1
+monorepo:
+  enabled: true
+  project_dirs:
+    - "plugins"
 issue_handling:
   strategy: branch-name
 branch_types:
@@ -13,13 +17,8 @@ branch_types:
   refactor: refactor/
   feat: feat/
   ci: ci/
-branch_prefixes:
-  feature: feature_
-  release: release_
-  hotfix: hotfix_
 automatic_tags:
   release_prefix: v
-  hotfix_prefix: hotfix-tag_
 lint:
   conventional_commit_type:
     enabled: true

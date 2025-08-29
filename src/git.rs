@@ -360,6 +360,15 @@ pub fn status(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("status", &["--short"], verbose, dry_run)
 }
 
+pub fn status_for_path(relative_path: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command(
+        "status",
+        &["--short", "--", relative_path],
+        verbose,
+        dry_run,
+    )
+}
+
 /// Show the current status of the repository, excluding changes in specified project directories.
 pub fn status_excluding_projects(
     project_dirs: &[String],

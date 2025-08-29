@@ -6,7 +6,7 @@ use anyhow::{anyhow, Context};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Represents the Definition of Done (DoD) configuration.
 #[derive(Debug, Deserialize, Default)]
@@ -243,7 +243,7 @@ pub fn load_tbdflow_config() -> Result<Config, anyhow::Error> {
             return Ok(Config::default());
         }
     };
-    // 1. Load base config from git root, or use default.
+    // Load base config from git root, or use default.
     let root_config_path = Path::new(&git_root).join(".tbdflow.yml");
     let mut base_config = if root_config_path.exists() {
         let config_str = fs::read_to_string(root_config_path)?;
@@ -253,7 +253,7 @@ pub fn load_tbdflow_config() -> Result<Config, anyhow::Error> {
         Config::default()
     };
 
-    // 2. Check if we are in a subdirectory and if a local config exists.
+    // Check if we are in a subdirectory and if a local config exists.
     let current_dir = std::env::current_dir()?;
     if current_dir != Path::new(&git_root) {
         let local_config_path = current_dir.join(".tbdflow.yml");
@@ -279,4 +279,28 @@ pub fn load_dod_config() -> anyhow::Result<DodConfig> {
 /// Checks if the current context is the root of a configured monorepo.
 pub fn is_monorepo_root(config: &Config, current_dir: &Path, git_root: &Path) -> bool {
     current_dir == git_root && config.monorepo.enabled && !config.monorepo.project_dirs.is_empty()
+}
+
+// New function to find the root of the current sub-project.
+pub fn find_project_root() -> Result<Option<PathBuf>, anyhow::Error> {
+    let mut current_dir = std::env::current_dir()?;
+    let git_root = PathBuf::from(git::get_git_root(false, false)?); // Use non-verbose for internal check
+
+    loop {
+        let config_path = current_dir.join(".tbdflow.yml");
+        if config_path.exists() {
+            let content = fs::read_to_string(&config_path)?;
+            let config: Config = serde_yaml::from_str(&content)?;
+            if config.project_root.is_some() {
+                return Ok(Some(current_dir));
+            }
+        }
+
+        if current_dir == git_root || current_dir.parent().is_none() {
+            break;
+        }
+        current_dir = current_dir.parent().unwrap().to_path_buf();
+    }
+
+    Ok(None)
 }
