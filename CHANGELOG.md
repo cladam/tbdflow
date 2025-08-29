@@ -1,3 +1,13 @@
+# [0.17.1](https://github.com/cladam/tbdflow/releases/tag/v0.17.1) (2025-08-29)
+
+### 🐛 Bug Fixes
+- update CHANGELOG and failing test [`2e4b5b1`](https://github.com/cladam/tbdflow/commit/2e4b5b1ec9f10308f5f85a17c1a7f30062cd7e3e)
+- update README with monorepo --include-projects flag [`91e46c8`](https://github.com/cladam/tbdflow/commit/91e46c857b8dbf7d74cac39e3dd636599b70e648)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`8754325`](https://github.com/cladam/tbdflow/commit/8754325cba7f578397e36cf100ccb9d1f530d90b)
+
+
 # [0.17.0](https://github.com/cladam/tbdflow/releases/tag/v0.17.0) (2025-08-29)
 
 ### ✨ Features
