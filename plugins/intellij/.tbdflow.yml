@@ -1,0 +1,49 @@
+main_branch_name: main
+project_root: .
+release_url_template: https://github.com/owner/repository/releases/tag/{{version}}
+stale_branch_threshold_days: 1
+monorepo:
+  enabled: false
+  project_dirs: []
+issue_handling:
+  strategy: branch-name
+branch_types:
+  chore: chore/
+  release: release_
+  feature: feature_
+  fix: fix/
+  feat: feat/
+  docs: docs/
+  refactor: refactor/
+  ci: ci/
+  hotfix: hotfix_
+automatic_tags:
+  release_prefix: v
+lint:
+  conventional_commit_type:
+    enabled: true
+    allowed_types:
+    - build
+    - chore
+    - ci
+    - docs
+    - feat
+    - fix
+    - perf
+    - refactor
+    - revert
+    - style
+    - test
+  issue_key_missing:
+    enabled: false
+    pattern: ^[A-Z]+-\d+$
+  scope:
+    enabled: true
+    enforce_lowercase: true
+  subject_line_rules:
+    max_length: 72
+    enforce_lowercase: true
+    no_period: true
+  body_line_rules:
+    max_line_length: 80
+    leading_blank: true
