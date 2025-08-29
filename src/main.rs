@@ -59,6 +59,7 @@ fn main() -> anyhow::Result<()> {
             tag,
             no_verify,
             issue,
+            include_projects,
         } => {
             commit::handle_commit(
                 verbose,
@@ -73,6 +74,7 @@ fn main() -> anyhow::Result<()> {
                 tag,
                 no_verify,
                 issue,
+                include_projects,
             )?;
         }
         Commands::Branch {

@@ -202,6 +202,7 @@ pub fn handle_commit(
     tag: Option<String>,
     no_verify: bool,
     issue: Option<String>,
+    include_projects: bool,
 ) -> Result<()> {
     println!("{}", "--- Committing changes ---".blue());
 
@@ -303,17 +304,24 @@ pub fn handle_commit(
             println!("Current dir: {:?}", current_dir);
             println!("monorepo: {:?}", config.monorepo);
         }
-        if config::is_monorepo_root(&config, &current_dir, &git_root) {
-            // We are at the root of a configured monorepo.
-            // Exclude project directories from the commit.
-            println!(
-                "{}",
-                "Monorepo root detected. Staging root-level files only.".yellow()
-            );
-            git::add_excluding_projects(&config.monorepo.project_dirs, verbose, dry_run)?;
+        if current_dir == git_root
+            && config.monorepo.enabled
+            && !config.monorepo.project_dirs.is_empty()
+        {
+            if include_projects {
+                println!(
+                    "{}",
+                    "Including all project directories in commit.".yellow()
+                );
+                git::add_all(verbose, dry_run)?;
+            } else {
+                println!(
+                    "{}",
+                    "Monorepo root detected. Staging root-level files only.".yellow()
+                );
+                git::add_excluding_projects(&config.monorepo.project_dirs, verbose, dry_run)?;
+            }
         } else {
-            // We are in a sub-project or not in a monorepo.
-            // Add all changes from the current directory.
             git::add_all(verbose, dry_run)?;
         }
 

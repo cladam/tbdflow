@@ -82,6 +82,9 @@ pub enum Commands {
         /// Optional multi-line body for the commit message.
         #[arg(long)]
         body: Option<String>,
+        #[arg(long, default_value_t = false, hide = true)]
+        /// Internal flag to do a global commit bypassing monorepo safety
+        include_projects: bool,
     },
     /// Creates and pushes a new short-lived branch.
     #[command(after_help = "EXAMPLES:\n  \
