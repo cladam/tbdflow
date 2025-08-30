@@ -355,6 +355,13 @@ pub fn push_set_upstream(branch_name: &str, verbose: bool, dry_run: bool) -> Res
     )
 }
 
+pub fn get_status_short(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("status", &["--short"], verbose, dry_run)
+}
+
+pub fn get_status_full(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("status", &[], verbose, dry_run)
+}
 /// Show the current status of the repository.
 pub fn status(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("status", &["--short"], verbose, dry_run)

@@ -48,6 +48,7 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Config { get_dod } => {
             if get_dod {
+                // Print the DoD checklist for our plugin
                 if let Ok(dod_config) = config::load_dod_config() {
                     for item in dod_config.checklist {
                         println!("{}", item);
@@ -197,8 +198,13 @@ fn main() -> anyhow::Result<()> {
 
             let status_output = if let Some(proj_root) = project_root {
                 // We are in a sub-project, so scope the status to its root.
-                let relative_path = proj_root.strip_prefix(&git_root).unwrap_or(&proj_root);
-                git::status_for_path(relative_path.to_str().unwrap(), verbose, dry_run)?
+                // if the relative path is same as current dir we send in "."
+                if current_dir == proj_root {
+                    git::status_for_path(".", verbose, dry_run)?
+                } else {
+                    let relative_path = proj_root.strip_prefix(&git_root).unwrap_or(&proj_root);
+                    git::status_for_path(relative_path.to_str().unwrap(), verbose, dry_run)?
+                }
             } else {
                 // We are at the monorepo root.
                 if config::is_monorepo_root(&config, &current_dir, &git_root) {

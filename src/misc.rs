@@ -180,8 +180,14 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
     let project_root = config::find_project_root()?;
 
     let status_output = if let Some(proj_root) = project_root {
-        let relative_path = proj_root.strip_prefix(&git_root).unwrap_or(&proj_root);
-        git::status_for_path(relative_path.to_str().unwrap(), verbose, dry_run)?
+        // We are in a sub-project, so scope the status to its root.
+        // if the relative path is same as current dir we send in "."
+        if current_dir == proj_root {
+            git::status_for_path(".", verbose, dry_run)?
+        } else {
+            let relative_path = proj_root.strip_prefix(&git_root).unwrap_or(&proj_root);
+            git::status_for_path(relative_path.to_str().unwrap(), verbose, dry_run)?
+        }
     } else {
         if config::is_monorepo_root(config, &current_dir, &git_root) {
             println!(
