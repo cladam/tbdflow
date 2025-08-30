@@ -2,23 +2,19 @@ package io.github.cladam.tbdflow
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.vcs.ProjectLevelVcsManager
 import org.jetbrains.plugins.terminal.TerminalToolWindowManager
 
-class SyncAction : AnAction() {
+class CheckBranchesAction : AnAction(), DumbAware {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val basePath = project.basePath ?: return
-
-        // Find the tbdflow executable.
-        // For now, we'll assume it's in the user's PATH.
-        // A more robust solution would be to make this configurable.
-        val command = "tbdflow sync"
+        val command = "tbdflow check-branches"
 
         // Get the integrated terminal and run the command
         val terminalManager = TerminalToolWindowManager.getInstance(project)
-        val terminal = terminalManager.createShellWidget(basePath, "tbdflow", true, false)
+        val terminal = terminalManager.createShellWidget(project.basePath, "tbdflow", true, false)
         terminal.sendCommandToExecute(command)
     }
 
