@@ -4,15 +4,27 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.vcs.ProjectLevelVcsManager
-import org.jetbrains.plugins.terminal.TerminalToolWindowManager
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 
 class StatusAction : AnAction(), DumbAware {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
+        val command = listOf("tbdflow", "status")
 
-        // Run the command in the terminal
-        runCommandInTerminal(project, listOf("tbdflow", "status"))
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Running tbdflow status", false) {
+            override fun run(indicator: ProgressIndicator) {
+                val result = runCommandAndCaptureOutput(project, command)
+                if (result != null) {
+                    ApplicationManager.getApplication().invokeLater {
+                        CommandResultDialogue(project, "tbdflow status Result", result).show()
+                    }
+                }
+            }
+        })
     }
 
     override fun update(e: AnActionEvent) {

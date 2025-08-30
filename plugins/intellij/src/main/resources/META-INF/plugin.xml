@@ -22,26 +22,33 @@
         <group id="tbdflow.TbdFlowActions" text="tbdflow" popup="true">
 
             <add-to-group group-id="ToolsMenu" anchor="last"/>
+
             <!-- Workflow Actions -->
             <action id="tbdflow.CommitAction" class="io.github.cladam.tbdflow.CommitAction" text="Commit..."
                     description="Open the guided tbdflow commit dialog."/>
+            <action id="tbdflow.BranchAction" class="io.github.cladam.tbdflow.BranchAction" text="New Branch..."
+                    description="Runs 'tbdflow branch' to create a new short-lived branch."/>
+            <action id="tbdflow.CompleteAction" class="io.github.cladam.tbdflow.CompleteAction" text="Complete Branch..."
+                    description="Runs 'tbdflow complete' to merge and delete a branch."/>
             <action id="tbdflow.SyncAction" class="io.github.cladam.tbdflow.SyncAction" text="Sync with main"
                     description="Runs 'tbdflow sync' to update the current branch."/>
 
             <separator/>
 
+            <!-- Generator Actions -->
+            <action id="tbdflow.ChangelogAction" class="io.github.cladam.tbdflow.ChangelogAction" text="Generate Changelog..."
+                    description="Runs 'tbdflow changelog' to generate release notes."/>
+
+            <separator/>
+
             <!-- Utility Actions -->
-            <action id="tbdflow.InitAction" class="io.github.cladam.tbdflow.InitAction" text="Init Configuration"
-                    description="Runs 'tbdflow init' to create configuration files."/>
             <action id="tbdflow.StatusAction" class="io.github.cladam.tbdflow.StatusAction" text="Status"
                     description="Runs 'tbdflow status' to show the current repository status."/>
             <action id="tbdflow.CurrentBranchAction" class="io.github.cladam.tbdflow.CurrentBranchAction"
-                    text="Current Branch"
-                    description="Runs 'tbdflow current-branch' to show the current branch name."/>
+                    text="Current Branch" description="Shows the current branch name."/>
             <action id="tbdflow.CheckBranchesAction" class="io.github.cladam.tbdflow.CheckBranchesAction"
                     text="Check Stale Branches" description="Runs 'tbdflow check-branches' to find old branches."/>
-            <action id="tbdflow.UpdateAction" class="io.github.cladam.tbdflow.UpdateAction" text="Update tbdflow"
-                    description="Runs 'tbdflow update' to self-update the CLI."/>
+
         </group>
     </actions>
 
