@@ -8,6 +8,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.vcs.VcsDataKeys
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.vcs.ProjectLevelVcsManager
 
 class CurrentBranchAction : AnAction(), DumbAware {
 
@@ -29,6 +30,13 @@ class CurrentBranchAction : AnAction(), DumbAware {
 
     override fun update(e: AnActionEvent) {
         val project = e.project
-        e.presentation.isEnabled = project != null && e.getData(VcsDataKeys.VCS)?.name == "Git"
+        if (project == null) {
+            e.presentation.isEnabledAndVisible = false
+            return
+        }
+        // Check if there are any Git roots in the project
+        val vcsManager = ProjectLevelVcsManager.getInstance(project)
+        val isGitProject = vcsManager.allVcsRoots.any { it.vcs?.name == "Git" }
+        e.presentation.isEnabledAndVisible = isGitProject
     }
 }

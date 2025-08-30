@@ -14,6 +14,13 @@ import com.intellij.util.ui.FormBuilder
 import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.BoxLayout
+import kotlin.collections.removeAll
+import kotlin.jvm.java
+import kotlin.run
+import kotlin.text.clear
+import kotlin.times
+
 
 class CommitDialogue(private val project: Project) : DialogWrapper(project) {
     private val typeField = JBTextField()
@@ -27,7 +34,7 @@ class CommitDialogue(private val project: Project) : DialogWrapper(project) {
 
     init {
         title = "tbdflow Commit"
-        setSize(600, 400)
+        setSize(600, 600)
         init()
         // Initially disable the breaking description field
         breakingDescriptionField.isEnabled = false
@@ -91,6 +98,9 @@ class CommitDialogue(private val project: Project) : DialogWrapper(project) {
                 commandList.addAll(listOf("--breaking-description", breakingDescription))
             }
         }
+
+        // The plugin has handled the interactive check, so tell the CLI to skip its own.
+        commandList.add("--no-verify")
 
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Running tbdflow commit", false) {
             override fun run(indicator: ProgressIndicator) {
