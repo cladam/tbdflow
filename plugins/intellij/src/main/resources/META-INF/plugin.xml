@@ -1,29 +1,32 @@
-<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
     <id>io.github.cladam.tbdflow</id>
-
-    <!-- Public plugin name should be written in Title Case.
-         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
     <name>Tbdflow</name>
-
-    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor url="https://www.yourcompany.com">YourCompany</vendor>
-
-    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
-         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
+    <vendor email="claes.adamsson@gmail.com" url="https://cladam.github.io">cladam.github.io</vendor>
     <description><![CDATA[
-        Enter short description for your plugin here.<br>
-        <em>most HTML tags may be used</em>
+    Integrates the tbdflow CLI into the JetBrains IDE, providing a guided workflow for Trunk-Based Development.
     ]]></description>
 
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.plugins.terminal</depends>
+    <depends>com.intellij.modules.idea</depends>
+
 
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
 
     </extensions>
+
+    <actions>
+        <group id="tbdflow.TbdFlowActions" text="tbdflow" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <!-- Action for the 'sync' command -->
+            <action id="tbdflow.SyncAction"
+                    class="io.github.cladam.tbdflow.SyncAction"
+                    text="Sync with Main"
+                    description="Runs 'tbdflow sync' to update the current branch and show status."/>
+        </group>
+    </actions>
 </idea-plugin>

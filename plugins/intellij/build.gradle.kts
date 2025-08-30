@@ -23,6 +23,7 @@ dependencies {
 
         // Add necessary plugin dependencies for compilation here, example:
         // bundledPlugin("com.intellij.java")
+        bundledPlugin("org.jetbrains.plugins.terminal")
     }
 }
 
@@ -51,3 +52,4 @@ kotlin {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
 }
+
