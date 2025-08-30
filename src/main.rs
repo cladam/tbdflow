@@ -54,6 +54,7 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
                 // Silently exit if no .dod.yml is found
+                // Add more functionality later for the config command ...
             }
         }
         Commands::Update => {
