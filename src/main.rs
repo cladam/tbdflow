@@ -46,6 +46,16 @@ fn main() -> anyhow::Result<()> {
         Commands::Init => {
             misc::handle_init_command(verbose, dry_run)?;
         }
+        Commands::Config { get_dod } => {
+            if get_dod {
+                if let Ok(dod_config) = config::load_dod_config() {
+                    for item in dod_config.checklist {
+                        println!("{}", item);
+                    }
+                }
+                // Silently exit if no .dod.yml is found
+            }
+        }
         Commands::Update => {
             misc::handle_update_command()?;
         }

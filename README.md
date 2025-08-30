@@ -363,7 +363,7 @@ tbdflow generate-completion fish | source
 You can generate a man page for `tbdflow` by running the following command:
 
 ```bash
-tbdflow generate-man-page > tbdflow.1
+tbdflow generate-man-page > tbdflow.1 && man tbdflow.1
 ```
 
 

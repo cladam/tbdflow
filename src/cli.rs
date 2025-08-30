@@ -158,4 +158,11 @@ pub enum Commands {
         #[arg(long, default_value_t = false)]
         unreleased: bool,
     },
+    /// Internal commands for configuration.
+    #[command(name = "config", hide = true)]
+    Config {
+        /// Print the DoD checklist items to stdout.
+        #[arg(long)]
+        get_dod: bool,
+    },
 }
