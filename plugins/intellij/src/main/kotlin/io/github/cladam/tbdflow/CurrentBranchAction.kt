@@ -10,12 +10,9 @@ class CurrentBranchAction : AnAction(), DumbAware {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val command = "tbdflow current-branch"
 
-        // Get the integrated terminal and run the command
-        val terminalManager = TerminalToolWindowManager.getInstance(project)
-        val terminal = terminalManager.createShellWidget(project.basePath, "tbdflow", true, false)
-        terminal.sendCommandToExecute(command)
+        // Run the command in the terminal
+        runCommandInTerminal(project, listOf("tbdflow", "current-branch"))
     }
 
     override fun update(e: AnActionEvent) {

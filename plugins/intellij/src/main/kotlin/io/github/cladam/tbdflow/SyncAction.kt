@@ -9,17 +9,9 @@ class SyncAction : AnAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val basePath = project.basePath ?: return
 
-        // Find the tbdflow executable.
-        // For now, we'll assume it's in the user's PATH.
-        // A more robust solution would be to make this configurable.
-        val command = "tbdflow sync"
-
-        // Get the integrated terminal and run the command
-        val terminalManager = TerminalToolWindowManager.getInstance(project)
-        val terminal = terminalManager.createShellWidget(basePath, "tbdflow", true, false)
-        terminal.sendCommandToExecute(command)
+        // Run the command in the terminal
+        runCommandInTerminal(project, listOf("tbdflow", "sync"))
     }
 
     override fun update(e: AnActionEvent) {
