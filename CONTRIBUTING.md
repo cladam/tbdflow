@@ -17,13 +17,11 @@ The best way to contribute is to start a conversation first.
 
 ## Setting Up Your Development Environment
 
-The Rust version (`tbdflow-rs`) is the actively developed version.
-
 - **Install Rust**: If you don't have it, install the Rust toolchain from rustup.rs.
 - **Clone the repository**:
   ```bash
   git clone https://github.com/cladam/tbdflow.git
-  cd tbdflow/tbdflow-rs
+  cd tbdflow/
   ```
 - **Build the project**:
   ```bash
