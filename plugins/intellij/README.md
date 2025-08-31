@@ -25,6 +25,8 @@ To make your repo compatible with `tbdflow`, initialise it by running:
 tbdflow init
 ```
 
+Please visit [tbdflow@GitHub](https://github.com/cladam/tbdflow) for more details about the tool.
+
 **Step 2: Install the plugin**
 Install the plugin from the JetBrains Marketplace. Go to Settings/Preferences -> Plugins, search for "tbdflow", and click "Install".
 

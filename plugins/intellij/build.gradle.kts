@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.cladam"
-version = "1.0-SNAPSHOT"
+version = "1.0.1"
 
 repositories {
     mavenCentral()
@@ -36,6 +36,11 @@ intellijPlatform {
         changeNotes = """
             Initial version
         """.trimIndent()
+    }
+
+    publishing {
+        // Read the token from an environment variable for security
+        token = System.getenv("PUBLISHING_TOKEN")
     }
 }
 
