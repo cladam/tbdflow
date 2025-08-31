@@ -1,4 +1,4 @@
-package io.github.cladam.tbdflow
+package io.github.cladam.tbdflow.commit
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressIndicator
@@ -11,15 +11,11 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
+import io.github.cladam.tbdflow.CommandResultDialogue
+import io.github.cladam.tbdflow.runCommandAndCaptureOutput
 import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
-import javax.swing.BoxLayout
-import kotlin.collections.removeAll
-import kotlin.jvm.java
-import kotlin.run
-import kotlin.text.clear
-import kotlin.times
 
 
 class CommitDialogue(private val project: Project) : DialogWrapper(project) {

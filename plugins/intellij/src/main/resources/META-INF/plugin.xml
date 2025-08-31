@@ -13,18 +13,36 @@
     <depends>com.intellij.modules.idea</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <!-- Register a notification group for our plugin -->
+        <!-- Register tbdflow commit Tool Window -->
+        <toolWindow factoryClass="io.github.cladam.tbdflow.commit.TbdflowCommitToolWindowFactory"
+                    id="tbdflow Commit"
+                    anchor="left"
+                    icon="AllIcons.Actions.Commit"/>
+
+        <!-- Register the settings page -->
+        <applicationConfigurable
+                parentId="tools"
+                instance="io.github.cladam.tbdflow.settings.TbdflowSettingsConfigurable"
+                id="io.github.cladam.tbdflow.settings.TbdflowSettingsConfigurable"
+                displayName="tbdflow"/>
+        <applicationService serviceImplementation="io.github.cladam.tbdflow.settings.TbdflowSettingsState"/>
+
+        <!-- Register a notification group for tbdflow -->
         <notificationGroup id="tbdflow Notifications" displayType="BALLOON"/>
     </extensions>
 
 
     <actions>
+
+        <action id="tbdflow.ShowCommitToolWindow"
+                class="io.github.cladam.tbdflow.commit.ShowTbdflowCommitToolWindowAction"
+                text="Show tbdflow Commit Tool Window"
+                description="Opens the tbdflow Commit Tool Window."/>
+
         <group id="tbdflow.TbdFlowActions" text="tbdflow" popup="true">
-
             <add-to-group group-id="ToolsMenu" anchor="last"/>
-
             <!-- Workflow Actions -->
-            <action id="tbdflow.CommitAction" class="io.github.cladam.tbdflow.CommitAction" text="Commit..."
+            <action id="tbdflow.CommitAction" class="io.github.cladam.tbdflow.commit.CommitAction" text="Commit..."
                     description="Open the guided tbdflow commit dialog."/>
             <action id="tbdflow.BranchAction" class="io.github.cladam.tbdflow.BranchAction" text="New Branch..."
                     description="Runs 'tbdflow branch' to create a new short-lived branch."/>
@@ -32,15 +50,11 @@
                     description="Runs 'tbdflow complete' to merge and delete a branch."/>
             <action id="tbdflow.SyncAction" class="io.github.cladam.tbdflow.SyncAction" text="Sync with main"
                     description="Runs 'tbdflow sync' to update the current branch."/>
-
             <separator/>
-
             <!-- Generator Actions -->
             <action id="tbdflow.ChangelogAction" class="io.github.cladam.tbdflow.ChangelogAction" text="Generate Changelog..."
                     description="Runs 'tbdflow changelog' to generate release notes."/>
-
             <separator/>
-
             <!-- Utility Actions -->
             <action id="tbdflow.StatusAction" class="io.github.cladam.tbdflow.StatusAction" text="Status"
                     description="Runs 'tbdflow status' to show the current repository status."/>
@@ -48,7 +62,6 @@
                     text="Current Branch" description="Shows the current branch name."/>
             <action id="tbdflow.CheckBranchesAction" class="io.github.cladam.tbdflow.CheckBranchesAction"
                     text="Check Stale Branches" description="Runs 'tbdflow check-branches' to find old branches."/>
-
         </group>
     </actions>
 
