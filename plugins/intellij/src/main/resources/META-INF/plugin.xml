@@ -1,9 +1,28 @@
 <idea-plugin>
     <id>io.github.cladam.tbdflow</id>
-    <name>Tbdflow</name>
+    <name>tbdflow</name>
     <vendor email="claes.adamsson@gmail.com" url="https://cladam.github.io">cladam.github.io</vendor>
     <description><![CDATA[
     Integrates the tbdflow CLI into the JetBrains IDE, providing a guided workflow for Trunk-Based Development.
+    tbdflow is a lightweight command-line tool that helps you (and your team) stay in flow with TBD.
+    ]]></description>
+
+    <description><![CDATA[
+    <p>Integrates the <b>tbdflow</b> command-line tool into your JetBrains IDE, providing a friendly assistant for your Trunk-Based Development (TBD) workflow.</p>
+    <br/>
+    <p>This plugin is a wrapper around the <a href="https://github.com/cladam/tbdflow">tbdflow CLI</a>. It enhances the IDE's built-in Git support with the unique "guardrail" features of tbdflow, such as:</p>
+    <ul>
+        <li>A non-blocking Commit Tool Window for crafting perfect Conventional Commits.</li>
+        <li>A native, interactive Definition of Done (DoD) checklist that runs before you commit.</li>
+        <li>Direct access to all tbdflow workflow commands (branch, complete, sync) from the Tools menu.</li>
+    </ul>
+    <br/>
+    <h3>Important Links</h3>
+    <ul>
+        <li><b>Main Project & Philosophy:</b> <a href="https://github.com/cladam/tbdflow/blob/main/README.md">tbdflow README</a></li>
+        <li><b>Plugin Source Code:</b> <a href="https://github.com/cladam/tbdflow/tree/main/plugins/intellij">Plugin README</a></li>
+        <li><b>Author's Website:</b> <a href="https://cladam.github.io/">cladam.github.io</a></li>
+    </ul>
     ]]></description>
 
     <!-- Product and plugin compatibility requirements.

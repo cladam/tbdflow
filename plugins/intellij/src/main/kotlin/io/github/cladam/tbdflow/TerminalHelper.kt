@@ -2,6 +2,7 @@ package io.github.cladam.tbdflow
 
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -10,13 +11,12 @@ import java.util.concurrent.TimeUnit
 
 fun runCommandAndCaptureOutput(project: Project, command: List<String>): String? {
     val settings = TbdflowSettingsState.instance
-    val executable = settings.tbdflowExecutablePath
+    val executablePath = settings.tbdflowExecutablePath.ifBlank { "tbdflow" }
 
-    // Replace the placeholder "tbdflow" with the configured path
-    val fullCommand = command.toMutableList()
-    if (fullCommand.isNotEmpty() && fullCommand[0] == "tbdflow") {
-        fullCommand[0] = executable
-    }
+    // The first element of the 'command' list is the placeholder 'tbdflow'.
+    // We replace it with the actual executable path from settings.
+    val fullCommand = mutableListOf(executablePath)
+    fullCommand.addAll(command.drop(1))
 
     try {
         val processBuilder = ProcessBuilder(fullCommand)
@@ -31,23 +31,25 @@ fun runCommandAndCaptureOutput(project: Project, command: List<String>): String?
         return if (process.exitValue() == 0) {
             stdout.ifBlank { "Command executed successfully." }
         } else {
-            val errorMessage = stderr.ifBlank { stdout.ifBlank { "An unknown error occurred." } }
-            NotificationGroupManager.getInstance()
-                .getNotificationGroup("tbdflow Notifications")
-                .createNotification("tbdflow Command Failed", errorMessage, NotificationType.ERROR)
-                .notify(project)
-            null
+            ApplicationManager.getApplication().invokeLater {
+                NotificationGroupManager.getInstance()
+                    .getNotificationGroup("tbdflow Notifications")
+                    .createNotification("tbdflow Command Failed", stderr, NotificationType.ERROR)
+                    .notify(project)
+            }
+            return null
         }
     } catch (e: Exception) {
-        NotificationGroupManager.getInstance()
-            .getNotificationGroup("tbdflow Notifications")
-            .createNotification(
-                "tbdflow Execution Error",
-                "Failed to run command: ${e.message}\n" +
-                        "Please ensure the path to the 'tbdflow' executable is configured correctly in Settings/Preferences -> Tools -> tbdflow.",
-                NotificationType.ERROR
-            )
-            .notify(project)
+        ApplicationManager.getApplication().invokeLater {
+            val errorMessage = """
+                Failed to run command: ${e.message}
+                Please ensure the path to the 'tbdflow' executable is configured correctly in Settings/Preferences -> Tools -> tbdflow.
+            """.trimIndent()
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup("tbdflow Notifications")
+                .createNotification("tbdflow Execution Error", errorMessage, NotificationType.ERROR)
+                .notify(project)
+        }
         return null
     }
 }
