@@ -366,4 +366,10 @@ You can generate a man page for `tbdflow` by running the following command:
 tbdflow generate-man-page > tbdflow.1 && man tbdflow.1
 ```
 
+## IDE support
 
+`tbdflow` comes with IDE support for:
+- [IntelliJ](https://github.com/cladam/tbdflow/tree/main/plugins/intellij)
+- [VS Code](https://github.com/hekonsek/tbdflow-vscode-extension)
+
+Follow above links for more details regarding IDE plugins/extensions installation and usage.
