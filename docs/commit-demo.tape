@@ -2,12 +2,10 @@
 
 # Set the output file name and window properties
 Output "/Users/claes.adamsson/tbdflow-demo/commit-demo.gif"
-Set FontSize 16
-Set Width 1000
+Set Theme "Catppuccin Macchiato"
+Set FontSize 22
+Set Width 1200
 Set Height 600
-Set WindowBar Colorful
-Set Margin 30
-Set MarginFill "#0058a3"
 Set BorderRadius 10
 Set PlaybackSpeed 0.8
 
@@ -26,7 +24,7 @@ Enter
 Sleep 1s
 
 # Enter a remote URL
-Type "https://github.com/cladam/demo.git"
+Type "https://github.com/cladam/demo2.git"
 Enter
 Sleep 4s
 
