@@ -13,7 +13,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use tbdflow::cli::Commands;
 use tbdflow::git::{get_current_branch, GitError};
-use tbdflow::{changelog, cli, commit, config, git, misc};
+use tbdflow::{changelog, cli, commit, config, git, misc, wizard};
 
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
@@ -73,21 +73,41 @@ fn main() -> anyhow::Result<()> {
             issue,
             include_projects,
         } => {
-            commit::handle_commit(
-                verbose,
-                dry_run,
-                &config,
-                r#type,
-                scope,
-                message,
-                body,
-                breaking,
-                breaking_description,
-                tag,
-                no_verify,
-                issue,
-                include_projects,
-            )?;
+            if r#type.is_none() || message.is_none() {
+                // Enter interactive wizard mode
+                let wizard_result = wizard::run_commit_wizard(&config)?;
+                commit::handle_commit(
+                    verbose,
+                    dry_run,
+                    &config,
+                    wizard_result.r#type,
+                    wizard_result.scope,
+                    wizard_result.message,
+                    wizard_result.body,
+                    wizard_result.breaking,
+                    wizard_result.breaking_description,
+                    wizard_result.tag,
+                    no_verify, // Still respect no_verify from flags
+                    wizard_result.issue,
+                    include_projects,
+                )?;
+            } else {
+                commit::handle_commit(
+                    verbose,
+                    dry_run,
+                    &config,
+                    r#type.unwrap(),
+                    scope,
+                    message.unwrap(),
+                    body,
+                    breaking,
+                    breaking_description,
+                    tag,
+                    no_verify,
+                    issue,
+                    include_projects,
+                )?;
+            }
         }
         Commands::Branch {
             r#type,

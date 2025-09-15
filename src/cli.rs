@@ -57,13 +57,13 @@ pub enum Commands {
     Commit {
         /// Commit type (e.g. 'feat', 'fix', 'chore', 'docs').
         #[arg(short, long)]
-        r#type: String,
+        r#type: Option<String>,
         /// Optional scope of the commit.
         #[arg(short, long)]
         scope: Option<String>,
         /// The descriptive commit message.
         #[arg(short, long)]
-        message: String,
+        message: Option<String>,
         /// Mark this commit as a breaking change.
         #[arg(short, long)]
         breaking: bool,
