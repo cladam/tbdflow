@@ -1,12 +1,10 @@
 package io.github.cladam.tbdflow.settings
 
 import com.intellij.openapi.fileChooser.FileChooser
-import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.FormBuilder
 import java.awt.Component
 import javax.swing.JComponent
@@ -15,7 +13,6 @@ import javax.swing.JPanel
 class TbdflowSettingsConfigurable : Configurable {
 
     private var settingsPanel: JPanel? = null
-    private val tbdflowPathField = TextFieldWithBrowseButton()
     private val executablePathField = TextFieldWithBrowseButton()
 
     override fun getDisplayName(): String {
@@ -45,21 +42,20 @@ class TbdflowSettingsConfigurable : Configurable {
 
     override fun isModified(): Boolean {
         val settings = TbdflowSettingsState.instance
-        return tbdflowPathField.text != settings.tbdflowExecutablePath
+        return executablePathField.text != settings.tbdflowExecutablePath
     }
 
     override fun apply() {
         val settings = TbdflowSettingsState.instance
-        settings.tbdflowExecutablePath = tbdflowPathField.text
+        settings.tbdflowExecutablePath = executablePathField.text
     }
 
     override fun reset() {
         val settings = TbdflowSettingsState.instance
-        tbdflowPathField.text = settings.tbdflowExecutablePath
+        executablePathField.text = settings.tbdflowExecutablePath
     }
 
     override fun disposeUIResources() {
         settingsPanel = null
     }
 }
-

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.cladam"
-version = "1.0.3"
+version = "1.0.4"
 
 repositories {
     mavenCentral()
@@ -34,9 +34,9 @@ intellijPlatform {
         }
 
         changeNotes = """
-            <h3>Version 1.0.3</h3>
+            <h3>Version 1.0.4</h3>
             <ul>
-                <li><b>Update:</b> Updated how tbdflow executable is configured</li>
+                <li><b>Update:</b> Fixed how tbdflow executable is configured</li>
             </ul>
         """.trimIndent()
     }
