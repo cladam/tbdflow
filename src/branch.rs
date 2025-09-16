@@ -1,8 +1,8 @@
 use crate::config::Config;
+use crate::git::GitError;
 use crate::{config, git, misc};
 use anyhow::Result;
 use colored::Colorize;
-use crate::git::GitError;
 
 pub fn get_default_branch_name(config: &Config) -> &str {
     config.main_branch_name.as_str()
@@ -61,7 +61,7 @@ pub fn handle_complete(
         "{}",
         "--- Completing short-lived branch ---".to_string().blue()
     );
-    
+
     // Lookup the default branch name.
     let main_branch_name = get_default_branch_name(config);
 
@@ -120,7 +120,7 @@ pub fn handle_complete(
             "Success! Branch '{}' was merged into main and deleted.",
             branch_name
         )
-            .green()
+        .green()
     );
     Ok(())
 }

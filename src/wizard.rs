@@ -225,8 +225,5 @@ pub fn run_complete_wizard(config: &Config) -> Result<CompleteWizardResult> {
         .with_prompt("Enter the name of the branch to complete")
         .interact_text()?;
 
-    Ok(CompleteWizardResult {
-        branch_type,
-        name,
-    })
+    Ok(CompleteWizardResult { branch_type, name })
 }

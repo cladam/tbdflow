@@ -13,7 +13,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use tbdflow::cli::Commands;
 use tbdflow::git::{get_current_branch, GitError};
-use tbdflow::{changelog, cli, commit, branch, config, git, misc, wizard};
+use tbdflow::{branch, changelog, cli, commit, config, git, misc, wizard};
 
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
@@ -128,15 +128,7 @@ fn main() -> anyhow::Result<()> {
                     verbose,
                 )?;
             } else {
-                branch::handle_branch(
-                    r#type,
-                    &config,
-                    name,
-                    issue,
-                    from_commit,
-                    dry_run,
-                    verbose,
-                )?;
+                branch::handle_branch(r#type, &config, name, issue, from_commit, dry_run, verbose)?;
             }
         }
         Commands::Complete { r#type, name } => {
