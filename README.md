@@ -14,9 +14,11 @@
 
 ## tbdflow, a Trunk-Based Development CLI
 
-`tbdflow` is a lightweight command-line tool that helps you (and your team) stay in flow with Trunk-Based Development (TBD).
+`tbdflow` is a lightweight command-line tool that helps you (and your team) stay in flow with Trunk-Based Development (
+TBD).
 
-This CLI supports both the default commit-to-main workflow and the structured handling of short-lived branches for features, releases, and hotfixes.
+This CLI supports both the default commit-to-main workflow and the structured handling of short-lived branches for
+features, releases, and hotfixes.
 
 ![A terminal running the command tbdflowlow](docs/commit-demo.gif "A demo of tbdflow running commit-to-main commands")
 
@@ -24,27 +26,36 @@ This CLI supports both the default commit-to-main workflow and the structured ha
 
 This tool is built around a specific philosophy of Trunk-Based Development:
 
-* **Main is the default.** The `commit` command is your everyday go-to. It automates pulling the latest changes, committing, and pushing directly to `main`, promoting small, frequent integrations.
-* **Branches are the exception.** While branches are supported, they’re treated as short-lived exceptions and not the norm.
-* **Cleanup is automatic.** The complete command enforces branch short-livedness by merging and automatically tagging (release) and deleting completed branches, helping keep your repo tidy.
-* **Conventional Commits encouraged.** Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) for clarity and consistency.
+* **Main is the default.** The `commit` command is your everyday go-to. It automates pulling the latest changes,
+  committing, and pushing directly to `main`, promoting small, frequent integrations.
+* **Branches are the exception.** While branches are supported, they’re treated as short-lived exceptions and not the
+  norm.
+* **Cleanup is automatic.** The complete command enforces branch short-livedness by merging and automatically tagging (
+  release) and deleting completed branches, helping keep your repo tidy.
+* **Conventional Commits encouraged.** Commit messages
+  follow [Conventional Commits](https://www.conventionalcommits.org/) for clarity and consistency.
 
 ### Why not just use Git?
 
-This CLI isn’t a replacement for Git. You’ll still reach for raw `git` when doing advanced work like rebasing, cherry-picking, or running `git bisect`.
+This CLI isn’t a replacement for Git. You’ll still reach for raw `git` when doing advanced work like rebasing,
+cherry-picking, or running `git bisect`.
 
-This tool is as a **workflow assistant**, `tbdflow` encapsulates a repeatable, opinionated process to support your day-to-day development.
+This tool is as a **workflow assistant**, `tbdflow` encapsulates a repeatable, opinionated process to support your
+day-to-day development.
 
 It offers three main benefits:
 
 1. **Consistency across the team**
-   Everyone follows the same steps for common tasks. Commits, branches, and releases are handled the same way every time, keeping your Git history clean and predictable.
+   Everyone follows the same steps for common tasks. Commits, branches, and releases are handled the same way every
+   time, keeping your Git history clean and predictable.
 
 2. **Less to remember**
-   No need to recall the exact flags or sequences (like `pull --rebase`, `merge --no-ff`, or commit message formats). The CLI handles that, so you can stay focused on writing code.
+   No need to recall the exact flags or sequences (like `pull --rebase`, `merge --no-ff`, or commit message formats).
+   The CLI handles that, so you can stay focused on writing code.
 
 3. **It supports "the TBD way"**
-   This tool makes the preferred approach easy by providing a smooth, safe, and efficient path for 80% of everyday tasks. For the other 20%, you can always use Git directly.
+   This tool makes the preferred approach easy by providing a smooth, safe, and efficient path for 80% of everyday
+   tasks. For the other 20%, you can always use Git directly.
 
 ### Installation
 
@@ -52,7 +63,8 @@ You need [Rust and Cargo](https://www.rust-lang.org/tools/install) installed.
 
 #### Installing from crates.io
 
-The easiest way to install `tbdflow` is to download it from [crates.io](https://crates.io/crates/tbdflow). You can do it using the following command:
+The easiest way to install `tbdflow` is to download it from [crates.io](https://crates.io/crates/tbdflow). You can do it
+using the following command:
 
 ```bash
 cargo install tbdflow
@@ -76,11 +88,16 @@ sudo cargo install --path . --root /usr/local
 
 ### Monorepo Support
 
-`tbdflow` is "monorepo-aware." It understands that in a monorepo, you often want commands to be scoped to a specific project or subdirectory.
+`tbdflow` is "monorepo-aware." It understands that in a monorepo, you often want commands to be scoped to a specific
+project or subdirectory.
 
-When you run `tbdflow commit`, `tbdflow sync` or `tbdflow status` from the root of a configured monorepo, the tool will intelligently ignore project subdirectories, making sure you only commit changes to root-level files (like `README.md`, `LICENSE`, or `CI configuration`). When run from within a project subdirectory, the commands are automatically scoped to just that directory (**N.B.** you need to run `tbdflow init` from within the subdirectory for this to work).
+When you run `tbdflow commit`, `tbdflow sync` or `tbdflow status` from the root of a configured monorepo, the tool will
+intelligently ignore project subdirectories, making sure you only commit changes to root-level files (like `README.md`,
+`LICENSE`, or `CI configuration`). When run from within a project subdirectory, the commands are automatically scoped to
+just that directory (**N.B.** you need to run `tbdflow init` from within the subdirectory for this to work).
 
 This is configured in your root `.tbdflow.yml` file:
+
 ```
 # in .tbdflow.yml
 monorepo:
@@ -95,24 +112,31 @@ enabled: true
 
 #### Handling Cross-Cutting Changes
 
-For "vertical slice" changes that intentionally touch multiple project directories, you can use the `--include-projects` flag. 
-This flag overrides the default safety mechanism and stages all changes from all directories, allowing you to create a single, cross-cutting commit.
+For "vertical slice" changes that intentionally touch multiple project directories, you can use the `--include-projects`
+flag.
+This flag overrides the default safety mechanism and stages all changes from all directories, allowing you to create a
+single, cross-cutting commit.
 
 ### Interactive Wizard Mode
 
-To make `tbdflow` even more user-friendly, the core commands (`branch`, `commit`, `complete`, `changelog`) now feature an interactive "wizard" mode.
+To make `tbdflow` even more user-friendly, the core commands (`branch`, `commit`, `complete`, `changelog`) now feature
+an interactive "wizard" mode.
 
-If you run one of these commands without providing the required flags, `tbdflow` will automatically launch a step-by-step guide. 
-This is perfect for new users who are still learning the workflow, or for complex commits where you want to be sure you've covered all the options.
+If you run one of these commands without providing the required flags, `tbdflow` will automatically launch a
+step-by-step guide.
+This is perfect for new users who are still learning the workflow, or for complex commits where you want to be sure
+you've covered all the options.
 
 For power users, the original flag-based interface is still available for a faster, scripted experience.
 
 ### Configuration
 
-`tbdflow` is configurable via two optional files in the root of your repository. To get started quickly, run `tbdflow init` to generate default versions of these files.
+`tbdflow` is configurable via two optional files in the root of your repository. To get started quickly, run
+`tbdflow init` to generate default versions of these files.
 
 `.tbdflow.yml`
 This file controls the core workflow of the tool. You can customise:
+
 - The name of your main branch (e.g. main, trunk).
 - Allowed branch types and their prefixes (e.g feat/, chore/)
 - A strategy for handling issue references ("branch-name" or "commit-scope")
@@ -121,12 +145,15 @@ This file controls the core workflow of the tool. You can customise:
 - Commit message linting rules.
 
 `.dod.yml`
-This file controls the interactive Definition of Done checklist for the commit command. 
+This file controls the interactive Definition of Done checklist for the commit command.
 
 ### Features
 
 #### The Definition of Done (DoD) Check
-To move beyond just automating process, `tbdflow` integrates an optional pre-commit quality check. If a `.dod.yml` file is present in your repository, the commit command will present an interactive checklist to ensure your work meets the team's agreed-upon standards.
+
+To move beyond just automating process, `tbdflow` integrates an optional pre-commit quality check. If a `.dod.yml` file
+is present in your repository, the commit command will present an interactive checklist to ensure your work meets the
+team's agreed-upon standards.
 
 **Example** `.dod.yml`:
 
@@ -139,11 +166,14 @@ checklist:
   - "Relevant documentation (code comments, READMEs) is updated."
 ```
 
-If you try to proceed without checking all items, the tool will offer to add a TODO list to your commit message footer, ensuring the incomplete work is tracked directly in your Git history.
+If you try to proceed without checking all items, the tool will offer to add a TODO list to your commit message footer,
+ensuring the incomplete work is tracked directly in your Git history.
 
 #### Commit Message Linting
 
-If a `.tbdflow.yml` file is present and contains a lint section, the commit command will automatically validate your commit message against the configured rules before the DoD check. This provides immediate feedback on stylistic and structural conventions.
+If a `.tbdflow.yml` file is present and contains a lint section, the commit command will automatically validate your
+commit message against the configured rules before the DoD check. This provides immediate feedback on stylistic and
+structural conventions.
 
 **Default linting rules:**
 
@@ -152,17 +182,17 @@ lint:
   conventional_commit_type:
     enabled: true
     allowed_types:
-    - build
-    - chore
-    - ci
-    - docs
-    - feat
-    - fix
-    - perf
-    - refactor
-    - revert
-    - style
-    - test
+      - build
+      - chore
+      - ci
+      - docs
+      - feat
+      - fix
+      - perf
+      - refactor
+      - revert
+      - style
+      - test
   issue_key_missing:
     enabled: false
     pattern: ^[A-Z]+-\d+$
@@ -177,14 +207,15 @@ lint:
     max_line_length: 80
     leading_blank: true
 ```
+
 ---
 
 ## Global options
 
-| Flag        | Description                                              | Required |
-|-------------|----------------------------------------------------------|----------|
-| --verbose   | Prints the underlying Git commands as they are executed. | No       |
-| --dry-run   | Simulate the command without making any changes.         | No       |
+| Flag      | Description                                              | Required |
+|-----------|----------------------------------------------------------|----------|
+| --verbose | Prints the underlying Git commands as they are executed. | No       |
+| --dry-run | Simulate the command without making any changes.         | No       |
 
 ## Commands
 
@@ -193,9 +224,9 @@ lint:
 This is the primary command for daily work.
 
 Commits staged changes using a Conventional Commits message. This command is context-aware:
+
 * **On `main`:** It runs the full TBD workflow: pulls the latest changes with rebase, commits, and pushes.
 * **On any other branch:** It simply commits and pushes, allowing you to save work-in-progress.
-
 
 **Usage:**
 
@@ -205,17 +236,17 @@ tbdflow commit [options]
 
 **Options:**
 
-| Flag | Option                  | Description                                              | Required |
-|------|-------------------------|----------------------------------------------------------|----------|
-| -t   | --type                  | The type of commit (e.g., feat, fix, chore).             | Yes      |
-| -s   | --scope                 | The scope of the changes (e.g., api, ui).                | No       |
-| -m   | --message               | The descriptive commit message (subject line).           | Yes      |
-|      | --body                  | Optional multi-line body for the commit message.         | No       |
-| -b   | --breaking              | Mark the commit as a breaking change.                    | No       |
-|      | --breaking-description  | Provide a description for the 'BREAKING CHANGE:' footer. | No       |
-|      | --tag                   | Optionally add and push an annotated tag to this commit. | No       |
-|      | --issue                 | Optionally add an issue reference to the footer.         | No       |
-|      | --no-verify             | Bypass the interactive DoD checklist.                    | No       |
+| Flag | Option                 | Description                                              | Required |
+|------|------------------------|----------------------------------------------------------|----------|
+| -t   | --type                 | The type of commit (e.g., feat, fix, chore).             | Yes      |
+| -s   | --scope                | The scope of the changes (e.g., api, ui).                | No       |
+| -m   | --message              | The descriptive commit message (subject line).           | Yes      |
+|      | --body                 | Optional multi-line body for the commit message.         | No       |
+| -b   | --breaking             | Mark the commit as a breaking change.                    | No       |
+|      | --breaking-description | Provide a description for the 'BREAKING CHANGE:' footer. | No       |
+|      | --tag                  | Optionally add and push an annotated tag to this commit. | No       |
+|      | --issue                | Optionally add an issue reference to the footer.         | No       |
+|      | --no-verify            | Bypass the interactive DoD checklist.                    | No       |
 
 **Example:**
 
@@ -233,7 +264,8 @@ tbdflow commit -t fix -m "correct user permission logic" --tag "v1.1.1"
 
 ### 2. `branch`
 
-Creates and pushes a new, short-lived branch from the latest version of `main`. This is the primary command for starting new work that isn't a direct commit to `main`.
+Creates and pushes a new, short-lived branch from the latest version of `main`. This is the primary command for starting
+new work that isn't a direct commit to `main`.
 
 **Usage:**
 
@@ -249,7 +281,6 @@ tbdflow branch --type <type> --name <name> [--issue <issue-id>] [--from_commit <
 | -n, --name        | A short, desriptive name for the branch.                                        | Yes      |
 | --issue           | Optional issue reference to include in the branch name or commit scope.         | No       |
 | -f, --from_commit | Optional commit hash on `main` to branch from.                                  | No       |
-
 
 **Examples:**
 
@@ -281,10 +312,10 @@ tbdflow complete --type <branch-type> --name <branch-name>
 
 **Options:**
 
-| Flag | Option   | Description                                             | Required |
-|------|----------|---------------------------------------------------------|----------|
-| -t   | --type   | The type of branch: feature, release, or hotfix.        | Yes      |
-| -n   | --name   | The name or version of the branch to complete.          | Yes      |
+| Flag | Option | Description                                      | Required |
+|------|--------|--------------------------------------------------|----------|
+| -t   | --type | The type of branch: feature, release, or hotfix. | Yes      |
+| -n   | --name | The name or version of the branch to complete.   | Yes      |
 
 **Examples:**
 
@@ -298,7 +329,8 @@ tbdflow complete -t release -n "2.1.0"
 
 ### 4. `changelog`
 
-Generates a changelog in Markdown format from your repository's Conventional Commit history. See `tbdflow` repo for a CHANGELOG.md generated by this command.
+Generates a changelog in Markdown format from your repository's Conventional Commit history. See `tbdflow` repo for a
+CHANGELOG.md generated by this command.
 
 **Usage:**
 
@@ -308,11 +340,11 @@ tbdflow changelog [options]
 
 **Options:**
 
-| Option        | Description                                                               |
-|---------------|---------------------------------------------------------------------------|
-| --unreleased  | Generate a changelog for all commits since the last tag.                  |
-| --from        | Generate a changelog for commits from a specific tag.                     |
-| --to          | Generate a changelog for commits up to a specific tag (defaults to HEAD). |
+| Option       | Description                                                               |
+|--------------|---------------------------------------------------------------------------|
+| --unreleased | Generate a changelog for all commits since the last tag.                  |
+| --from       | Generate a changelog for commits from a specific tag.                     |
+| --to         | Generate a changelog for commits up to a specific tag (defaults to HEAD). |
 
 **Examples:**
 
@@ -326,7 +358,8 @@ tbdflow changelog --unreleased
 
 ### 5. Utility commands
 
-`tbdflow` has a couple of commands that can be beneficial to use but they are not part of the workflow, they are for inspecting the state of the repository. 
+`tbdflow` has a couple of commands that can be beneficial to use but they are not part of the workflow, they are for
+inspecting the state of the repository.
 
 **Examples:**
 
@@ -351,7 +384,8 @@ tbdflow update
 
 #### Shell Completion
 
-To make `tbdflow` even faster to use, you can enable shell completion. Add one of the following lines to your shell's configuration file.
+To make `tbdflow` even faster to use, you can enable shell completion. Add one of the following lines to your shell's
+configuration file.
 
 For Zsh (`~/.zshrc`):
 
@@ -382,7 +416,13 @@ tbdflow generate-man-page > tbdflow.1 && man tbdflow.1
 ## IDE support
 
 `tbdflow` comes with IDE support for:
+
 - [IntelliJ](https://github.com/cladam/tbdflow/tree/main/plugins/intellij)
 - [VS Code](https://github.com/hekonsek/tbdflow-vscode-extension)
 
 Follow above links for more details regarding IDE plugins/extensions installation and usage.
+
+## Contributing
+
+First off, thank you for considering contributing to `tbdflow`! ❤️
+Please feel free to open an issue or submit a pull request.
