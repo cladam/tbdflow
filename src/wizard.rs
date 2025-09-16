@@ -38,8 +38,8 @@ pub struct CompleteWizardResult {
 // All of these are flags that can be passed to the `changelog` command
 #[derive(Debug, Clone)]
 pub struct ChangeLogWizardResult {
-    pub from: String,
-    pub to: String,
+    pub from: Option<String>,
+    pub to: Option<String>,
     pub unreleased: bool,
 }
 
@@ -226,4 +226,47 @@ pub fn run_complete_wizard(config: &Config) -> Result<CompleteWizardResult> {
         .interact_text()?;
 
     Ok(CompleteWizardResult { branch_type, name })
+}
+
+// Function to run the changelog wizard
+pub fn run_changelog_wizard() -> Result<ChangeLogWizardResult> {
+    let theme = ColorfulTheme::default();
+    println!("Welcome to the Changelog Wizard!");
+    println!("This wizard will guide you through generating a changelog.");
+    println!("You can press Ctrl+C at any time to exit the wizard.\n");
+
+    let options = &[
+        "Generate for unreleased changes (since the latest tag)",
+        "Generate for a specific range of tags",
+    ];
+
+    let selection = Select::with_theme(&theme)
+        .with_prompt("What changelog would you like to generate?")
+        .items(options)
+        .default(0)
+        .interact()?;
+
+    match selection {
+        0 => Ok(ChangeLogWizardResult {
+            from: None,
+            to: None,
+            unreleased: true,
+        }),
+        1 => {
+            let from: String = Input::with_theme(&theme)
+                .with_prompt("Enter the 'from' tag (e.g., v0.12.0)")
+                .interact_text()?;
+            let to: String = Input::with_theme(&theme)
+                .with_prompt("Enter the 'to' tag (e.g., v0.13.0, optional)")
+                .allow_empty(true)
+                .interact_text()?;
+
+            Ok(ChangeLogWizardResult {
+                from: Some(from),
+                to: if to.is_empty() { None } else { Some(to) },
+                unreleased: false,
+            })
+        }
+        _ => unreachable!(),
+    }
 }

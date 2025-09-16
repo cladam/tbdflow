@@ -215,17 +215,38 @@ fn main() -> anyhow::Result<()> {
             to,
             unreleased,
         } => {
-            //println!("{}", "--- Generating changelog ---".blue());
-            // Don't print the header, good for when piping to a file
-            let changelog =
-                changelog::handle_changelog(verbose, dry_run, &config, from, to, unreleased)?;
-            if changelog.is_empty() {
-                println!(
-                    "{}",
-                    "No conventional commits found in the specified range.".yellow()
-                );
+            if from.is_none() || to.is_none() || !unreleased {
+                // Enter interactive wizard mode
+                let wizard_result = wizard::run_changelog_wizard()?;
+                let changelog = changelog::handle_changelog(
+                    verbose,
+                    dry_run,
+                    &config,
+                    wizard_result.from,
+                    wizard_result.to,
+                    wizard_result.unreleased,
+                )?;
+                if changelog.is_empty() {
+                    println!(
+                        "{}",
+                        "No conventional commits found in the specified range.".yellow()
+                    );
+                } else {
+                    println!("{}", changelog);
+                }
             } else {
-                println!("{}", changelog);
+                //println!("{}", "--- Generating changelog ---".blue());
+                // Don't print the header, good for when piping to a file
+                let changelog =
+                    changelog::handle_changelog(verbose, dry_run, &config, from, to, unreleased)?;
+                if changelog.is_empty() {
+                    println!(
+                        "{}",
+                        "No conventional commits found in the specified range.".yellow()
+                    );
+                } else {
+                    println!("{}", changelog);
+                }
             }
         }
     }
