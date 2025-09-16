@@ -12,7 +12,7 @@ use std::io;
 use std::io::Write;
 use std::path::PathBuf;
 use tbdflow::cli::Commands;
-use tbdflow::git::{get_current_branch, GitError};
+use tbdflow::git::get_current_branch;
 use tbdflow::{branch, changelog, cli, commit, config, git, misc, wizard};
 
 fn main() -> anyhow::Result<()> {
@@ -38,8 +38,6 @@ fn main() -> anyhow::Result<()> {
     }
 
     let config = config::load_tbdflow_config()?;
-    // Lookup the default branch name.
-    let main_branch_name = config.main_branch_name.as_str();
 
     // Match the commands and execute the functionality.
     match cli.command {
