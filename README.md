@@ -75,6 +75,7 @@ sudo cargo install --path . --root /usr/local
 ```
 
 ### Monorepo Support
+
 `tbdflow` is "monorepo-aware." It understands that in a monorepo, you often want commands to be scoped to a specific project or subdirectory.
 
 When you run `tbdflow commit`, `tbdflow sync` or `tbdflow status` from the root of a configured monorepo, the tool will intelligently ignore project subdirectories, making sure you only commit changes to root-level files (like `README.md`, `LICENSE`, or `CI configuration`). When run from within a project subdirectory, the commands are automatically scoped to just that directory (**N.B.** you need to run `tbdflow init` from within the subdirectory for this to work).
@@ -93,9 +94,21 @@ enabled: true
 ```
 
 #### Handling Cross-Cutting Changes
-For "vertical slice" changes that intentionally touch multiple project directories, you can use the `--include-projects` flag. This flag overrides the default safety mechanism and stages all changes from all directories, allowing you to create a single, cross-cutting commit.
+
+For "vertical slice" changes that intentionally touch multiple project directories, you can use the `--include-projects` flag. 
+This flag overrides the default safety mechanism and stages all changes from all directories, allowing you to create a single, cross-cutting commit.
+
+### Interactive Wizard Mode
+
+To make `tbdflow` even more user-friendly, the core commands (`branch`, `commit`, `complete`, `changelog`) now feature an interactive "wizard" mode.
+
+If you run one of these commands without providing the required flags, `tbdflow` will automatically launch a step-by-step guide. 
+This is perfect for new users who are still learning the workflow, or for complex commits where you want to be sure you've covered all the options.
+
+For power users, the original flag-based interface is still available for a faster, scripted experience.
 
 ### Configuration
+
 `tbdflow` is configurable via two optional files in the root of your repository. To get started quickly, run `tbdflow init` to generate default versions of these files.
 
 `.tbdflow.yml`

@@ -170,7 +170,7 @@ pub fn run_branch_wizard(config: &Config) -> Result<BranchWizardResult> {
     let name: String = Input::with_theme(&theme)
         .with_prompt("Enter a short, descriptive name for the branch (use hyphens)")
         .interact_text()?;
-    
+
     let issue: Option<String> = {
         let input: String = Input::<String>::with_theme(&theme)
             .with_prompt("Enter an issue reference to include in the branch name (optional)")
@@ -182,7 +182,7 @@ pub fn run_branch_wizard(config: &Config) -> Result<BranchWizardResult> {
             Some(input)
         }
     };
-    
+
     let from_commit: Option<String> = {
         let input: String = Input::<String>::with_theme(&theme)
             .with_prompt("Enter a commit hash on 'main' to branch from (optional)")
@@ -200,5 +200,33 @@ pub fn run_branch_wizard(config: &Config) -> Result<BranchWizardResult> {
         name,
         issue,
         from_commit,
+    })
+}
+
+// Function to run the complete wizard
+pub fn run_complete_wizard(config: &Config) -> Result<CompleteWizardResult> {
+    let theme = ColorfulTheme::default();
+    println!("Welcome to the Complete Branch Wizard!");
+    println!("This wizard will guide you through completing a short-lived branch.");
+    println!("You can press Ctrl+C at any time to exit the wizard.\n");
+
+    // Load branch types from config
+    let mut allowed_types: Vec<String> = config.branch_types.keys().cloned().collect();
+    allowed_types.sort(); // Sort for consistent order
+
+    let type_selection = Select::with_theme(&theme)
+        .with_prompt("Select the type of branch to complete")
+        .items(&allowed_types)
+        .default(0)
+        .interact()?;
+    let branch_type = allowed_types[type_selection].clone();
+
+    let name: String = Input::with_theme(&theme)
+        .with_prompt("Enter the name of the branch to complete")
+        .interact_text()?;
+
+    Ok(CompleteWizardResult {
+        branch_type,
+        name,
     })
 }

@@ -112,10 +112,10 @@ pub enum Commands {
     Complete {
         /// Type of branch to complete, see .tbdflow.yml for allowed types.
         #[arg(short, long)]
-        r#type: String,
+        r#type: Option<String>,
         /// Name or version of the branch to complete.
         #[arg(short, long)]
-        name: String,
+        name: Option<String>,
     },
     /// Syncs with the remote, shows recent history, and checks for stale branches.
     Sync,

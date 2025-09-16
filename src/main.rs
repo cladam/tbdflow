@@ -140,68 +140,19 @@ fn main() -> anyhow::Result<()> {
             }
         }
         Commands::Complete { r#type, name } => {
-            println!(
-                "{}",
-                "--- Completing short-lived branch ---".to_string().blue()
-            );
-
-            // Cannot complete the main branch
-            if name == main_branch_name {
-                return Err(GitError::CannotCompleteMainBranch.into());
-            }
-
-            let branch_name = git::find_branch(&name, &r#type, &config, verbose, dry_run)?;
-            println!("{}", format!("Branch to complete: {}", branch_name).blue());
-
-            // pre-flight check the branch name
-            git::branch_exists_locally(&branch_name, verbose, dry_run)?;
-
-            if r#type == "release" {
-                let tag_name = format!("{}{}", config.automatic_tags.release_prefix, name);
-
-                if git::tag_exists(&tag_name, verbose, dry_run)? {
-                    return Err(GitError::TagAlreadyExists(tag_name).into());
-                }
-            }
-
-            git::is_working_directory_clean(verbose, dry_run)?;
-            git::checkout_main(verbose, dry_run, main_branch_name)?;
-            git::pull_latest_with_rebase(verbose, dry_run)?;
-            git::merge_branch(&branch_name, verbose, dry_run)?;
-
-            // Create tag for release branches
-            if r#type == "release" {
-                let tag_name = format!("{}{}", config.automatic_tags.release_prefix, name);
-                let merge_commit_hash = git::get_head_commit_hash(verbose, dry_run)?;
-                git::create_tag(
-                    &tag_name,
-                    &format!("Release {}", name),
-                    &merge_commit_hash,
-                    verbose,
+            if r#type.is_none() || name.is_none() {
+                // Enter interactive wizard mode
+                let wizard_result = wizard::run_complete_wizard(&config)?;
+                branch::handle_complete(
+                    wizard_result.branch_type,
+                    wizard_result.name,
+                    &config,
                     dry_run,
+                    verbose,
                 )?;
-                println!(
-                    "{}",
-                    format!("Created tag '{}' on merge commit.", tag_name).green()
-                );
+            } else {
+                branch::handle_complete(r#type.unwrap(), name.unwrap(), &config, dry_run, verbose)?;
             }
-
-            git::push(verbose, dry_run)?;
-            if r#type == "release" {
-                git::push_tags(verbose, dry_run)?;
-            }
-
-            git::push(verbose, dry_run)?;
-            git::delete_local_branch(&branch_name, verbose, dry_run)?;
-            git::delete_remote_branch(&branch_name, verbose, dry_run)?;
-            println!(
-                "\n{}",
-                format!(
-                    "Success! Branch '{}' was merged into main and deleted.",
-                    branch_name
-                )
-                .green()
-            );
         }
         Commands::Sync => {
             misc::handle_sync(verbose, dry_run, &config)?;
