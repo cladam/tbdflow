@@ -1,3 +1,54 @@
+# [0.18.0](https://github.com/cladam/tbdflow/releases/tag/v0.18.0) (2025-09-16)
+
+### ✨ Features
+- **(changelog):** add a wizard for the changelog command [`155d130`](https://github.com/cladam/tbdflow/commit/155d130c441556bd6dea0fa3dbe30e332bb6d67c)
+- **(complete):** add wizard for the complete command [`a9fbb5f`](https://github.com/cladam/tbdflow/commit/a9fbb5fd874d69e993d37314953b1df0cdd8145d)
+- **(branch):** add wizard support for the branch command [`8b9e558`](https://github.com/cladam/tbdflow/commit/8b9e558edcaf20797027cd5878510ecb4f5d2e82)
+- **(commit):** add a wizard mode for commit [`6c81539`](https://github.com/cladam/tbdflow/commit/6c81539468697d4bbb5bcb91372c274aabc5bea2)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`afe683d`](https://github.com/cladam/tbdflow/commit/afe683d05789d2a5ed597315c9761d3c7cfdc54a)
+- clean up dead code and fix imports [`b9313e6`](https://github.com/cladam/tbdflow/commit/b9313e69000fe42f8d0ed706eb17ce0d9fddb795)
+- run cargo fmt on codebase [`de4d7dd`](https://github.com/cladam/tbdflow/commit/de4d7dd01c2515ec251408ea51585dea49b1e10a)
+
+
+# [0.17.3](https://github.com/cladam/tbdflow/releases/tag/v0.17.3) (2025-09-16)
+
+### ✨ Features
+- new icon and new gif [`45b4f71`](https://github.com/cladam/tbdflow/commit/45b4f71bc54a0e19f082cbca2f050ee604a0b63e)
+- **(plugin):** update commit to a side panel [`71162eb`](https://github.com/cladam/tbdflow/commit/71162eb71ea5567e91fe28c76e2e669283bb4884)
+
+### 🐛 Bug Fixes
+- update build and settings [`00c803c`](https://github.com/cladam/tbdflow/commit/00c803c8d6df4e0b30bff6a9c01b853051f2c2e0)
+- **(plugin):** update plugin.xml, add icon  and cleanup [`9ee1932`](https://github.com/cladam/tbdflow/commit/9ee1932f157f65d4ca7a391f4b0c78378d9c2d6e)
+- **(plugin):** update README and fix deprecated code [`6edbad9`](https://github.com/cladam/tbdflow/commit/6edbad97edf5de73ae7ca74993d91d32035a5318)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`c93d381`](https://github.com/cladam/tbdflow/commit/c93d38116d6cb375ea422f276139dc0084e27c03)
+- document IDE support [`4b98349`](https://github.com/cladam/tbdflow/commit/4b983497b27e4f42d361ac497e8df38c000c3e91)
+- document IDE support [`c346d52`](https://github.com/cladam/tbdflow/commit/c346d524e01581cfaa88efd82008da2098f6bd88)
+- exclude plugins folder for rust CI [`bbe8971`](https://github.com/cladam/tbdflow/commit/bbe8971c96e79da2b3f4da426194588b92715956)
+
+
+# [0.17.2](https://github.com/cladam/tbdflow/releases/tag/v0.17.2) (2025-09-16)
+
+### ✨ Features
+- **(plugin):** update logic and add README [`f0ac93b`](https://github.com/cladam/tbdflow/commit/f0ac93b245bf750f4d78f107014df952f4621137)
+- add config for the plugin [`908e823`](https://github.com/cladam/tbdflow/commit/908e823581beddde972641627e73295bf1ee7375)
+- **(plugin):** change response dialogue and add changelog [`44a90d8`](https://github.com/cladam/tbdflow/commit/44a90d86287ca9fb2290644a10cbc4d75cc2a9ca)
+- **(plugin):** add working commit command [`1f7e60a`](https://github.com/cladam/tbdflow/commit/1f7e60ab7aede96cfea0962e31552025372c155b)
+- **(plugin):** add utility commands [`3cf7029`](https://github.com/cladam/tbdflow/commit/3cf7029a146369f9752a7eaccaf7c9e380ec8f36)
+- **(plugin):** add working sync command [`d1c2cd0`](https://github.com/cladam/tbdflow/commit/d1c2cd0307250e381326fe3c5f2dd0847e093174)
+
+### 🐛 Bug Fixes
+- update logic for status and sync command [`313b352`](https://github.com/cladam/tbdflow/commit/313b352576c20666a455e5b8be92c30d580e4122)
+- add comment [`fba5792`](https://github.com/cladam/tbdflow/commit/fba5792b3a5c7e78d9dd301a8ed26bdb4240fceb)
+- update CHANGELOG with fix release [`35b84b8`](https://github.com/cladam/tbdflow/commit/35b84b80ee98bf74497b94d8f53556f40a3f6411)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`42fba2b`](https://github.com/cladam/tbdflow/commit/42fba2b1ef74ca5866ef970a2011bd1f48a5f442)
+
+
 # [0.17.1](https://github.com/cladam/tbdflow/releases/tag/v0.17.1) (2025-08-29)
 
 ### 🐛 Bug Fixes

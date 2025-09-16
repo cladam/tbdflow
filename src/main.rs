@@ -215,7 +215,7 @@ fn main() -> anyhow::Result<()> {
             to,
             unreleased,
         } => {
-            if from.is_none() || to.is_none() || !unreleased {
+            if from.is_none() && to.is_none() && !unreleased {
                 // Enter interactive wizard mode
                 let wizard_result = wizard::run_changelog_wizard()?;
                 let changelog = changelog::handle_changelog(
