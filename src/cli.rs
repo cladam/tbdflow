@@ -94,10 +94,10 @@ pub enum Commands {
     Branch {
         /// Type of branch (e.g., feat, fix, chore). See .tbdflow.yml for allowed types.
         #[arg(short, long)]
-        r#type: String,
+        r#type: Option<String>,
         /// A short, descriptive name for the branch.
         #[arg(short, long)]
-        name: String,
+        name: Option<String>,
         /// Optional issue reference to include in the branch name.
         #[arg(long)]
         issue: Option<String>,

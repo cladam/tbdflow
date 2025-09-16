@@ -1,3 +1,4 @@
+pub mod branch;
 pub mod changelog;
 pub mod cli;
 pub mod commit;

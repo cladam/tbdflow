@@ -13,7 +13,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use tbdflow::cli::Commands;
 use tbdflow::git::{get_current_branch, GitError};
-use tbdflow::{changelog, cli, commit, config, git, misc, wizard};
+use tbdflow::{changelog, cli, commit, branch, config, git, misc, wizard};
 
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
@@ -115,33 +115,29 @@ fn main() -> anyhow::Result<()> {
             issue,
             from_commit,
         } => {
-            println!(
-                "{}",
-                "--- Creating short-lived branch ---".to_string().blue()
-            );
-
-            let prefix = misc::get_branch_prefix_or_error(&config.branch_types, &r#type)?;
-
-            // Construct the branch name based on the configured strategy
-            let branch_name = match config.issue_handling.strategy {
-                config::IssueHandlingStrategy::BranchName => {
-                    let issue_part = issue.map_or("".to_string(), |i| format!("{}-", i));
-                    format!("{}{}{}", prefix, issue_part, name)
-                }
-                config::IssueHandlingStrategy::CommitScope => {
-                    format!("{}{}", prefix, name)
-                }
-            };
-
-            git::is_working_directory_clean(verbose, dry_run)?;
-            git::checkout_main(verbose, dry_run, main_branch_name)?;
-            git::pull_latest_with_rebase(verbose, dry_run)?;
-            git::create_branch(&branch_name, from_commit.as_deref(), verbose, dry_run)?;
-            git::push_set_upstream(&branch_name, verbose, dry_run)?;
-            println!(
-                "\n{}",
-                format!("Success! Switched to new branch: '{}'", branch_name).green()
-            );
+            if r#type.is_none() || name.is_none() {
+                // Enter interactive wizard mode
+                let wizard_result = wizard::run_branch_wizard(&config)?;
+                branch::handle_branch(
+                    Some(wizard_result.branch_type),
+                    &config,
+                    Some(wizard_result.name),
+                    wizard_result.issue,
+                    wizard_result.from_commit,
+                    dry_run,
+                    verbose,
+                )?;
+            } else {
+                branch::handle_branch(
+                    r#type,
+                    &config,
+                    name,
+                    issue,
+                    from_commit,
+                    dry_run,
+                    verbose,
+                )?;
+            }
         }
         Commands::Complete { r#type, name } => {
             println!(

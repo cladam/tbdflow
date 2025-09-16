@@ -23,6 +23,7 @@ pub struct BranchWizardResult {
     pub branch_type: String,
     pub name: String,
     pub issue: Option<String>,
+    pub from_commit: Option<String>,
 }
 
 // Struct to hold the results from the complete wizard
@@ -42,7 +43,6 @@ pub struct ChangeLogWizardResult {
     pub unreleased: bool,
 }
 
-// Function to run the commit wizard
 // Function to run the commit wizard
 pub fn run_commit_wizard(config: &Config) -> Result<CommitWizardResult> {
     let theme = ColorfulTheme::default();
@@ -146,5 +146,59 @@ pub fn run_commit_wizard(config: &Config) -> Result<CommitWizardResult> {
         breaking_description,
         tag,
         issue,
+    })
+}
+
+// Function to run the branch wizard
+pub fn run_branch_wizard(config: &Config) -> Result<BranchWizardResult> {
+    let theme = ColorfulTheme::default();
+    println!("Welcome to the Branch Wizard!");
+    println!("This wizard will guide you through creating a well-structured branch name.");
+    println!("You can press Ctrl+C at any time to exit the wizard.\n");
+
+    // Load branch types from config
+    let mut allowed_types: Vec<String> = config.branch_types.keys().cloned().collect();
+    allowed_types.sort(); // Sort for consistent order
+
+    let type_selection = Select::with_theme(&theme)
+        .with_prompt("Select the type of branch")
+        .items(&allowed_types)
+        .default(0)
+        .interact()?;
+    let branch_type = allowed_types[type_selection].clone();
+
+    let name: String = Input::with_theme(&theme)
+        .with_prompt("Enter a short, descriptive name for the branch (use hyphens)")
+        .interact_text()?;
+    
+    let issue: Option<String> = {
+        let input: String = Input::<String>::with_theme(&theme)
+            .with_prompt("Enter an issue reference to include in the branch name (optional)")
+            .allow_empty(true)
+            .interact_text()?;
+        if input.is_empty() {
+            None
+        } else {
+            Some(input)
+        }
+    };
+    
+    let from_commit: Option<String> = {
+        let input: String = Input::<String>::with_theme(&theme)
+            .with_prompt("Enter a commit hash on 'main' to branch from (optional)")
+            .allow_empty(true)
+            .interact_text()?;
+        if input.is_empty() {
+            None
+        } else {
+            Some(input)
+        }
+    };
+
+    Ok(BranchWizardResult {
+        branch_type,
+        name,
+        issue,
+        from_commit,
     })
 }
