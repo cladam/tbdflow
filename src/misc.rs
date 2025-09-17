@@ -152,6 +152,149 @@ checklist:
     Ok(())
 }
 
+pub fn handle_info_command(verbose: bool, dry_run: bool, config: &config::Config) -> Result<()> {
+    println!("--- Current tbdflow configuration ---");
+    println!("{}", serde_yaml::to_string(config)?);
+
+    let git_root = git::get_git_root(verbose, dry_run)?;
+    println!("\nGit repository root: {}", git_root);
+
+    if let Ok(remote_url) = git::get_remote_url(verbose, dry_run) {
+        println!("Remote 'origin' URL: {}", remote_url);
+    } else {
+        println!("No remote 'origin' URL configured.");
+    }
+
+    let current_branch = git::get_current_branch(verbose, dry_run)?;
+    println!("Current branch: {}", current_branch);
+
+    if let Ok(latest_tag) = git::get_latest_tag(verbose, dry_run) {
+        println!("Latest tag: {}", latest_tag);
+    } else {
+        println!("No tags found in the repository.");
+    }
+
+    Ok(())
+}
+
+/// Handle the info command for tbdflow
+pub fn handle_info(dry_run: bool, verbose: bool) -> Result<()> {
+    println!("{}", "--- tbdflow Configuration ---".blue());
+
+    let git_root = git::get_git_root(false, false)?;
+    let root_config_path = PathBuf::from(&git_root).join(".tbdflow.yml");
+
+    // Load root config or default
+    let root_config: config::Config = if root_config_path.exists() {
+        let yaml_str = fs::read_to_string(&root_config_path)?;
+        serde_yaml::from_str(&yaml_str)?
+    } else {
+        config::Config::default()
+    };
+
+    let final_config = config::load_tbdflow_config()?;
+
+    if let Some(project_root) = config::find_project_root()? {
+        let project_config_path = project_root.join(".tbdflow.yml");
+        if project_config_path.exists() {
+            println!("Mode: {} (Project)", "Monorepo".to_string().bold());
+            println!("Project Root: {}", project_root.to_string_lossy());
+            println!(
+                "Loaded project-specific config from: {}",
+                project_config_path.to_string_lossy()
+            );
+
+            let project_yaml_str = fs::read_to_string(&project_config_path)?;
+            let project_config: config::Config = serde_yaml::from_str(&project_yaml_str)?;
+
+            println!("\n{}", "--- Settings ---".bold());
+
+            // Compare and print settings
+            let main_branch_source =
+                if project_config.main_branch_name != root_config.main_branch_name {
+                    "(overridden by project)".yellow()
+                } else {
+                    "(inherited from root)".dimmed()
+                };
+            println!(
+                "Main Branch: {} {}",
+                project_config.main_branch_name, main_branch_source
+            );
+
+            let issue_strategy_source =
+                if project_config.issue_handling.strategy != root_config.issue_handling.strategy {
+                    "(overridden by project)".yellow()
+                } else {
+                    "(inherited from root)".dimmed()
+                };
+            println!(
+                "Issue Handling Strategy: {:?} {}",
+                format!("{:?}", project_config.issue_handling.strategy).cyan(),
+                issue_strategy_source
+            );
+        }
+    } else {
+        // Not in a sub-project, check if we are at the root of a monorepo
+        if root_config.monorepo.enabled && !root_config.monorepo.project_dirs.is_empty() {
+            println!("Mode: {} (Root)", "Monorepo".to_string().bold());
+            println!(
+                "Loaded root config from: {}",
+                root_config_path.to_string_lossy()
+            );
+            println!("Project Directories:");
+            for dir in &root_config.monorepo.project_dirs {
+                println!("- {}", dir.cyan());
+            }
+        } else {
+            println!("Mode: {}", "Standalone".bold());
+            if root_config_path.exists() {
+                println!("Loaded config from: {}", root_config_path.to_string_lossy());
+            }
+        }
+
+        println!("\n{}", "--- Settings ---".bold());
+        println!(
+            "Main Branch: {}",
+            format!("{}", root_config.main_branch_name).cyan()
+        );
+        println!(
+            "Issue Handling Strategy: {}",
+            format!("{:?}", root_config.issue_handling.strategy).cyan(),
+        );
+    }
+
+    // Common settings for all modes, using the final merged config
+    println!(
+        "Stale Branch Threshold: {} days",
+        format!("{}", final_config.stale_branch_threshold_days).cyan()
+    );
+
+    let lint_status = if final_config.lint.is_some() {
+        "Enabled".green()
+    } else {
+        "Disabled".red()
+    };
+    println!("Commit Linting: {}", lint_status);
+
+    println!("\n{}", "--- Git Info ---".bold());
+    if let Ok(remote_url) = git::get_remote_url(verbose, dry_run) {
+        println!("Remote 'origin' URL: {}", format!("{}", remote_url).cyan());
+    } else {
+        println!("Remote 'origin' URL: Not found.");
+    }
+
+    let current_branch = git::get_current_branch(verbose, dry_run)?;
+    println!("Current branch: {}", format!("{}", current_branch).cyan());
+
+    if let Ok(latest_tag) = git::get_latest_tag(verbose, dry_run) {
+        println!("Latest tag: {}", format!("{}", latest_tag).cyan());
+    } else {
+        println!("Latest tag: Not found.");
+    }
+
+    Ok(())
+}
+
 pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Result<()> {
     println!(
         "{}",

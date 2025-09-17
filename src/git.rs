@@ -405,6 +405,23 @@ pub fn log_graph(verbose: bool, dry_run: bool) -> Result<String> {
     )
 }
 
+/// Get the commit count of the current branch ahead of the main branch.
+pub fn get_commit_count_ahead(
+    branch: &str,
+    main_branch: &str,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<String> {
+    let range = format!("origin/{}..{}", main_branch, branch);
+    run_git_command("rev-list", &["--count", &range], verbose, dry_run)
+}
+
+/// Get the log for a specific branch.
+pub fn get_branch_log(branch: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    let range = format!("origin/main..{}", branch);
+    run_git_command("log", &["--oneline", "-n", "10", &range], verbose, dry_run)
+}
+
 /// Check if the current dir is a valid Git repository.
 pub fn is_git_repository(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("rev-parse", &["--is-inside-work-tree"], verbose, dry_run)

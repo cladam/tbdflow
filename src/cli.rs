@@ -34,6 +34,9 @@ pub struct Cli {
 pub enum Commands {
     /// Initialises the repository for Trunk-Based Development.
     Init,
+    /// Shows the current tbdflow configuration.
+    #[command(alias = "show")]
+    Info,
     /// Checks for a new version of tbdflow and updates it if available.
     Update,
     /// Commits changes to the current branch or 'main' if no branch is checked out.
