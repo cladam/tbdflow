@@ -110,6 +110,8 @@ enabled: true
     - "infra"
 ```
 
+For an overview and to inspect your current configuration, you can run `tbdflow info`.
+
 #### Handling Cross-Cutting Changes
 
 For "vertical slice" changes that intentionally touch multiple project directories, you can use the `--include-projects`
@@ -366,6 +368,9 @@ inspecting the state of the repository.
 ```bash
 # Does a pull, shows latest changes to main branch, and warns about stale branches.
 tbdflow sync
+
+# Inspect your current configuration
+tbdflow info
 
 # Checks the status of the working dir
 tbdflow status
