@@ -146,6 +146,9 @@ This file controls the core workflow of the tool. You can customise:
 - Automatic tagging formats.
 - Commit message linting rules.
 
+> **Note:** `main_branch_name` configures which branch is your trunk (typically `main` or `master`). 
+> tbdflow assumes this branch accepts direct commits. For protected branches, use short-lived feature branches with `tbdflow branch`.
+
 `.dod.yml`
 This file controls the interactive Definition of Done checklist for the commit command.
 
@@ -153,7 +156,7 @@ This file controls the interactive Definition of Done checklist for the commit c
 
 #### The Definition of Done (DoD) Check
 
-To move beyond just automating process, `tbdflow` integrates an optional pre-commit quality check. If a `.dod.yml` file
+To move beyond just automating process, `tbdflow` integrates an _optional_ pre-commit quality check. If a `.dod.yml` file
 is present in your repository, the commit command will present an interactive checklist to ensure your work meets the
 team's agreed-upon standards.
 
@@ -222,6 +225,7 @@ lint:
 ## Commands
 
 ### 1. `commit`
+
 
 This is the primary command for daily work.
 
