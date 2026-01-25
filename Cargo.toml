@@ -1,6 +1,6 @@
 [package]
 name = "tbdflow"
-version = "0.18.2"
+version = "0.18.3"
 authors = ["Claes Adamsson <claes.adamsson@gmail.com>"]
 repository = "https://github.com/cladam/tbdflow"
 readme = "README.md"
@@ -11,26 +11,26 @@ categories = ["command-line-utilities", "development-tools"]
 edition = "2021"
 
 [dependencies]
-clap = { version = "4.5.46", features = ["derive"] }
-clap_mangen = "0.2.29"
-clap_complete = "4.5.58"
+clap = { version = "4.5.54", features = ["derive"] }
+clap_mangen = "0.2.31"
+clap_complete = "4.5.64"
 colored = "3.0.0"
-thiserror = "2.0.16"
-anyhow = "1.0.99"
+thiserror = "2.0.17"
+anyhow = "1.0.100"
 chrono = "0.4.42"
 serde_yaml = "0.9.33"
-serde = { version = "1.0.219", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 dialoguer = "0.12.0"
 self_update = "0.42.0"
-regex = "1.11.2"
+regex = "1.12.2"
 git-conventional = "0.12.9"
 [target.'cfg(all(target_os = "linux", target_arch = "aarch64"))'.dependencies]
 openssl-sys = { version = "0.9.109", features = ["vendored"] }
 
 [dev-dependencies]
 serial_test = "3.2.0"
-tempfile = "3.22.0"
-assert_cmd = "2.0.17"
+tempfile = "3.24.0"
+assert_cmd = "2.1.1"
 predicates = "3.1.3"
 
 [lib]
