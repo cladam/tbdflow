@@ -69,19 +69,25 @@ Follow the instructions below exactly. Each capability defines intent, constrain
 
 ### 1. Standardised Committing
 
-**Intent**  
+**Intent**
 Create a structured, conventional commit on trunk or a short-lived branch.
+
+**Staging Behaviour**
+
+* `tbdflow` automatically stages the relevant changes when committing
+* The agent must **not** run `git add` or any raw Git staging commands
+* No explicit staging step is required from the user or the agent
 
 **Preconditions**
 
-- Changes are already staged (`git add`)
-- No unresolved merge conflicts
+* The working tree contains changes intended for commit
+* No unresolved merge conflicts are present
 
 **Command**
 
 ```bash
 tbdflow commit -t <type> [-s <scope>] -m "<message>" [--issue <issue>] [-b]
-````
+```
 
 **Decision Rules**
 
@@ -189,13 +195,71 @@ tbdflow status
     * Identify stale branches
 * Use `status` to:
 
-    * Show context-aware Git status
+    * Show context-aware Git status, In monorepos, this excludes sub-project directories when at the root.
     * Handle monorepos correctly
 
 **Use This When**
 
 * The user says “sync”, “catch me up”, or “what’s happening”
 * Before merging or starting new work
+
+---
+
+## Validation & Linting Behaviour
+
+`tbdflow` enforces workflow correctness using an internal linter. The agent must understand and respect these rules.
+
+---
+
+### Commit Message Rules
+
+#### Subject Line (`-m` message)
+
+| Rule           | Requirement                                                        | Example                              |
+|----------------|--------------------------------------------------------------------|--------------------------------------|
+| Max Length     | 72 characters                                                      | `"add user profile"` ✓               |
+| Capitalisation | Must not start with a capital letter                               | `"add feature"` ✓, `"Add feature"` ✗ |
+| Punctuation    | Must not end with a period                                         | `"fix bug"` ✓, `"fix bug."` ✗        |
+| Type           | Must be one of: `feat`, `fix`, `chore`, `docs`, `refactor`, `test` | `feat` ✓, `feature` ✗                |
+| Scope          | Optional, lowercase, no spaces                                     | `-s login` ✓, `-s "user login"` ✗    |
+| Message        | Required, non-empty, imperative mood                               | `"add user profile"` ✓, `""` ✗       |
+| Breaking       | Must use `-b` flag if breaking change                              | `-b` for breaking ✓                  |
+
+#### Commit Body (Optional)
+
+| Rule        | Requirement                                    |
+|-------------|------------------------------------------------|
+| Line Length | Each line must not exceed 80 characters        |
+| Separation  | Must be separated from subject by a blank line |
+
+#### Issue Key (`--issue`)
+
+| Rule   | Requirement                         | Example                    |
+|--------|-------------------------------------|----------------------------|
+| Format | Uppercase project key, dash, number | `PROJ-123` ✓, `proj-123` ✗ |
+
+---
+
+### Branch Name Rules
+
+| Rule  | Requirement                            | Example                                    |
+|-------|----------------------------------------|--------------------------------------------|
+| Type  | Must match commit types                | `feat/` ✓, `feature/` ✗                    |
+| Name  | Lowercase, hyphen-separated, no spaces | `add-user-profile` ✓, `Add User Profile` ✗ |
+| Issue | Optional, prefixed to name             | `feat/API-456-add-user` ✓                  |
+
+---
+
+### Error Handling
+
+If `tbdflow` rejects input:
+
+1. Read the error message carefully
+2. Correct the input based on the rules above
+3. Retry with valid parameters
+4. Do **not** fall back to raw Git commands
+
+The agent should prefer generating valid inputs over relying on linter errors.
 
 ---
 
