@@ -98,6 +98,8 @@ tbdflow commit -t <type> [-s <scope>] -m "<message>" [--issue <issue>] [-b]
 * If no type is specified:
 
     * Default to `chore` unless behaviour changes
+* DoD Checklist: If a `.dod.yml` file exists in the project root and `--no-verify` is not passed, an interactive
+  checklist will appear. Unchecked items will result in a `TODO:` footer being appended to the commit message.
 * Use `-b` / `--breaking` if the change introduces breaking behaviour
 * Use `--issue` when the user references a ticket ID (JIRA, GitHub, etc.)
 
