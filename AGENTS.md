@@ -76,7 +76,7 @@ When a user wants to start a task:
 1. **Sync**
    ```bash
    tbdflow sync
-````
+   ````
 
 2. **Branch**
 
