@@ -93,7 +93,7 @@ tbdflow commit -t <type> [-s <scope>] -m "<message>" [--issue <issue>] [-b]
 
 * Allowed commit types:
 
-    * `feat`, `fix`, `chore`, `docs`, `refactor`, `test`
+    * `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `build`, `ci`, `perf`, `revert`, `style`
 * Never invent new commit types
 * If no type is specified:
 
@@ -217,15 +217,15 @@ tbdflow status
 
 #### Subject Line (`-m` message)
 
-| Rule           | Requirement                                                        | Example                              |
-|----------------|--------------------------------------------------------------------|--------------------------------------|
-| Max Length     | 72 characters                                                      | `"add user profile"` ✓               |
-| Capitalisation | Must not start with a capital letter                               | `"add feature"` ✓, `"Add feature"` ✗ |
-| Punctuation    | Must not end with a period                                         | `"fix bug"` ✓, `"fix bug."` ✗        |
-| Type           | Must be one of: `feat`, `fix`, `chore`, `docs`, `refactor`, `test` | `feat` ✓, `feature` ✗                |
-| Scope          | Optional, lowercase, no spaces                                     | `-s login` ✓, `-s "user login"` ✗    |
-| Message        | Required, non-empty, imperative mood                               | `"add user profile"` ✓, `""` ✗       |
-| Breaking       | Must use `-b` flag if breaking change                              | `-b` for breaking ✓                  |
+| Rule           | Requirement                                                                                                  | Example                              |
+|----------------|--------------------------------------------------------------------------------------------------------------|--------------------------------------|
+| Max Length     | 72 characters                                                                                                | `"add user profile"` ✓               |
+| Capitalisation | Must not start with a capital letter                                                                         | `"add feature"` ✓, `"Add feature"` ✗ |
+| Punctuation    | Must not end with a period                                                                                   | `"fix bug"` ✓, `"fix bug."` ✗        |
+| Type           | Must be one of: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `build`, `ci`, `perf`, `revert`, `style` | `feat` ✓, `feature` ✗                |
+| Scope          | Optional, lowercase, no spaces                                                                               | `-s login` ✓, `-s "user login"` ✗    |
+| Message        | Required, non-empty, imperative mood                                                                         | `"add user profile"` ✓, `""` ✗       |
+| Breaking       | Must use `-b` flag if breaking change                                                                        | `-b` for breaking ✓                  |
 
 #### Commit Body (Optional)
 
@@ -314,4 +314,3 @@ tbdflow changelog [--unreleased] [--from <ref>]
 * Treat `main` (trunk) as sacred
 * Prefer safety and clarity over cleverness
 * Ask for clarification only when an action could be destructive
-
