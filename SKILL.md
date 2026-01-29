@@ -100,6 +100,7 @@ tbdflow commit -t <type> [-s <scope>] -m "<message>" [--issue <issue>] [--body "
     * Default to `chore` unless behaviour changes
 * When using `--body`:
     * Avoid literal newline characters in the body string
+    * Keep the body under 80 characters per line
     * Use a single-line summary or omit `--body` for complex multi-line descriptions
 * DoD Checklist: If a `.dod.yml` file exists in the project root and `--no-verify` is not passed, an interactive
   checklist will appear. Unchecked items will result in a `TODO:` footer being appended to the commit message.

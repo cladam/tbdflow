@@ -137,7 +137,7 @@ When a user wants to start a task:
 
     * Staging is handled automatically by the skill
     * No manual staging steps are required
-    * When using `--body`, avoid literal newlines; use a single-line summary or omit the body for complex descriptions
+    * When using `--body`, keep under 80 chars per line; avoid literal newlines
 
 5. **Complete**
    Invoke the `tbdflow` skill to merge back to trunk and clean up the branch.
