@@ -202,8 +202,36 @@ tbdflow status
 
 **Use This When**
 
-* The user says “sync”, “catch me up”, or “what’s happening”
+* The user says "sync", "catch me up", or "what's happening"
 * Before merging or starting new work
+
+---
+
+### 5. Configuration Info
+
+**Intent**
+Display the current `tbdflow` configuration for the repository.
+
+**Command**
+
+```bash
+tbdflow info
+```
+
+**Decision Rules**
+
+* Shows active configuration including:
+    * Mode (standard or monorepo)
+    * Main branch name
+    * Issue handling strategy
+    * Branch types
+    * Linting rules
+* In monorepos, displays project-specific overrides when run from a sub-project directory
+
+**Use This When**
+
+* The user asks "show config", "what settings?", or "how is this repo configured?"
+* Debugging workflow issues related to configuration
 
 ---
 
@@ -265,7 +293,7 @@ The agent should prefer generating valid inputs over relying on linter errors.
 
 ---
 
-### 5. Changelog Generation
+### 6. Changelog Generation
 
 **Intent**
 Summarise changes using structured commit history.
@@ -303,9 +331,10 @@ tbdflow changelog [--unreleased] [--from <ref>]
 |-----------------------------------------------|--------------------------------------------------------------|
 | “Commit this as a bug fix for login.”         | `tbdflow commit -t fix -s login -m "resolve timeout issue"`  |
 | “Start working on API-456: Add user profile.” | `tbdflow branch -t feat -n add-user-profile --issue API-456` |
-| “Merge my current work back to main.”         | `tbdflow complete -t <current_type> -n <current_name>`       |
-| “Sync me up.”                                 | `tbdflow sync`                                               |
-| “What changed since the last version?”        | `tbdflow changelog --unreleased`                             |
+| "Merge my current work back to main."         | `tbdflow complete -t <current_type> -n <current_name>`       |
+| "Sync me up."                                 | `tbdflow sync`                                               |
+| "What changed since the last version?"        | `tbdflow changelog --unreleased`                             |
+| "Show me the config"                          | `tbdflow info`                                               |
 
 ---
 
