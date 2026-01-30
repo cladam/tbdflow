@@ -120,13 +120,10 @@ If the workspace is not in a safe state, pause and explain why.
 When a user wants to start a task:
 
 1. **Sync**
-<<<<<<< Updated upstream
    ```bash
    tbdflow sync
    ````
-=======
    Invoke the `tbdflow` skill to synchronise with trunk.
->>>>>>> Stashed changes
 
 2. **Branch**
    Invoke the `tbdflow` skill to create a short-lived branch.
