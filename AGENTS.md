@@ -136,8 +136,13 @@ When a user wants to start a task:
    Files are modified by the user or agent.
 
 4. **Commit**
-   Invoke the `tbdflow` skill to commit completed work.
+   First sync, then commit:
+   ```bash
+   tbdflow sync
+   tbdflow commit -t <type> [-s <scope>] -m "<message>"
+   ```
 
+    * Always run `sync` before `commit` to ensure workspace is aligned with trunk
     * Staging is handled automatically by the skill
     * No manual staging steps are required
     * When using `--body`, keep under 80 chars per line; avoid literal newlines
@@ -194,19 +199,20 @@ If a merge conflict occurs:
 
 ## Natural Language Triggers
 
-| User Intent                        | Agent Action                                      |
-|------------------------------------|---------------------------------------------------|
-| "I'm starting on ticket API-99"    | Invoke `tbdflow` skill to create a feature branch |
-| "Check this in"                    | Invoke `tbdflow` skill to commit                  |
-| "Commit this"                      | Invoke `tbdflow` skill to commit                  |
-| "What's the status?"               | Invoke `tbdflow` skill to show status             |
-| "Sync me up"                       | Invoke `tbdflow` skill to sync with trunk         |
-| "Finish this up"                   | Invoke `tbdflow` skill to complete the workflow   |
-| "Merge my work"                    | Invoke `tbdflow` skill to complete the workflow   |
-| "Generate release notes"           | Invoke `tbdflow` skill to generate a changelog    |
-| "What's new?"                      | Invoke `tbdflow` skill to generate a changelog    |
-| "What changed since last version?" | Invoke `tbdflow` skill to generate a changelog    |
-| "Show me the config"               | Invoke `tbdflow info` to display configuration    |
+| User Intent                        | Agent Action                                   |
+|------------------------------------|------------------------------------------------|
+| "I'm starting on ticket API-99"    | Invoke `tbdflow sync`, then `tbdflow branch`   |
+| "Check this in"                    | Invoke `tbdflow sync`, then `tbdflow commit`   |
+| "Commit this"                      | Invoke `tbdflow sync`, then `tbdflow commit`   |
+| "Commit changes"                   | Invoke `tbdflow sync`, then `tbdflow commit`   |
+| "What's the status?"               | Invoke `tbdflow sync` (includes status output) |
+| "Sync me up"                       | Invoke `tbdflow sync`                          |
+| "Finish this up"                   | Invoke `tbdflow sync`, then `tbdflow complete` |
+| "Merge my work"                    | Invoke `tbdflow sync`, then `tbdflow complete` |
+| "Generate release notes"           | Invoke `tbdflow changelog`                     |
+| "What's new?"                      | Invoke `tbdflow changelog --unreleased`        |
+| "What changed since last version?" | Invoke `tbdflow changelog --unreleased`        |
+| "Show me the config"               | Invoke `tbdflow info`                          |
 
 ---
 

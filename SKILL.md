@@ -86,7 +86,7 @@ Create a structured, conventional commit on trunk or a short-lived branch.
 **Command**
 
 ```bash
-tbdflow commit -t <type> [-s <scope>] -m "<message>" [--issue <issue>] [--body "<body>"] [-b]
+tbdflow commit -t <type> [-s <scope>] -m "<message>" [--issue <issue>] [-b]
 ```
 
 **Decision Rules**
@@ -98,10 +98,6 @@ tbdflow commit -t <type> [-s <scope>] -m "<message>" [--issue <issue>] [--body "
 * If no type is specified:
 
     * Default to `chore` unless behaviour changes
-* When using `--body`:
-    * Avoid literal newline characters in the body string
-    * Keep the body under 80 characters per line
-    * Use a single-line summary or omit `--body` for complex multi-line descriptions
 * DoD Checklist: If a `.dod.yml` file exists in the project root and `--no-verify` is not passed, an interactive
   checklist will appear. Unchecked items will result in a `TODO:` footer being appended to the commit message.
 * Use `-b` / `--breaking` if the change introduces breaking behaviour
@@ -207,35 +203,21 @@ tbdflow status
 **Use This When**
 
 * The user says "sync", "catch me up", or "what's happening"
-* Before merging or starting new work
+* Before committing, merging, or starting new work
 
 ---
 
-### 5. Configuration Info
+### Pre-Commit Workflow
 
-**Intent**
-Display the current `tbdflow` configuration for the repository.
+**Always run `tbdflow sync` before `tbdflow commit`.**
 
-**Command**
+The `sync` command:
 
-```bash
-tbdflow info
-```
+* Pulls and rebases from remote
+* Shows current status (wraps `git status`)
+* Ensures the workspace is aligned with trunk
 
-**Decision Rules**
-
-* Shows active configuration including:
-    * Mode (standard or monorepo)
-    * Main branch name
-    * Issue handling strategy
-    * Branch types
-    * Linting rules
-* In monorepos, displays project-specific overrides when run from a sub-project directory
-
-**Use This When**
-
-* The user asks "show config", "what settings?", or "how is this repo configured?"
-* Debugging workflow issues related to configuration
+This prevents conflicts and ensures commits are based on the latest trunk state.
 
 ---
 
@@ -297,7 +279,7 @@ The agent should prefer generating valid inputs over relying on linter errors.
 
 ---
 
-### 6. Changelog Generation
+### 5. Changelog Generation
 
 **Intent**
 Summarise changes using structured commit history.
@@ -335,10 +317,9 @@ tbdflow changelog [--unreleased] [--from <ref>]
 |-----------------------------------------------|--------------------------------------------------------------|
 | “Commit this as a bug fix for login.”         | `tbdflow commit -t fix -s login -m "resolve timeout issue"`  |
 | “Start working on API-456: Add user profile.” | `tbdflow branch -t feat -n add-user-profile --issue API-456` |
-| "Merge my current work back to main."         | `tbdflow complete -t <current_type> -n <current_name>`       |
-| "Sync me up."                                 | `tbdflow sync`                                               |
-| "What changed since the last version?"        | `tbdflow changelog --unreleased`                             |
-| "Show me the config"                          | `tbdflow info`                                               |
+| “Merge my current work back to main.”         | `tbdflow complete -t <current_type> -n <current_name>`       |
+| “Sync me up.”                                 | `tbdflow sync`                                               |
+| “What changed since the last version?”        | `tbdflow changelog --unreleased`                             |
 
 ---
 
@@ -347,3 +328,4 @@ tbdflow changelog [--unreleased] [--from <ref>]
 * Treat `main` (trunk) as sacred
 * Prefer safety and clarity over cleverness
 * Ask for clarification only when an action could be destructive
+
