@@ -146,8 +146,9 @@ This file controls the core workflow of the tool. You can customise:
 - Automatic tagging formats.
 - Commit message linting rules.
 
-> **Note:** `main_branch_name` configures which branch is your trunk (typically `main` or `master`). 
-> tbdflow assumes this branch accepts direct commits. For protected branches, use short-lived feature branches with `tbdflow branch`.
+> **Note:** `main_branch_name` configures which branch is your trunk (typically `main` or `master`).
+> tbdflow assumes this branch accepts direct commits. For protected branches, use short-lived feature branches with
+`tbdflow branch`.
 
 `.dod.yml`
 This file controls the interactive Definition of Done checklist for the commit command.
@@ -156,7 +157,8 @@ This file controls the interactive Definition of Done checklist for the commit c
 
 #### The Definition of Done (DoD) Check
 
-To move beyond just automating process, `tbdflow` integrates an _optional_ pre-commit quality check. If a `.dod.yml` file
+To move beyond just automating process, `tbdflow` integrates an _optional_ pre-commit quality check. If a `.dod.yml`
+file
 is present in your repository, the commit command will present an interactive checklist to ensure your work meets the
 team's agreed-upon standards.
 
@@ -225,7 +227,6 @@ lint:
 ## Commands
 
 ### 1. `commit`
-
 
 This is the primary command for daily work.
 
@@ -362,7 +363,62 @@ tbdflow changelog --from v0.12.0 --to v0.13.0
 tbdflow changelog --unreleased
 ```
 
-### 5. Utility commands
+### 5. `review`
+
+Manages non-blocking post-commit reviews for trunk-based development. In TBD, code is committed to trunk first and
+reviewed asynchronously—this command facilitates that workflow by creating GitHub issues for review tracking.
+
+**Philosophy:**
+
+In Trunk-Based Development, reviews are for **course correction** and **knowledge sharing**, not gatekeeping.
+Code is already in trunk; reviewers focus on Intent, Impact, and Insight.
+
+**Usage:**
+
+```bash
+tbdflow review [options]
+```
+
+**Options:**
+
+| Option                | Description                                                    |
+|-----------------------|----------------------------------------------------------------|
+| --trigger             | Create a review request for the current HEAD commit.           |
+| --digest              | Generate a digest of commits needing review.                   |
+| --approve \<hash\>    | Mark a specific commit as approved/reviewed.                   |
+| --since \<time\>      | Time range for digest (default: "1 day ago").                  |
+| --reviewers \<users\> | Override default reviewers (comma-separated GitHub usernames). |
+
+**Examples:**
+
+```bash
+# Create a review issue for the latest commit
+tbdflow review --trigger
+
+# See commits from the last 3 days that may need review
+tbdflow review --digest --since "3 days ago"
+
+# Mark a commit as reviewed (closes the associated GitHub issue)
+tbdflow review --approve abc1234
+```
+
+**Configuration:**
+
+Enable the review system in your `.tbdflow.yml`:
+
+```yaml
+review:
+  enabled: true
+  strategy: github-issue  # or "log-only" for local tracking only
+  default_reviewers:
+    - teammate-username
+    - another-reviewer
+```
+
+> **Note:** The `github-issue` strategy requires the [GitHub CLI (`gh`)](https://cli.github.com/) to be installed
+> and authenticated. The tool will automatically create a `review` label in your repository if it doesn't exist.
+
+### 6. Utility commands
 
 `tbdflow` has a couple of commands that can be beneficial to use but they are not part of the workflow, they are for
 inspecting the state of the repository.
@@ -389,7 +445,7 @@ tbdflow check-branches
 tbdflow update
 ```
 
-### 6. Advanced Usage
+### 7. Advanced Usage
 
 #### Shell Completion
 
