@@ -7,6 +7,11 @@ monorepo:
     - "plugins"
 issue_handling:
   strategy: branch-name
+review:
+  enabled: true
+  strategy: github-issue
+  default_reviewers:
+    - cladam
 branch_types:
   feature: feature/
   hotfix: hotfix/
@@ -23,17 +28,17 @@ lint:
   conventional_commit_type:
     enabled: true
     allowed_types:
-    - build
-    - chore
-    - ci
-    - docs
-    - feat
-    - fix
-    - perf
-    - refactor
-    - revert
-    - style
-    - test
+      - build
+      - chore
+      - ci
+      - docs
+      - feat
+      - fix
+      - perf
+      - refactor
+      - revert
+      - style
+      - test
   issue_key_missing:
     enabled: false
     pattern: ^[A-Z]+-\d+$

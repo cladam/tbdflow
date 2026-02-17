@@ -23,6 +23,32 @@ pub struct MonorepoConfig {
     pub project_dirs: Vec<String>,
 }
 
+/// Review strategy for non-blocking post-commit reviews.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum ReviewStrategy {
+    /// Create GitHub issues for review tracking (requires `gh` CLI).
+    #[default]
+    GithubIssue,
+    /// Log reviews locally without external integration.
+    LogOnly,
+}
+
+/// Configuration for non-blocking post-commit reviews.
+/// This enables TBD-style reviews where code is committed first and reviewed asynchronously.
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+pub struct ReviewConfig {
+    /// Enable the review system.
+    #[serde(default)]
+    pub enabled: bool,
+    /// Default reviewers to assign (GitHub usernames).
+    #[serde(default)]
+    pub default_reviewers: Vec<String>,
+    /// Review strategy for handling review requests.
+    #[serde(default)]
+    pub strategy: ReviewStrategy,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum IssueHandlingStrategy {
@@ -30,7 +56,7 @@ pub enum IssueHandlingStrategy {
     CommitScope,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct IssueHandling {
     pub strategy: IssueHandlingStrategy,
 }
@@ -44,14 +70,14 @@ impl Default for IssueHandling {
 }
 
 /// Represents the automatic tagging configuration for releases and hotfixes.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AutomaticTags {
     pub release_prefix: String,
 }
 
 /// Represents the configuration for linting commit messages.
 /// This includes rules for conventional commit types, issue keys, subject line rules, and body line
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ConventionalCommitTypeConfig {
     pub enabled: Option<bool>,
     pub allowed_types: Option<Vec<String>>,
@@ -60,14 +86,14 @@ pub struct ConventionalCommitTypeConfig {
 /// Represents the configuration for issue keys in commit messages.
 /// This includes whether the issue key linting is enabled and the pattern to match issue keys.
 /// The pattern is typically a regex that matches issue keys in formats like "PROJECT-123".
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct IssueKeyConfig {
     pub enabled: Option<bool>,
     pub pattern: Option<String>,
 }
 
 /// Represents the configuration for scopes in commit messages.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ScopeConfig {
     pub enabled: Option<bool>,
     pub enforce_lowercase: Option<bool>,
@@ -76,7 +102,7 @@ pub struct ScopeConfig {
 /// Represents the rules for validating the subject line of commit messages.
 /// This includes checks for maximum length, capitalization, and whether it ends with a period.
 /// The subject line rules help ensure that commit messages are clear and follow a consistent format.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SubjectLineRules {
     pub max_length: Option<usize>,
     pub enforce_lowercase: Option<bool>,
@@ -84,7 +110,7 @@ pub struct SubjectLineRules {
 }
 
 /// Represents the rules for validating the body lines of commit messages.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BodyLineRules {
     pub max_line_length: Option<usize>,
     pub leading_blank: Option<bool>,
@@ -94,7 +120,7 @@ pub struct BodyLineRules {
 /// This includes configurations for conventional commit types, issue key validation,
 /// subject line rules, and body line rules.
 /// The lint configuration helps enforce best practices in commit messages,
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LintConfig {
     pub conventional_commit_type: Option<ConventionalCommitTypeConfig>,
     pub issue_key_missing: Option<IssueKeyConfig>,
@@ -112,7 +138,7 @@ pub struct LintConfig {
 /// The configuration is typically loaded from a `.tbdflow.yml` file in the root of the git repository.
 /// It includes settings for the main branch name, stale branch threshold, branch prefixes,
 /// automatic tagging, and optional linting rules for commit messages.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
     pub main_branch_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -123,6 +149,8 @@ pub struct Config {
     pub monorepo: MonorepoConfig,
     #[serde(default)]
     pub issue_handling: IssueHandling,
+    #[serde(default)]
+    pub review: ReviewConfig,
     pub branch_types: HashMap<String, String>,
     pub automatic_tags: AutomaticTags,
     pub lint: Option<LintConfig>,
@@ -154,6 +182,7 @@ impl Default for Config {
             stale_branch_threshold_days: 1,
             monorepo: MonorepoConfig::default(),
             issue_handling: IssueHandling::default(),
+            review: ReviewConfig::default(),
             branch_types,
             automatic_tags: AutomaticTags {
                 release_prefix: "v".to_string(),

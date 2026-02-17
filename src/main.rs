@@ -13,7 +13,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use tbdflow::cli::Commands;
 use tbdflow::git::get_current_branch;
-use tbdflow::{branch, changelog, cli, commit, config, git, misc, wizard};
+use tbdflow::{branch, changelog, cli, commit, config, git, misc, review, wizard};
 
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
@@ -250,6 +250,24 @@ fn main() -> anyhow::Result<()> {
                 } else {
                     println!("{}", changelog);
                 }
+            }
+        }
+        Commands::Review {
+            trigger,
+            digest,
+            approve,
+            since,
+            reviewers,
+        } => {
+            if let Some(commit_hash) = approve {
+                review::handle_review_approve(&config, &commit_hash, verbose, dry_run)?;
+            } else if digest {
+                review::handle_review_digest(&config, &since, verbose, dry_run)?;
+            } else if trigger {
+                review::handle_review_trigger(&config, reviewers, verbose, dry_run)?;
+            } else {
+                // Default: show digest if no specific action
+                review::handle_review_digest(&config, &since, verbose, dry_run)?;
             }
         }
     }

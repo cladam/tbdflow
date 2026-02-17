@@ -480,6 +480,27 @@ pub fn get_stale_branches(
     Ok(stale_branches)
 }
 
+/// Get the current git username.
+pub fn get_user_name(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("config", &["user.name"], verbose, dry_run)
+}
+
+/// Get the commit message for a specific commit hash.
+pub fn get_commit_message(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("log", &["-1", "--format=%s", commit_hash], verbose, dry_run)
+}
+
+/// Get the commit log since a given date/time.
+/// Returns format: hash|author|subject
+pub fn get_log_since(since: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command(
+        "log",
+        &["--since", since, "--pretty=format:%H|%an|%s"],
+        verbose,
+        dry_run,
+    )
+}
+
 /// Unit tests for the Git module.
 /// These tests check if Git is installed, if the run_git_command function works correctly,
 /// and if the status function returns expected results.
