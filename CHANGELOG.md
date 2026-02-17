@@ -1,3 +1,43 @@
+# [0.19.0](https://github.com/cladam/tbdflow/releases/tag/v0.19.0) (2026-02-17)
+
+### ✨ Features
+- **(review):** add non-blocking review command for TBD workflows [`caf4d78`](https://github.com/cladam/tbdflow/commit/caf4d78df59071dbb6bc8b492873efee6b7aa828)
+- renamed files [`e7a0a87`](https://github.com/cladam/tbdflow/commit/e7a0a878d8bd9cbf938c1e24187e8cd9766cd302)
+
+### 🐛 Bug Fixes
+- formatting in AGENTS.md for Sync command [`fd1ae47`](https://github.com/cladam/tbdflow/commit/fd1ae47ab2e9ecf51cbb71d7947478d1367bf37c)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`6fc8f1a`](https://github.com/cladam/tbdflow/commit/6fc8f1ac33e82c435b1680e82f6547e072273163)
+- add review command section to README [`f69c334`](https://github.com/cladam/tbdflow/commit/f69c334dbb699f5e3540a798773157dc0ede2908)
+- add tbdflow skill and code review devlog - Add tbdflow skill for Git workflow guidance - Add devlog entry for review.rs code quality analysis [`39003d9`](https://github.com/cladam/tbdflow/commit/39003d99ac3ff742e78c5b63b65bec80125ca302)
+- add code-analyzer and rust-developer skills - Add code-analyzer skill for Rust code quality reviews - Add rust-developer skill with idiomatic Rust guidance - Both skills tailored for tbdflow CLI codebase [`93e142a`](https://github.com/cladam/tbdflow/commit/93e142a884f4a49e596f22ef14e8dc41223c4e10)
+- rename agent files and add sync-first workflow [`7c7766f`](https://github.com/cladam/tbdflow/commit/7c7766f7f61efd11d0dd808dd4e26c37ff5af721)
+- rename agent files and fix formatting [`0e819e2`](https://github.com/cladam/tbdflow/commit/0e819e216c77a9203387fd2760a5cafccc7f06d7)
+- add 80 char line length constraint for body flag [`a439f8b`](https://github.com/cladam/tbdflow/commit/a439f8b8655cc7da2d67fa3627ed431deee56e2a)
+- add body flag guidance to avoid newline issues [`bd81cd4`](https://github.com/cladam/tbdflow/commit/bd81cd4bbf45c1e27996cea892f589abfb7a5935)
+- add agent and skill documentation [`a16148c`](https://github.com/cladam/tbdflow/commit/a16148c2d62f14c79d747f6f12582e12dfc2819f)
+- align SKILL.md and AGENTS.md files [`ad60d0b`](https://github.com/cladam/tbdflow/commit/ad60d0bc7ebeaa132a50dc331e078a9524cf9698)
+- add a AGENTS.md file for agentic usage of tbdflow [`eb74a16`](https://github.com/cladam/tbdflow/commit/eb74a16090aae69c9f5abfb16767543db4eaa4b4)
+- update tbdflow skill with clearer instructions [`6292a4d`](https://github.com/cladam/tbdflow/commit/6292a4d7b2c3283ebf0ddde1ab42b177ab81f735)
+- update tbdflow skill with clearer instructions [`7dcb48e`](https://github.com/cladam/tbdflow/commit/7dcb48e7b830b7b1471c64e514f12ef78b65a050)
+- add a SKILL.md file for agentic usage of tbdflow [`67c7cd8`](https://github.com/cladam/tbdflow/commit/67c7cd81b789b4553ee6616bb357bfb7d776dde1)
+- update README emphasising main [`5a438c9`](https://github.com/cladam/tbdflow/commit/5a438c9bbcc8b817a67b8ec2386cd2f1152bb22e)
+- update dependencies to latest [`ef57ce4`](https://github.com/cladam/tbdflow/commit/ef57ce49e7e426045f0c8771532c1d90b5e545ac)
+
+
+# [0.18.2](https://github.com/cladam/tbdflow/releases/tag/v0.18.2) (2026-02-17)
+
+### ✨ Features
+- add new info command that shows highlevel overview [`faa6c2d`](https://github.com/cladam/tbdflow/commit/faa6c2dfdfee9b251d18755c289b4fca198a4b68)
+- update CHANGELOG.md and the command itself - changelog [`ea5db5a`](https://github.com/cladam/tbdflow/commit/ea5db5afa0dbbde6437977664e3e891bfdf3625d)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`fa6cb87`](https://github.com/cladam/tbdflow/commit/fa6cb8704735fb8c8a74b69b909d8825f34202bc)
+- update README with new info command [`4ea5620`](https://github.com/cladam/tbdflow/commit/4ea5620b851a89351aa692487785d0c4d7c221fe)
+- **(release):** bump version and publish to GH Releases and crates.io [`5048ac3`](https://github.com/cladam/tbdflow/commit/5048ac305839a7a43a252237ce3ec82a32b533a2)
+
+
 # [0.18.0](https://github.com/cladam/tbdflow/releases/tag/v0.18.0) (2025-09-16)
 
 ### ✨ Features
