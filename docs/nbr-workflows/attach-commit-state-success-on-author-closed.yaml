@@ -1,0 +1,47 @@
+name: Mark commit reviewed on issue close
+
+on:
+  issues:
+    types:
+      - closed
+concurrency:
+  group: mark-commit-as-success
+  cancel-in-progress: false
+
+jobs:
+  mark-commit-reviewed:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'author-issue')
+    steps:
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.TRUNKTOPUS_APP_ID }}
+          private-key: ${{ secrets.TRUNKTOPUS_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+      
+      - name: Mark commit as reviewed
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          REPO=${{ github.repository }}
+          ISSUE_NUM=${{ github.event.issue.number }}
+          
+          echo "📝 Issue #$ISSUE_NUM closed with author-issue label"
+          
+          # Get issue body
+          BODY=$(gh issue view "$ISSUE_NUM" --repo "$REPO" --json body -q '.body')
+          
+          # Extract commit SHA from issue body
+          COMMIT_SHA=$(echo "$BODY" | grep -oE 'github\.com/.*/commit/[a-f0-9]+' | grep -oE '[a-f0-9]{40}' | head -n1)
+          
+          if [ -n "$COMMIT_SHA" ]; then
+            echo "📌 Marking commit $COMMIT_SHA as reviewed"
+            gh api repos/$REPO/statuses/$COMMIT_SHA \
+              -f state='success' \
+              -f context='peer-review' \
+              -f description='Peer review completed' \
+              --silent && echo "✅ Commit marked as reviewed" || echo "⚠️ Failed to update commit status"
+          else
+            echo "⚠️ No commit SHA found in issue body"
+          fi

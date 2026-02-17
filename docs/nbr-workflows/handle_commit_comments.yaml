@@ -1,0 +1,123 @@
+name: Handle commit comments
+
+# on:
+#   workflow_dispatch: # Allows manual triggering
+on:
+  workflow_dispatch:
+  schedule:
+    # - cron: "*/45 * * * *"
+    - cron: "0 */2 * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  handle-comments:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.TRUNKTOPUS_APP_ID }}
+          private-key: ${{ secrets.TRUNKTOPUS_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+      
+      - name: Checkout the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch and process recent commit comments
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -e
+  
+          running=$(gh run list \
+            --workflow="${{ github.workflow }}" \
+            --json status \
+            --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length')
+
+          if [ "$running" -gt 1 ]; then
+            echo "Another run is in progress. Skipping..."
+            exit 0
+          fi
+
+          REPO="${{ github.repository }}"
+          OWNER=$(echo "$REPO" | cut -d'/' -f1)
+          REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
+          PROJECT_ID="PVT_kwDODM8VOc4A9rBl"
+
+          gh label create "review-comment" --color "#d60a24" --description "Comment on commit" || true
+
+          echo "Fetching commit comments for $OWNER/$REPO_NAME..."
+
+          # Optimize by retrieving all open parent code review issues and retrieve the comments on them. 
+          # alternatively retrieve commits that are less than X days old and: for sha in $COMMITS; do gh api repos/$REPO/commits/$sha/comments done
+
+          COMMENTS=$(gh api repos/$REPO/comments --paginate)
+
+          echo "$COMMENTS" | jq -c '.[]' | while read -r comment; do
+            UPDATED_AT=$(echo "$comment" | jq -r '.updated_at')
+            COMMIT_ID=$(echo "$comment" | jq -r '.commit_id')
+            SHORT_SHA=${COMMIT_ID:0:7}
+            COMMENT_URL=$(echo "$comment" | jq -r '.html_url')
+            echo "$comment" | jq -r '.body' > body.txt
+            BODY=$(< body.txt)
+            USER=$(echo "$comment" | jq -r '.user.login')
+            COMMIT_AUTHOR_LOGIN=$(gh api repos/$REPO/commits/$COMMIT_ID --jq '.author.login')
+
+            UPDATED_UNIX=$(date --date="$UPDATED_AT" +%s)
+            NOW_UNIX=$(date +%s)
+            DIFF_MIN=$(( (NOW_UNIX - UPDATED_UNIX) / 60 ))
+
+            if [ "$DIFF_MIN" -le 240 ]; then
+              echo "⏱️ Recent comment found on commit $COMMIT_ID from $USER"
+
+              PARENT_COMMIT_ISSUE=$(gh issue list \
+                --state open \
+                --search "$SHORT_SHA" \
+                --json number,title,labels \
+                | jq -r '
+                  .[] 
+                  | select((.labels | map(.name) | index("author-issue"))) 
+                  | .number' \
+                | head -n 1)
+
+              TASK="- [ ] $USER: $BODY (from [commit]($COMMENT_URL))"
+
+              if [ -n "$PARENT_COMMIT_ISSUE" ] && [ "$PARENT_COMMIT_ISSUE" != "null" ]; then
+                echo "✏️ Updating existing issue #$PARENT_COMMIT_ISSUE"
+                CURRENT_BODY=$(gh issue view "$PARENT_COMMIT_ISSUE" --json body | jq -r '.body')
+
+                echo "Current body retrieved"
+
+                if echo "$CURRENT_BODY" | grep -q "$COMMENT_URL"; then
+                  echo "✅ Comment already included in issue. Skipping."
+                else
+                  SHORT_BODY=$(echo "$BODY" | head -c 80)  # optional: truncate to 80 chars
+                  echo "Retrieved $SHORT_BODY"
+                  NEW_BODY=$(printf "%s\n\n- [ ] Comment by %s: %s ([view comment](%s))" "$CURRENT_BODY" "$USER" "$SHORT_BODY" "$COMMENT_URL")
+                  
+                  echo "new body created"
+                  echo "$NEW_BODY" > tmp_body.txt
+
+                  echo "Body read from file"
+                  gh issue edit "$PARENT_COMMIT_ISSUE" --body-file tmp_body.txt
+
+                  echo "Body updated on issue"
+
+                  #TODO: Make this part work.
+                  #set_project_status "$PARENT_COMMIT_ISSUE" "$PROJECT_ID" "Commented"
+                  
+                  echo "Project issue status set"
+
+                  gh issue edit "$PARENT_COMMIT_ISSUE" --add-label "review-comment"
+
+                  echo "Review comment label added"
+                fi
+              fi
+            fi
+          done

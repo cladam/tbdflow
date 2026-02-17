@@ -47,7 +47,7 @@ pub fn trigger_review(
 
     println!(
         "{} {} ({})",
-        "Review requested for:".green(),
+        "🔍 Review requested for:".green(),
         message.bold(),
         short.dimmed()
     );
@@ -66,10 +66,123 @@ pub fn trigger_review(
         ReviewStrategy::GithubIssue => {
             create_github_issue(reviewers, commit_hash, message, author, verbose)?;
         }
+        ReviewStrategy::GithubWorkflow => {
+            trigger_github_workflow(config, commit_hash, message, author, reviewers, verbose)?;
+        }
         ReviewStrategy::LogOnly => {
             println!(
                 "{}",
-                "Review logged (no external system integration)".dimmed()
+                "📝 Review logged (no external system integration)".dimmed()
+            );
+        }
+    }
+
+    Ok(())
+}
+
+/// Triggers a GitHub Actions workflow for server-side review management.
+/// This enables the "Trunktopus" pattern where Actions handle issue creation,
+/// commit status updates, and multi-reviewer orchestration.
+fn trigger_github_workflow(
+    config: &Config,
+    commit_hash: &str,
+    message: &str,
+    author: &str,
+    reviewers: &[String],
+    verbose: bool,
+) -> Result<()> {
+    if !is_gh_cli_available() {
+        println!(
+            "{}",
+            "Warning: GitHub CLI (gh) not found. Install it to trigger workflows.".yellow()
+        );
+        println!(
+            "{}",
+            "Install: https://cli.github.com/ or 'brew install gh'".dimmed()
+        );
+        return Ok(());
+    }
+
+    let workflow_name = config
+        .review
+        .workflow
+        .as_deref()
+        .unwrap_or("nbr-review.yml");
+
+    let short = short_hash(commit_hash);
+
+    if verbose {
+        println!(
+            "{} Triggering workflow '{}' for commit {}",
+            "[INFO]".cyan(),
+            workflow_name,
+            short
+        );
+    }
+
+    // Build workflow inputs as JSON
+    let reviewers_json = reviewers.join(",");
+
+    let output = Command::new("gh")
+        .args([
+            "workflow",
+            "run",
+            workflow_name,
+            "-f",
+            &format!("commit_sha={}", commit_hash),
+            "-f",
+            &format!("commit_message={}", message),
+            "-f",
+            &format!("author={}", author),
+            "-f",
+            &format!("reviewers={}", reviewers_json),
+        ])
+        .output()
+        .context("Failed to trigger GitHub workflow")?;
+
+    if output.status.success() {
+        println!(
+            "{}",
+            format!(
+                "🚀 Workflow '{}' triggered for commit {}",
+                workflow_name, short
+            )
+            .green()
+        );
+        println!(
+            "{}",
+            "   Server-side review management is now active.".dimmed()
+        );
+        println!(
+            "{}",
+            "   Check GitHub Actions for issue creation and status updates.".dimmed()
+        );
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if stderr.contains("could not find any workflows") {
+            println!(
+                "{}",
+                format!(
+                    "Warning: Workflow '{}' not found in repository.",
+                    workflow_name
+                )
+                .yellow()
+            );
+            println!(
+                "{}",
+                "   Create the workflow file at .github/workflows/ to enable server-side reviews."
+                    .dimmed()
+            );
+            println!(
+                "{}",
+                "   Falling back to client-side issue creation...".dimmed()
+            );
+            // Fallback to client-side issue creation
+            create_github_issue(reviewers, commit_hash, message, author, verbose)?;
+        } else {
+            println!(
+                "{}",
+                format!("Warning: Failed to trigger workflow: {}", stderr.trim()).yellow()
             );
         }
     }
@@ -357,8 +470,20 @@ pub fn handle_review_approve(
         ReviewStrategy::GithubIssue => {
             close_github_review_issue(short, verbose)?;
         }
+        ReviewStrategy::GithubWorkflow => {
+            // For workflow strategy, close the issue which will trigger
+            // the server-side Action to update commit status
+            close_github_review_issue(short, verbose)?;
+            println!(
+                "{}",
+                "   Server-side workflow will update commit status.".dimmed()
+            );
+        }
         ReviewStrategy::LogOnly => {
-            println!("{}", format!("Commit {} marked as approved", short).green());
+            println!(
+                "{}",
+                format!("✅ Commit {} marked as approved", short).green()
+            );
         }
     }
 

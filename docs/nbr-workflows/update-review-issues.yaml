@@ -1,0 +1,81 @@
+name: Update-review-issues
+
+on:
+  issues:
+    types:
+      - closed
+
+jobs:
+  update-parent-checklist:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'peer-review') && !contains(github.event.issue.labels.*.name, 'author-issue')
+    steps:
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.TRUNKTOPUS_APP_ID }}
+          private-key: ${{ secrets.TRUNKTOPUS_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+      - name: Extract parent issue number from body
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        id: extract
+        run: |
+          echo "Issue #${{ github.event.issue.number }} was closed"
+          echo "Title: ${{ github.event.issue.title }}"
+          echo "By: ${{ github.actor }}"
+          ISSUE_NUM=${{ github.event.issue.number }}
+          REPO_NAME=${{ github.repository }}
+
+          echo "Fetching body for issue #$ISSUE_NUM in $REPO_NAME"
+          BODY=$(gh issue view "$ISSUE_NUM" --repo "$REPO_NAME" --json body | jq -r '.body')
+
+          echo "Issue body is:"
+          echo "$BODY"
+
+          PARENT_ISSUE_NUM=$(echo "$BODY" | grep -oE 'Linked to main issue: #[0-9]+' | grep -oE '[0-9]+')
+          echo "Parent issue num: $PARENT_ISSUE_NUM"
+
+          echo "Found parent issue number: $PARENT_ISSUE_NUM"
+          echo "parent=$PARENT_ISSUE_NUM" >> $GITHUB_OUTPUT
+
+
+      - name: Get parent issue body
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        id: parent
+        if: steps.extract.outputs.parent != ''
+        run: |
+          echo "📄 Fetching parent issue body..."
+          PARENT_NUM=${{ steps.extract.outputs.parent }}
+          REPO_NAME=${{ github.repository }}
+          echo "Parentnumber: $PARENT_NUM"
+          PARENT_JSON=$(gh issue view "$PARENT_NUM" --repo "$REPO_NAME" --json title,body)
+          PARENT_TITLE=$(echo "$PARENT_JSON" | jq -r '.title')
+          PARENT_BODY=$(echo "$PARENT_JSON" | jq -r '.body')
+
+          echo "Original title: $PARENT_TITLE"
+          echo "Original body: $PARENT_BODY"
+
+          SUB_ISSUE_URL="https://github.com/${{ github.repository }}/issues/${{ github.event.issue.number }}"
+          echo "Sub issue URL: $SUB_ISSUE_URL"
+          UPDATED_BODY=$(echo "$PARENT_BODY" | sed -E "s|- \[ \] (\[Sub-task for [^]]*\]\($SUB_ISSUE_URL\))|- [x] \1|")
+          echo "$UPDATED_BODY"
+
+          # gh api repos/$REPO_NAME/issues/$PARENT_NUM -X PATCH -F body="$UPDATED_BODY"
+          echo "Sub issue has been checked in parent"
+          if [[ "$PARENT_TITLE" != ✅* ]]; then
+            UPDATED_TITLE="✅ $PARENT_TITLE"
+          else
+            UPDATED_TITLE="$PARENT_TITLE"
+          fi
+
+          echo "Updated title: $UPDATED_TITLE"
+
+          # Patch title and body
+          gh api --method PATCH \
+            /repos/$REPO_NAME/issues/$PARENT_NUM \
+            -f title="$UPDATED_TITLE" \
+            -f body="$UPDATED_BODY"
+
+          echo "✅ Sub issue marked complete and parent updated"

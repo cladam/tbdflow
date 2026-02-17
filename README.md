@@ -409,14 +409,48 @@ Enable the review system in your `.tbdflow.yml`:
 ```yaml
 review:
   enabled: true
-  strategy: github-issue  # or "log-only" for local tracking only
+  strategy: github-issue  # or "github-workflow" or "log-only"
   default_reviewers:
     - teammate-username
     - another-reviewer
 ```
 
-> **Note:** The `github-issue` strategy requires the [GitHub CLI (`gh`)](https://cli.github.com/) to be installed
-> and authenticated. The tool will automatically create a `review` label in your repository if it doesn't exist.
+**Strategies:**
+
+| Strategy          | Description                                            | Best For                             |
+|-------------------|--------------------------------------------------------|--------------------------------------|
+| `github-issue`    | CLI creates GitHub issues directly                     | Small teams, simple setup            |
+| `github-workflow` | CLI triggers GitHub Actions for server-side management | Regulated environments, audit trails |
+| `log-only`        | Local logging only, no external integration            | Offline or air-gapped environments   |
+
+> **Note:** Both `github-issue` and `github-workflow` strategies require the [GitHub CLI (
+`gh`)](https://cli.github.com/)
+> to be installed and authenticated.
+
+#### Server-Side Reviews with GitHub Actions
+
+For teams that need **commit status gates**, **full audit trails**, or **multi-reviewer orchestration**, use the
+`github-workflow` strategy. This triggers a GitHub Actions workflow that:
+
+1. Creates review issues (even if someone bypasses the CLI)
+2. Sets commit statuses (`pending` → `success`) for deploy gating
+3. Handles multi-reviewer consensus automatically
+
+To set up:
+
+1. Copy `.github/workflows/nbr-review.yml.example` to `.github/workflows/nbr-review.yml`
+2. Configure your `.tbdflow.yml`:
+
+```yaml
+review:
+  enabled: true
+  strategy: github-workflow
+  workflow: nbr-review.yml
+  default_reviewers:
+    - teammate-username
+```
+
+3. Run `tbdflow review --trigger` — the workflow handles the rest
 
 ### 6. Utility commands
 

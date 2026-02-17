@@ -30,6 +30,8 @@ pub enum ReviewStrategy {
     /// Create GitHub issues for review tracking (requires `gh` CLI).
     #[default]
     GithubIssue,
+    /// Trigger a GitHub Actions workflow for server-side review management.
+    GithubWorkflow,
     /// Log reviews locally without external integration.
     LogOnly,
 }
@@ -47,6 +49,10 @@ pub struct ReviewConfig {
     /// Review strategy for handling review requests.
     #[serde(default)]
     pub strategy: ReviewStrategy,
+    /// Workflow filename to trigger (for github-workflow strategy).
+    /// Example: "nbr-review.yml"
+    #[serde(default)]
+    pub workflow: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
