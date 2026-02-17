@@ -47,7 +47,7 @@ pub fn trigger_review(
 
     println!(
         "{} {} ({})",
-        "🔍 Review requested for:".green(),
+        "Review requested for:".green(),
         message.bold(),
         short.dimmed()
     );
@@ -72,7 +72,7 @@ pub fn trigger_review(
         ReviewStrategy::LogOnly => {
             println!(
                 "{}",
-                "📝 Review logged (no external system integration)".dimmed()
+                "Review logged (no external system integration)".dimmed()
             );
         }
     }
@@ -144,7 +144,7 @@ fn trigger_github_workflow(
         println!(
             "{}",
             format!(
-                "🚀 Workflow '{}' triggered for commit {}",
+                "Workflow '{}' triggered for commit {}",
                 workflow_name, short
             )
             .green()
@@ -480,10 +480,7 @@ pub fn handle_review_approve(
             );
         }
         ReviewStrategy::LogOnly => {
-            println!(
-                "{}",
-                format!("✅ Commit {} marked as approved", short).green()
-            );
+            println!("{}", format!("Commit {} marked as approved", short).green());
         }
     }
 
