@@ -23,7 +23,27 @@ The PR model introduces several "invisible" costs that NBR specifically solves:
 - **False Sense of Security:** Many PRs are "rubber-stamped" (LGTM!) because the reviewer is busy or lacks context. NBR
   encourages a "Fix-Forward" culture where the code is already live, making the stakes for clear understanding higher.
 
-## 2. When do PRs actually make sense?
+## 2. The CI Efficiency Paradox: "Do we test every commit?"
+
+A common concern is the resource cost of running full CI (builds, tests, linting) on every small, atomic commit.
+However, testing small increments is actually **more efficient** than testing large batches:
+
+- **The "Wait Cost" vs. "Compute Cost":** A developer's hour is significantly more expensive than a CI runner's hour.
+  Stopping
+  a developer to "save" CI resources is a poor economic trade-off.
+
+- **Vertical CI:** In TBD, CI runs in parallel with the developer's flow. By the time you start your next small task,
+  the CI
+  for your previous 10-line change is already giving you a "Green Tick."
+
+- **Small Blast Radius:** If a 10-line commit breaks the build, the "Fix-Forward" is immediate and obvious. If a
+  1,000-line PR
+  breaks the build, the investigation can take hours.
+
+- **Incremental Verification:** Modern CI tools only run tests for the code that actually
+  changed. Atomic commits allow these tools to be hyper-efficient, often running in seconds rather than minutes.
+
+## 3. When do PRs actually make sense?
 
 If we are building a "trusted environment," PRs are almost never the optimal choice. However, `tbdflow` recognises a few
 specific scenarios where the PR model might still be used as an exception, not the rule:
@@ -45,7 +65,7 @@ Some specific industries (Medical, Aerospace, Finance) have legacy compliance re
 before code hits a production-connected branch. While NBR with a solid audit trail usually satisfies the "4-eyes
 principle," some organisations aren't culturally ready to move that gate post-commit.
 
-## 3. The `tbdflow` Alternative: Pairing & NBR
+## 4. The `tbdflow` Alternative: Pairing & NBR
 
 Instead of PRs, `tbdflow` encourages:
 
