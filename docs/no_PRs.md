@@ -31,7 +31,7 @@ specific scenarios where the PR model might still be used as an exception, not t
 ### A. Untrusted Contributors (Open Source)
 
 If someone outside the core team (an external contributor or a new hire on their first day) wants to contribute, you
-cannot afford them direct access to `main. In this case, the PR acts as a traditional security boundary.
+cannot afford them direct access to `main`. In this case, the PR acts as a traditional security boundary.
 
 ### B. "Deep-Sea" Experiments
 
@@ -47,7 +47,7 @@ principle," some organisations aren't culturally ready to move that gate post-co
 
 ## 3. The `tbdflow` Alternative: Pairing & NBR
 
-Instead of PRs, `tbdflow encourages:
+Instead of PRs, `tbdflow` encourages:
 
 - **Pair/Mob Programming:** The ultimate "Real-time Review." If two people wrote the code, the "4-eyes principle" is
   satisfied at the moment of creation. No review issue is needed.
