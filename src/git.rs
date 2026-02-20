@@ -501,6 +501,23 @@ pub fn get_log_since(since: &str, verbose: bool, dry_run: bool) -> Result<String
     )
 }
 
+/// Get the list of files changed in a specific commit.
+/// Returns a vector of file paths relative to the repository root.
+pub fn get_changed_files(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<Vec<String>> {
+    let output = run_git_command(
+        "diff-tree",
+        &["--no-commit-id", "--name-only", "-r", commit_hash],
+        verbose,
+        dry_run,
+    )?;
+
+    Ok(output
+        .lines()
+        .filter(|line| !line.is_empty())
+        .map(|line| line.to_string())
+        .collect())
+}
+
 /// Unit tests for the Git module.
 /// These tests check if Git is installed, if the run_git_command function works correctly,
 /// and if the status function returns expected results.

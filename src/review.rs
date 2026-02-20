@@ -5,6 +5,7 @@ use crate::config::{Config, ReviewStrategy};
 use crate::git;
 use anyhow::{Context, Result};
 use colored::Colorize;
+use glob::Pattern;
 use std::process::Command;
 
 /// Returns the first 7 characters of a commit hash for display purposes.
@@ -40,11 +41,62 @@ pub fn trigger_review(
         return Ok(());
     }
 
+    // 1. Identify which rules apply based on touched files
+    let touched_files = git::get_changed_files(commit_hash, verbose, dry_run)?;
+    let mut applicable_reviewers: Vec<String> = Vec::new();
+    let mut is_targeted = false;
+    let mut is_mandatory = false;
+
+    for rule in &config.review.rules {
+        if let Ok(pattern) = Pattern::new(&rule.pattern) {
+            let matched = touched_files.iter().any(|f| pattern.matches(f));
+            if matched {
+                if verbose {
+                    println!(
+                        "{} File match for rule: {}",
+                        "[RULE]".magenta(),
+                        rule.pattern.dimmed()
+                    );
+                }
+                is_targeted = true;
+                if rule.mandatory {
+                    is_mandatory = true;
+                }
+                if let Some(rule_reviewers) = &rule.reviewers {
+                    applicable_reviewers.extend(rule_reviewers.clone());
+                }
+            }
+        }
+    }
+
+    // 2. Decide if we should skip
+    let has_skip_tag = message.contains("$noreview");
+    if has_skip_tag && !is_mandatory {
+        if verbose {
+            println!("{}", "Skipping review due to $noreview tag.".dimmed());
+        }
+        return Ok(());
+    }
+
+    // 3. Aggregate reviewers
+    let mut final_reviewers = if let Some(ovr) = reviewers_override {
+        ovr.to_vec()
+    } else if !applicable_reviewers.is_empty() {
+        applicable_reviewers
+    } else {
+        config.review.default_reviewers.clone()
+    };
+
+    final_reviewers.sort();
+    final_reviewers.dedup();
+
+    // 4. Trigger the review
     println!("{}", "--- Triggering Non-blocking Review ---".blue());
+    if is_targeted {
+        println!("{} Review triggered by targeted file rules.", "🎯".yellow());
+    }
 
     let short = short_hash(commit_hash);
-    let reviewers = reviewers_override.unwrap_or(&config.review.default_reviewers);
-
     println!(
         "{} {} ({})",
         "Review requested for:".green(),
@@ -52,8 +104,8 @@ pub fn trigger_review(
         short.dimmed()
     );
     println!("   Author: {}", author);
-    if !reviewers.is_empty() {
-        println!("   Reviewers: {}", reviewers.join(", "));
+    if !final_reviewers.is_empty() {
+        println!("   Reviewers: {}", final_reviewers.join(", "));
     }
 
     if dry_run {
@@ -64,10 +116,17 @@ pub fn trigger_review(
     // Strategy-specific handling using type-safe enum
     match &config.review.strategy {
         ReviewStrategy::GithubIssue => {
-            create_github_issue(reviewers, commit_hash, message, author, verbose)?;
+            create_github_issue(&final_reviewers, commit_hash, message, author, verbose)?;
         }
         ReviewStrategy::GithubWorkflow => {
-            trigger_github_workflow(config, commit_hash, message, author, reviewers, verbose)?;
+            trigger_github_workflow(
+                config,
+                commit_hash,
+                message,
+                author,
+                &final_reviewers,
+                verbose,
+            )?;
         }
         ReviewStrategy::LogOnly => {
             println!(

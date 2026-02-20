@@ -1,0 +1,272 @@
+# Non-Blocking Review (NBR) Workflow for Trunk-Based Development
+#
+# Inspired by Martin's "Trunktopus" pattern for server-side review management.
+#
+# This workflow provides:
+# - Automatic issue creation for every push to main (audit trail)
+# - Commit status gates (pending → success) for deploy blocking
+# - Inline diffs for small changes (< 60 lines)
+# - Multi-reviewer support via checklist
+#
+# To use this workflow:
+# 1. Rename this file to `nbr-review.yml`
+# 2. Configure your .tbdflow.yml:
+#    review:
+#      enabled: true
+#      strategy: github-workflow
+#      workflow: nbr-review.yml
+#      default_reviewers:
+#        - reviewer-username
+
+name: Non-Blocking Review
+
+on:
+  # Triggered by tbdflow CLI
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'The full commit SHA to review'
+        required: true
+        type: string
+      commit_message:
+        description: 'The commit message'
+        required: true
+        type: string
+      author:
+        description: 'The commit author'
+        required: true
+        type: string
+      reviewers:
+        description: 'Comma-separated list of reviewers'
+        required: false
+        type: string
+        default: ''
+
+  # Also trigger on every push to main for full audit trail
+  push:
+    branches:
+      - main
+
+# Prevent duplicate issues from rapid pushes
+concurrency:
+  group: nbr-review-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  create-review:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      statuses: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need parent commit for diff
+
+      - name: Get commit info
+        id: commit-info
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "sha=${{ inputs.commit_sha }}" >> $GITHUB_OUTPUT
+            echo "message=${{ inputs.commit_message }}" >> $GITHUB_OUTPUT
+            echo "author=${{ inputs.author }}" >> $GITHUB_OUTPUT
+            echo "reviewers=${{ inputs.reviewers }}" >> $GITHUB_OUTPUT
+          else
+            echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "message=$(git log -1 --format=%s)" >> $GITHUB_OUTPUT
+            echo "author=$(git log -1 --format=%an)" >> $GITHUB_OUTPUT
+            echo "reviewers=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for existing review issue
+        id: existing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHORT_SHA="${{ steps.commit-info.outputs.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+
+          EXISTING=$(gh issue list --state open --label "author-issue" --search "$SHORT_SHA in:title" --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "issue_number=$EXISTING" >> $GITHUB_OUTPUT
+            echo "Review issue #$EXISTING already exists for $SHORT_SHA"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set pending commit status
+        if: steps.existing.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api repos/${{ github.repository }}/statuses/${{ steps.commit-info.outputs.sha }} \
+            -f state='pending' \
+            -f context='peer-review' \
+            -f description='Awaiting non-blocking review'
+          echo "✅ Commit status set to pending"
+
+      - name: Generate inline diff (for small changes)
+        if: steps.existing.outputs.exists != 'true'
+        id: diff
+        run: |
+          DIFF=$(git show --no-color --stat --patch --no-prefix ${{ steps.commit-info.outputs.sha }} | tail -n +2)
+          DIFF_LINES=$(echo "$DIFF" | wc -l)
+
+          if [ "$DIFF_LINES" -le 60 ]; then
+            echo "include_diff=true" >> $GITHUB_OUTPUT
+            echo "diff_lines=$DIFF_LINES" >> $GITHUB_OUTPUT
+            # Escape for GitHub Actions
+            DIFF_ESCAPED=$(echo "$DIFF" | sed 's/`/\\`/g')
+            EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+            echo "diff<<$EOF" >> $GITHUB_OUTPUT
+            echo "$DIFF" >> $GITHUB_OUTPUT
+            echo "$EOF" >> $GITHUB_OUTPUT
+          else
+            echo "include_diff=false" >> $GITHUB_OUTPUT
+            echo "diff_lines=$DIFF_LINES" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Ensure labels exist
+        if: steps.existing.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create "peer-review" --color "1D76DB" --description "Peer review of commit" 2>/dev/null || true
+          gh label create "author-issue" --color "5319E7" --description "Author issue for commit review" 2>/dev/null || true
+
+      - name: Create review issue
+        if: steps.existing.outputs.exists != 'true'
+        id: create-issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHA="${{ steps.commit-info.outputs.sha }}"
+          SHORT_SHA="${SHA:0:7}"
+          MESSAGE="${{ steps.commit-info.outputs.message }}"
+          AUTHOR="${{ steps.commit-info.outputs.author }}"
+          REVIEWERS="${{ steps.commit-info.outputs.reviewers }}"
+          REPO_URL="https://github.com/${{ github.repository }}"
+
+          # Build diff section
+          if [ "${{ steps.diff.outputs.include_diff }}" == "true" ]; then
+            DIFF_SECTION="
+
+          <details>
+          <summary>📝 Inline diff (${{ steps.diff.outputs.diff_lines }} lines)</summary>
+
+          \`\`\`diff
+          ${{ steps.diff.outputs.diff }}
+          \`\`\`
+
+          </details>"
+          else
+            DIFF_SECTION="
+
+          > 📄 Large change (${{ steps.diff.outputs.diff_lines }} lines) - [view full diff]($REPO_URL/commit/$SHA)"
+          fi
+
+          # Build reviewer checklist
+          REVIEWER_CHECKLIST=""
+          if [ -n "$REVIEWERS" ]; then
+            IFS=',' read -ra REVIEWER_ARRAY <<< "$REVIEWERS"
+            for reviewer in "${REVIEWER_ARRAY[@]}"; do
+              reviewer=$(echo "$reviewer" | xargs)  # trim whitespace
+              if [ -n "$reviewer" ]; then
+                REVIEWER_CHECKLIST="$REVIEWER_CHECKLIST
+          - [ ] @$reviewer"
+              fi
+            done
+          fi
+
+          BODY="## Non-Blocking Review Request
+
+          **Commit:** [\`$SHORT_SHA\`]($REPO_URL/commit/$SHA)
+          **Author:** $AUTHOR
+          **Message:** $MESSAGE
+          $DIFF_SECTION
+
+          ---
+
+          > In Trunk-Based Development, this code is already in the trunk.
+          > Your goal is **Course Correction** and **Knowledge Sharing**, not gatekeeping.
+
+          ### 🔍 What to Look For
+
+          | Focus | Question |
+          |-------|----------|
+          | **Design & Intent** | Does the implementation align with our architectural patterns? |
+          | **Logic & Edge Cases** | Are there logical flaws or unhappy paths that tests might miss? |
+          | **Readability** | Are names descriptive? (Code as Documentation) |
+          | **Simplification** | Can this be done with less code or lower complexity? |
+
+          ### 💬 How to Comment
+
+          - **Questions > Commands**: _\"Could we use the existing helper here?\"_ instead of _\"Change this.\"_
+          - **Praise**: If you see something clever or clean, say so! NBR boosts team morale.
+          - **Nitpicking**: Label minor style issues as \`(nit)\` so the author knows they're optional.
+
+          ### ✅ Reviewer Checklist
+          $REVIEWER_CHECKLIST
+
+          ### When to Close
+
+          - **Approve & Close**: Code is safe and understandable.
+          - **Comment & Close**: Non-critical improvements noted.
+          - **Keep Open**: Only for critical bugs or security flaws requiring immediate fix-forward.
+
+          ---
+
+          To approve via CLI: \`tbdflow review --approve $SHORT_SHA\`"
+
+          # Create the issue
+          ISSUE_URL=$(gh issue create \
+            --title "[Review] $MESSAGE ($SHORT_SHA)" \
+            --body "$BODY" \
+            --label "peer-review,author-issue")
+
+          ISSUE_NUM=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
+          echo "issue_number=$ISSUE_NUM" >> $GITHUB_OUTPUT
+          echo "✅ Created review issue #$ISSUE_NUM: $ISSUE_URL"
+
+  # Update commit status when review issue is closed
+  on-review-closed:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'closed' && contains(github.event.issue.labels.*.name, 'author-issue')
+    permissions:
+      statuses: write
+      issues: read
+
+    steps:
+      - name: Extract commit SHA and mark as reviewed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BODY="${{ github.event.issue.body }}"
+
+          # Extract commit SHA from issue body (looks for /commit/SHA pattern)
+          FULL_SHA=$(echo "$BODY" | grep -oE 'github\.com/.*/commit/[a-f0-9]+' | grep -oE '[a-f0-9]{40}' | head -n1)
+
+          if [ -z "$FULL_SHA" ]; then
+            # Try short SHA from title
+            SHORT_SHA=$(echo "${{ github.event.issue.title }}" | grep -oE '\([a-f0-9]{7}\)' | tr -d '()')
+            if [ -n "$SHORT_SHA" ]; then
+              # Get full SHA from short
+              FULL_SHA=$(gh api repos/${{ github.repository }}/commits/$SHORT_SHA --jq '.sha' 2>/dev/null || echo "")
+            fi
+          fi
+
+          if [ -n "$FULL_SHA" ]; then
+            gh api repos/${{ github.repository }}/statuses/$FULL_SHA \
+              -f state='success' \
+              -f context='peer-review' \
+              -f description='Non-blocking review completed ✅'
+            echo "✅ Commit $FULL_SHA marked as reviewed"
+          else
+            echo "⚠️ Could not extract commit SHA from issue"
+          fi
+

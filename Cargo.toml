@@ -18,6 +18,7 @@ colored = "3.1.1"
 thiserror = "2.0.18"
 anyhow = "1.0.101"
 chrono = "0.4.43"
+glob = "0.3.2"
 serde_yaml = "0.9.33"
 serde = { version = "1.0.228", features = ["derive"] }
 dialoguer = "0.12.0"

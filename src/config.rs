@@ -36,6 +36,22 @@ pub enum ReviewStrategy {
     LogOnly,
 }
 
+/// Rule for targeted review based on file patterns.
+/// Allows assigning specific reviewers to certain files or directories.
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+pub struct ReviewRule {
+    /// Glob pattern for files that trigger this rule (e.g., "src/auth/**", "infra/*.tf")
+    pub pattern: String,
+    /// Optional list of reviewers specifically for these files.
+    /// If empty, it uses the default_reviewers.
+    #[serde(default)]
+    pub reviewers: Option<Vec<String>>,
+    /// If true, a review is always triggered for these files even if the commit message
+    /// contains $noreview.
+    #[serde(default)]
+    pub mandatory: bool,
+}
+
 /// Configuration for non-blocking post-commit reviews.
 /// This enables TBD-style reviews where code is committed first and reviewed asynchronously.
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -53,6 +69,9 @@ pub struct ReviewConfig {
     /// Example: "nbr-review.yml"
     #[serde(default)]
     pub workflow: Option<String>,
+    /// Rules for targeted review based on file patterns.
+    #[serde(default)]
+    pub rules: Vec<ReviewRule>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
