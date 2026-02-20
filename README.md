@@ -418,13 +418,15 @@ review:
 #### Targeted Review Rules
 
 For teams that need specific reviewers for certain files or directories, you can configure **review rules** with glob
-patterns. This allows:
+patterns. When rules are configured, reviews are **automatically triggered** after a commit if any changed files match
+a rule pattern. The appropriate reviewers are assigned based on the matching rules.
 
-- **Low Friction**: Most commits still just create a general review for the team
-- **High Accountability**: If someone touches sensitive files (e.g., database migrations), tbdflow automatically tags
-  the relevant expert
-- **Mandatory Audits**: The `mandatory: true` flag ensures that high-risk files cannot be "silenced" by a developer
-  using the `$noreview` tag
+This allows:
+
+- **Opt-in by Default**: Without rules, `tbdflow review --trigger` is manual
+- **Auto-trigger with Rules**: When rules are configured and files match, reviews are triggered automatically after
+  commit
+- **Smart Routing**: Database changes go to the DB expert, infrastructure changes go to DevOps, etc.
 
 ```yaml
 review:
@@ -434,10 +436,9 @@ review:
     - cladam
 
   rules:
-    # Always review database changes, even if $noreview is used
+    # Database changes get reviewed by the DB expert
     - pattern: "migrations/**"
       reviewers: [ "db-expert" ]
-      mandatory: true
 
     # Targeted review for infrastructure changes
     - pattern: "infra/*.tf"
@@ -450,11 +451,10 @@ review:
 
 **Rule Options:**
 
-| Field       | Description                                                               | Required |
-|-------------|---------------------------------------------------------------------------|----------|
-| `pattern`   | Glob pattern for files that trigger this rule (e.g., `src/auth/**`)       | Yes      |
-| `reviewers` | List of reviewers specifically for these files (uses default if not set)  | No       |
-| `mandatory` | If `true`, review is always triggered even if commit contains `$noreview` | No       |
+| Field       | Description                                                              | Required |
+|-------------|--------------------------------------------------------------------------|----------|
+| `pattern`   | Glob pattern for files that trigger this rule (e.g., `src/auth/**`)      | Yes      |
+| `reviewers` | List of reviewers specifically for these files (uses default if not set) | No       |
 
 **Strategies:**
 

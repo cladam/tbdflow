@@ -13,6 +13,38 @@ fn short_hash(hash: &str) -> &str {
     &hash[..7.min(hash.len())]
 }
 
+/// Checks if any review rules match the files changed in a commit.
+/// Returns true if at least one rule pattern matches, meaning a review should be auto-triggered.
+pub fn should_auto_trigger_review(
+    config: &Config,
+    commit_hash: &str,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<bool> {
+    if !config.review.enabled || config.review.rules.is_empty() {
+        return Ok(false);
+    }
+
+    let touched_files = git::get_changed_files(commit_hash, verbose, dry_run)?;
+
+    for rule in &config.review.rules {
+        if let Ok(pattern) = Pattern::new(&rule.pattern) {
+            if touched_files.iter().any(|f| pattern.matches(f)) {
+                if verbose {
+                    println!(
+                        "{} Auto-trigger: files match rule pattern '{}'",
+                        "[REVIEW]".magenta(),
+                        rule.pattern
+                    );
+                }
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
 /// Triggers a non-blocking review for a commit.
 /// This is called automatically after committing to main (if enabled),
 /// or manually via `tbdflow review --trigger`.
@@ -45,7 +77,6 @@ pub fn trigger_review(
     let touched_files = git::get_changed_files(commit_hash, verbose, dry_run)?;
     let mut applicable_reviewers: Vec<String> = Vec::new();
     let mut is_targeted = false;
-    let mut is_mandatory = false;
 
     for rule in &config.review.rules {
         if let Ok(pattern) = Pattern::new(&rule.pattern) {
@@ -59,9 +90,6 @@ pub fn trigger_review(
                     );
                 }
                 is_targeted = true;
-                if rule.mandatory {
-                    is_mandatory = true;
-                }
                 if let Some(rule_reviewers) = &rule.reviewers {
                     applicable_reviewers.extend(rule_reviewers.clone());
                 }
@@ -69,16 +97,7 @@ pub fn trigger_review(
         }
     }
 
-    // 2. Decide if we should skip
-    let has_skip_tag = message.contains("$noreview");
-    if has_skip_tag && !is_mandatory {
-        if verbose {
-            println!("{}", "Skipping review due to $noreview tag.".dimmed());
-        }
-        return Ok(());
-    }
-
-    // 3. Aggregate reviewers
+    // 2. Aggregate reviewers
     let mut final_reviewers = if let Some(ovr) = reviewers_override {
         ovr.to_vec()
     } else if !applicable_reviewers.is_empty() {
@@ -90,7 +109,7 @@ pub fn trigger_review(
     final_reviewers.sort();
     final_reviewers.dedup();
 
-    // 4. Trigger the review
+    // 3. Trigger the review
     println!("{}", "--- Triggering Non-blocking Review ---".blue());
     if is_targeted {
         println!("{} Review triggered by targeted file rules.", "🎯".yellow());

@@ -1,5 +1,5 @@
 use crate::config::{Config, DodConfig};
-use crate::{config, git};
+use crate::{config, git, review};
 use anyhow::Result;
 use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect};
@@ -340,6 +340,21 @@ pub fn handle_commit(
                 "\n{}",
                 "Successfully committed and pushed changes to main.".green()
             );
+
+            // Auto-trigger review if rules match the changed files
+            let commit_hash = git::get_head_commit_hash(verbose, dry_run)?;
+            if review::should_auto_trigger_review(config, &commit_hash, verbose, dry_run)? {
+                let author = git::get_user_name(verbose, dry_run)?;
+                review::trigger_review(
+                    config,
+                    None,
+                    &commit_hash,
+                    &commit_message,
+                    &author,
+                    verbose,
+                    dry_run,
+                )?;
+            }
         } else {
             println!("--- Committing to feature branch '{}' ---", current_branch);
             git::commit(&commit_message, verbose, dry_run)?;

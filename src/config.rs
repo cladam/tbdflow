@@ -46,10 +46,6 @@ pub struct ReviewRule {
     /// If empty, it uses the default_reviewers.
     #[serde(default)]
     pub reviewers: Option<Vec<String>>,
-    /// If true, a review is always triggered for these files even if the commit message
-    /// contains $noreview.
-    #[serde(default)]
-    pub mandatory: bool,
 }
 
 /// Configuration for non-blocking post-commit reviews.
