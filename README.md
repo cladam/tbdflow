@@ -415,6 +415,47 @@ review:
     - another-reviewer
 ```
 
+#### Targeted Review Rules
+
+For teams that need specific reviewers for certain files or directories, you can configure **review rules** with glob
+patterns. This allows:
+
+- **Low Friction**: Most commits still just create a general review for the team
+- **High Accountability**: If someone touches sensitive files (e.g., database migrations), tbdflow automatically tags
+  the relevant expert
+- **Mandatory Audits**: The `mandatory: true` flag ensures that high-risk files cannot be "silenced" by a developer
+  using the `$noreview` tag
+
+```yaml
+review:
+  enabled: true
+  strategy: github-issue
+  default_reviewers:
+    - cladam
+
+  rules:
+    # Always review database changes, even if $noreview is used
+    - pattern: "migrations/**"
+      reviewers: [ "db-expert" ]
+      mandatory: true
+
+    # Targeted review for infrastructure changes
+    - pattern: "infra/*.tf"
+      reviewers: [ "devops-lead" ]
+
+    # Targeted review for critical security modules
+    - pattern: "src/auth/**"
+      reviewers: [ "security-officer" ]
+```
+
+**Rule Options:**
+
+| Field       | Description                                                               | Required |
+|-------------|---------------------------------------------------------------------------|----------|
+| `pattern`   | Glob pattern for files that trigger this rule (e.g., `src/auth/**`)       | Yes      |
+| `reviewers` | List of reviewers specifically for these files (uses default if not set)  | No       |
+| `mandatory` | If `true`, review is always triggered even if commit contains `$noreview` | No       |
+
 **Strategies:**
 
 | Strategy          | Description                                            | Best For                             |
