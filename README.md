@@ -381,13 +381,16 @@ tbdflow review [options]
 
 **Options:**
 
-| Option                | Description                                                    |
-|-----------------------|----------------------------------------------------------------|
-| --trigger             | Create a review request for the current HEAD commit.           |
-| --digest              | Generate a digest of commits needing review.                   |
-| --approve \<hash\>    | Mark a specific commit as approved/reviewed.                   |
-| --since \<time\>      | Time range for digest (default: "1 day ago").                  |
-| --reviewers \<users\> | Override default reviewers (comma-separated GitHub usernames). |
+| Option                | Description                                                            |
+|-----------------------|------------------------------------------------------------------------|
+| --trigger             | Create a review request for the current HEAD commit.                   |
+| --digest              | Generate a digest of commits needing review.                           |
+| --approve \<hash\>    | Mark a commit as approved (closes issue with `review-accepted`).       |
+| --concern \<hash\>    | Raise a concern on a commit (keeps issue open, adds `review-concern`). |
+| --dismiss \<hash\>    | Dismiss a review (closes issue with `review-dismissed`).               |
+| -m, --message         | Message for concern or dismiss (required with --concern/--dismiss).    |
+| --since \<time\>      | Time range for digest (default: "1 day ago").                          |
+| --reviewers \<users\> | Override default reviewers (comma-separated GitHub usernames).         |
 
 **Examples:**
 
@@ -400,7 +403,36 @@ tbdflow review --digest --since "3 days ago"
 
 # Mark a commit as reviewed (closes the associated GitHub issue)
 tbdflow review --approve abc1234
+
+# Raise a concern on a commit (keeps issue open, notifies author)
+tbdflow review --concern abc1234 -m "Potential thread safety issue"
+
+# Dismiss a review without fixing (closes issue)
+tbdflow review --dismiss abc1234 -m "Won't fix, out of scope"
 ```
+
+#### Review Labels (Nuanced Statuses)
+
+`tbdflow` uses configurable labels to track review status throughout the lifecycle:
+
+| Label              | Description                                     | Issue State |
+|--------------------|-------------------------------------------------|-------------|
+| `review-pending`   | Review awaiting attention (default on creation) | Open        |
+| `review-concern`   | Concern raised - needs attention from author    | Open        |
+| `review-accepted`  | Review approved                                 | Closed      |
+| `review-dismissed` | Review dismissed (won't fix)                    | Closed      |
+
+**Concern Workflow:**
+
+When you raise a concern with `--concern`:
+
+1. The issue label changes from `review-pending` to `review-concern`
+2. A comment is added to the issue with the concern message
+3. The commit author is notified via `CC @author` in the comment
+4. A checklist item is appended to the issue body: `- [ ] <concern>`
+5. (Optional) A commit status is set based on `concern_blocks_status` config
+
+This is **always non-blocking** - concerns are informational and encourage fix-forward patterns.
 
 **Configuration:**
 
@@ -413,7 +445,27 @@ review:
   default_reviewers:
     - teammate-username
     - another-reviewer
+
+  # Optional: Customise label names (defaults shown)
+  labels:
+    pending: "review-pending"
+    concern: "review-concern"
+    accepted: "review-accepted"
+    dismissed: "review-dismissed"
+
+  # Optional: Set commit status to 'failure' when concern is raised
+  # If false (default), status is 'pending' with description
+  concern_blocks_status: false
 ```
+
+**Commit Status Behavior:**
+
+When `concern_blocks_status` is configured:
+
+| Setting           | Status State | Description                                   |
+|-------------------|--------------|-----------------------------------------------|
+| `false` (default) | `pending`    | "Awaiting fix-forward for concern: [message]" |
+| `true`            | `failure`    | "Audit Concern: [message]"                    |
 
 #### Targeted Review Rules
 

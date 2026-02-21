@@ -1,7 +1,7 @@
 // This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
 // It provides non-blocking post-commit review functionality.
 
-use crate::config::{Config, ReviewStrategy};
+use crate::config::{Config, ReviewLabelsConfig, ReviewStrategy};
 use crate::git;
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -135,7 +135,14 @@ pub fn trigger_review(
     // Strategy-specific handling using type-safe enum
     match &config.review.strategy {
         ReviewStrategy::GithubIssue => {
-            create_github_issue(&final_reviewers, commit_hash, message, author, verbose)?;
+            create_github_issue(
+                &config.review.labels,
+                &final_reviewers,
+                commit_hash,
+                message,
+                author,
+                verbose,
+            )?;
         }
         ReviewStrategy::GithubWorkflow => {
             trigger_github_workflow(
@@ -256,7 +263,14 @@ fn trigger_github_workflow(
                 "   Falling back to client-side issue creation...".dimmed()
             );
             // Fallback to client-side issue creation
-            create_github_issue(reviewers, commit_hash, message, author, verbose)?;
+            create_github_issue(
+                &config.review.labels,
+                reviewers,
+                commit_hash,
+                message,
+                author,
+                verbose,
+            )?;
         } else {
             println!(
                 "{}",
@@ -270,6 +284,7 @@ fn trigger_github_workflow(
 
 /// Creates a GitHub issue for post-commit review using the `gh` CLI.
 fn create_github_issue(
+    labels: &ReviewLabelsConfig,
     reviewers: &[String],
     commit_hash: &str,
     message: &str,
@@ -292,8 +307,8 @@ fn create_github_issue(
         return Ok(());
     }
 
-    // Ensure the 'review' label exists (create if missing)
-    ensure_review_label_exists(verbose);
+    // Ensure all review labels exist (create if missing)
+    ensure_review_labels_exist(labels, verbose);
 
     // Get the repository URL for commit links
     let repo_url = git::get_remote_url(verbose, false).unwrap_or_default();
@@ -323,24 +338,26 @@ fn create_github_issue(
         - **Questions > Commands**: _\"Could we use the existing helper here?\"_ instead of _\"Change this.\"_\n\
         - **Praise**: If you see something clever or clean, say so! NBR boosts team morale.\n\
         - **Nitpicking**: Label minor style issues as `(nit)` so the author knows they're optional.\n\n\
-        ### When to Close\n\n\
-        - **Approve & Close**: Code is safe and understandable.\n\
-        - **Comment & Close**: Non-critical improvements noted.\n\
-        - **Keep Open**: Only for critical bugs or security flaws requiring immediate fix-forward.\n\n\
+        ### Concerns\n\n\
+        _No concerns raised yet._\n\n\
         ---\n\n\
         To approve via CLI:\n\
         ```\n\
         tbdflow review --approve {}\n\
+        ```\n\n\
+        To raise a concern:\n\
+        ```\n\
+        tbdflow review --concern {} -m \"Your concern here\"\n\
         ```",
-        commit_url, author, message, short
+        commit_url, author, message, short, short
     );
 
     let mut args = vec!["issue", "create", "--title", &title, "--body", &body];
 
-    // Only add label if it exists
-    if review_label_exists() {
+    // Add the pending label
+    if label_exists(&labels.pending) {
         args.push("--label");
-        args.push("review");
+        args.push(&labels.pending);
     }
 
     // Add assignees if configured
@@ -374,43 +391,45 @@ fn create_github_issue(
     Ok(())
 }
 
-/// Checks if the 'review' label exists in the repository.
-fn review_label_exists() -> bool {
+/// Checks if a specific label exists in the repository.
+fn label_exists(label_name: &str) -> bool {
     Command::new("gh")
-        .args(["label", "list", "--search", "review", "--json", "name"])
+        .args(["label", "list", "--search", label_name, "--json", "name"])
         .output()
         .map(|o| {
-            o.status.success() && String::from_utf8_lossy(&o.stdout).contains("\"name\":\"review\"")
+            o.status.success()
+                && String::from_utf8_lossy(&o.stdout)
+                    .contains(&format!("\"name\":\"{}\"", label_name))
         })
         .unwrap_or(false)
 }
 
-/// Ensures the 'review' label exists, creating it if necessary.
-fn ensure_review_label_exists(verbose: bool) {
-    if review_label_exists() {
+/// Ensures a label exists, creating it if necessary.
+fn ensure_label_exists(label_name: &str, description: &str, color: &str, verbose: bool) {
+    if label_exists(label_name) {
         return;
     }
 
     if verbose {
-        println!("{} Creating 'review' label...", "[INFO]".cyan());
+        println!("{} Creating '{}' label...", "[INFO]".cyan(), label_name);
     }
 
     let result = Command::new("gh")
         .args([
             "label",
             "create",
-            "review",
+            label_name,
             "--description",
-            "Post-commit review request from tbdflow",
+            description,
             "--color",
-            "0E8A16",
+            color,
         ])
         .output();
 
     match result {
         Ok(output) if output.status.success() => {
             if verbose {
-                println!("{} Created 'review' label", "[INFO]".cyan());
+                println!("{} Created '{}' label", "[INFO]".cyan(), label_name);
             }
         }
         _ => {
@@ -418,6 +437,34 @@ fn ensure_review_label_exists(verbose: bool) {
             // The issue will still be created, just without the label
         }
     }
+}
+
+/// Ensures all review labels exist (pending, concern, accepted, dismissed).
+fn ensure_review_labels_exist(labels: &ReviewLabelsConfig, verbose: bool) {
+    ensure_label_exists(
+        &labels.pending,
+        "Review pending - awaiting attention",
+        "FBCA04", // Yellow
+        verbose,
+    );
+    ensure_label_exists(
+        &labels.concern,
+        "Review concern raised - needs attention",
+        "D93F0B", // Red-orange
+        verbose,
+    );
+    ensure_label_exists(
+        &labels.accepted,
+        "Review accepted/approved",
+        "0E8A16", // Green
+        verbose,
+    );
+    ensure_label_exists(
+        &labels.dismissed,
+        "Review dismissed - won't fix",
+        "6A737D", // Gray
+        verbose,
+    );
 }
 
 /// Checks if the GitHub CLI is available.
@@ -546,12 +593,12 @@ pub fn handle_review_approve(
 
     match &config.review.strategy {
         ReviewStrategy::GithubIssue => {
-            close_github_review_issue(short, verbose)?;
+            close_github_review_issue(&config.review.labels, short, verbose)?;
         }
         ReviewStrategy::GithubWorkflow => {
             // For workflow strategy, close the issue which will trigger
             // the server-side Action to update commit status
-            close_github_review_issue(short, verbose)?;
+            close_github_review_issue(&config.review.labels, short, verbose)?;
             println!(
                 "{}",
                 "   Server-side workflow will update commit status.".dimmed()
@@ -565,8 +612,492 @@ pub fn handle_review_approve(
     Ok(())
 }
 
-/// Closes a GitHub issue associated with a commit review.
-fn close_github_review_issue(short_hash: &str, verbose: bool) -> Result<()> {
+/// Raises a concern on a commit review (keeps issue open, adds concern label, notifies author).
+pub fn handle_review_concern(
+    config: &Config,
+    commit_hash: &str,
+    message: &str,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<()> {
+    let short = short_hash(commit_hash);
+
+    println!(
+        "{}",
+        format!("--- Raising Concern on Commit {} ---", short).blue()
+    );
+
+    if dry_run {
+        println!("{}", "[DRY RUN] Would raise concern on commit".yellow());
+        return Ok(());
+    }
+
+    match &config.review.strategy {
+        ReviewStrategy::GithubIssue | ReviewStrategy::GithubWorkflow => {
+            raise_github_concern(config, commit_hash, message, verbose)?;
+        }
+        ReviewStrategy::LogOnly => {
+            println!("{}", format!("CONCERN on {}: {}", short, message).yellow());
+        }
+    }
+
+    Ok(())
+}
+
+/// Dismisses a review (closes issue with dismissed label).
+pub fn handle_review_dismiss(
+    config: &Config,
+    commit_hash: &str,
+    message: &str,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<()> {
+    let short = short_hash(commit_hash);
+
+    println!(
+        "{}",
+        format!("--- Dismissing Review for Commit {} ---", short).blue()
+    );
+
+    if dry_run {
+        println!("{}", "[DRY RUN] Would dismiss review".yellow());
+        return Ok(());
+    }
+
+    match &config.review.strategy {
+        ReviewStrategy::GithubIssue | ReviewStrategy::GithubWorkflow => {
+            dismiss_github_review_issue(&config.review.labels, short, message, verbose)?;
+        }
+        ReviewStrategy::LogOnly => {
+            println!(
+                "{}",
+                format!("Review for {} dismissed: {}", short, message).dimmed()
+            );
+        }
+    }
+
+    Ok(())
+}
+
+/// Raises a concern on a GitHub review issue.
+fn raise_github_concern(
+    config: &Config,
+    commit_hash: &str,
+    message: &str,
+    verbose: bool,
+) -> Result<()> {
+    let short = short_hash(commit_hash);
+    let labels = &config.review.labels;
+
+    if !is_gh_cli_available() {
+        println!(
+            "{}",
+            "Warning: GitHub CLI (gh) not found. Cannot raise concern.".yellow()
+        );
+        return Ok(());
+    }
+
+    // Search for the review issue
+    let search_query = format!("[Review] in:title {} in:title is:open", short);
+
+    if verbose {
+        println!("{} Searching for review issue...", "[INFO]".cyan());
+    }
+
+    let output = Command::new("gh")
+        .args([
+            "issue",
+            "list",
+            "--search",
+            &search_query,
+            "--json",
+            "number,body",
+            "--limit",
+            "1",
+        ])
+        .output()
+        .context("Failed to search for GitHub issues")?;
+
+    if !output.status.success() {
+        println!(
+            "{}",
+            format!("Warning: Could not find review issue for {}", short).yellow()
+        );
+        return Ok(());
+    }
+
+    let json_output = String::from_utf8_lossy(&output.stdout);
+
+    if let Some(issue_num) = extract_issue_number(&json_output) {
+        let issue_num_str = issue_num.to_string();
+
+        // Get the commit author to CC them
+        let author = git::get_commit_author(commit_hash, verbose, false).unwrap_or_default();
+
+        // Update labels: remove pending, add concern
+        if verbose {
+            println!(
+                "{} Updating labels on issue #{}",
+                "[INFO]".cyan(),
+                issue_num
+            );
+        }
+
+        let _ = Command::new("gh")
+            .args([
+                "issue",
+                "edit",
+                &issue_num_str,
+                "--remove-label",
+                &labels.pending,
+            ])
+            .output();
+
+        let _ = Command::new("gh")
+            .args([
+                "issue",
+                "edit",
+                &issue_num_str,
+                "--add-label",
+                &labels.concern,
+            ])
+            .output();
+
+        // Add a comment with the concern, mentioning the author
+        let comment = format!("**Concern Raised**\n\n{}\n\nCC @{}", message, author);
+
+        let _ = Command::new("gh")
+            .args(["issue", "comment", &issue_num_str, "--body", &comment])
+            .output();
+
+        // Append checklist item to the issue body
+        append_concern_checklist_item(&issue_num_str, message, verbose)?;
+
+        // Set commit status based on config
+        set_commit_status(config, commit_hash, message, verbose)?;
+
+        println!(
+            "{}",
+            format!(
+                "Concern raised on issue #{} for commit {} (label: {})",
+                issue_num, short, labels.concern
+            )
+            .yellow()
+        );
+        println!("   CC @{}", author);
+    } else {
+        println!(
+            "{}",
+            format!("Warning: No open review issue found for commit {}", short).yellow()
+        );
+        println!("   Run 'tbdflow review --trigger' first to create the review issue.");
+    }
+
+    Ok(())
+}
+
+/// Appends a concern as a checklist item to the issue body.
+fn append_concern_checklist_item(
+    issue_num: &str,
+    concern_message: &str,
+    verbose: bool,
+) -> Result<()> {
+    // Get current issue body
+    let output = Command::new("gh")
+        .args(["issue", "view", issue_num, "--json", "body"])
+        .output()
+        .context("Failed to get issue body")?;
+
+    if !output.status.success() {
+        return Ok(());
+    }
+
+    let json_output = String::from_utf8_lossy(&output.stdout);
+
+    // Extract the body content
+    let current_body = extract_body_from_json(&json_output).unwrap_or_default();
+
+    // Replace the "No concerns raised yet" placeholder or append to concerns section
+    let new_body = if current_body.contains("_No concerns raised yet._") {
+        current_body.replace(
+            "_No concerns raised yet._",
+            &format!("- [ ] {}", concern_message),
+        )
+    } else if current_body.contains("### Concerns") {
+        // Find the concerns section and append the new item
+        let concerns_marker = "### Concerns\n\n";
+        if let Some(pos) = current_body.find(concerns_marker) {
+            let insert_pos = pos + concerns_marker.len();
+            let (before, after) = current_body.split_at(insert_pos);
+            format!("{}- [ ] {}\n{}", before, concern_message, after)
+        } else {
+            current_body
+        }
+    } else {
+        current_body
+    };
+
+    if verbose {
+        println!(
+            "{} Updating issue body with concern checklist item",
+            "[INFO]".cyan()
+        );
+    }
+
+    let _ = Command::new("gh")
+        .args(["issue", "edit", issue_num, "--body", &new_body])
+        .output();
+
+    Ok(())
+}
+
+/// Extracts body content from GitHub CLI JSON output.
+fn extract_body_from_json(json: &str) -> Option<String> {
+    // Looking for "body":"..." pattern
+    if let Some(start) = json.find("\"body\":\"") {
+        let rest = &json[start + 8..];
+        // Find the closing quote, handling escaped quotes
+        let mut end = 0;
+        let mut escaped = false;
+        for (i, c) in rest.chars().enumerate() {
+            if escaped {
+                escaped = false;
+                continue;
+            }
+            if c == '\\' {
+                escaped = true;
+                continue;
+            }
+            if c == '"' {
+                end = i;
+                break;
+            }
+        }
+        let body = &rest[..end];
+        // Unescape the string
+        Some(
+            body.replace("\\n", "\n")
+                .replace("\\\"", "\"")
+                .replace("\\\\", "\\"),
+        )
+    } else {
+        None
+    }
+}
+
+/// Sets commit status based on concern_blocks_status config.
+fn set_commit_status(
+    config: &Config,
+    commit_hash: &str,
+    message: &str,
+    verbose: bool,
+) -> Result<()> {
+    if !is_gh_cli_available() {
+        return Ok(());
+    }
+
+    let (state, description) = if config.review.concern_blocks_status {
+        ("failure", format!("Audit Concern: {}", message))
+    } else {
+        (
+            "pending",
+            format!("Awaiting fix-forward for concern: {}", message),
+        )
+    };
+
+    // Get repo owner/name
+    let repo_info = Command::new("gh")
+        .args(["repo", "view", "--json", "owner,name"])
+        .output();
+
+    let repo = match repo_info {
+        Ok(output) if output.status.success() => {
+            let json = String::from_utf8_lossy(&output.stdout);
+            extract_repo_from_json(&json)
+        }
+        _ => return Ok(()),
+    };
+
+    let Some((owner, name)) = repo else {
+        return Ok(());
+    };
+
+    if verbose {
+        println!(
+            "{} Setting commit status to '{}' for {}",
+            "[INFO]".cyan(),
+            state,
+            short_hash(commit_hash)
+        );
+    }
+
+    let api_path = format!("repos/{}/{}/statuses/{}", owner, name, commit_hash);
+
+    let _ = Command::new("gh")
+        .args([
+            "api",
+            &api_path,
+            "-f",
+            &format!("state={}", state),
+            "-f",
+            "context=peer-review",
+            "-f",
+            &format!("description={}", description),
+        ])
+        .output();
+
+    Ok(())
+}
+
+/// Extracts owner and name from GitHub CLI repo JSON output.
+fn extract_repo_from_json(json: &str) -> Option<(String, String)> {
+    // Simple extraction for {"owner":{"login":"..."},"name":"..."}
+    let owner_start = json.find("\"login\":\"")?;
+    let owner_rest = &json[owner_start + 9..];
+    let owner_end = owner_rest.find('"')?;
+    let owner = owner_rest[..owner_end].to_string();
+
+    let name_start = json.find("\"name\":\"")?;
+    let name_rest = &json[name_start + 8..];
+    let name_end = name_rest.find('"')?;
+    let name = name_rest[..name_end].to_string();
+
+    Some((owner, name))
+}
+
+/// Dismisses a GitHub review issue (closes with dismissed label).
+fn dismiss_github_review_issue(
+    labels: &ReviewLabelsConfig,
+    short_hash: &str,
+    message: &str,
+    verbose: bool,
+) -> Result<()> {
+    if !is_gh_cli_available() {
+        println!(
+            "{}",
+            "Warning: GitHub CLI (gh) not found. Cannot dismiss review.".yellow()
+        );
+        return Ok(());
+    }
+
+    // Search for the review issue
+    let search_query = format!("[Review] in:title {} in:title is:open", short_hash);
+
+    if verbose {
+        println!("{} Searching for review issue...", "[INFO]".cyan());
+    }
+
+    let output = Command::new("gh")
+        .args([
+            "issue",
+            "list",
+            "--search",
+            &search_query,
+            "--json",
+            "number",
+            "--limit",
+            "1",
+        ])
+        .output()
+        .context("Failed to search for GitHub issues")?;
+
+    if output.status.success() {
+        let json_output = String::from_utf8_lossy(&output.stdout);
+
+        if let Some(issue_num) = extract_issue_number(&json_output) {
+            let issue_num_str = issue_num.to_string();
+
+            // Update labels: remove pending/concern, add dismissed
+            if verbose {
+                println!(
+                    "{} Updating labels on issue #{}",
+                    "[INFO]".cyan(),
+                    issue_num
+                );
+            }
+
+            let _ = Command::new("gh")
+                .args([
+                    "issue",
+                    "edit",
+                    &issue_num_str,
+                    "--remove-label",
+                    &labels.pending,
+                ])
+                .output();
+
+            let _ = Command::new("gh")
+                .args([
+                    "issue",
+                    "edit",
+                    &issue_num_str,
+                    "--remove-label",
+                    &labels.concern,
+                ])
+                .output();
+
+            let _ = Command::new("gh")
+                .args([
+                    "issue",
+                    "edit",
+                    &issue_num_str,
+                    "--add-label",
+                    &labels.dismissed,
+                ])
+                .output();
+
+            // Close with a comment
+            let comment = format!(
+                "**Dismissed** via `tbdflow review --dismiss`\n\nReason: {}",
+                message
+            );
+
+            let close_output = Command::new("gh")
+                .args(["issue", "close", &issue_num_str, "--comment", &comment])
+                .output()
+                .context("Failed to close GitHub issue")?;
+
+            if close_output.status.success() {
+                println!(
+                    "{}",
+                    format!(
+                        "Review for commit {} dismissed and issue #{} closed (label: {})",
+                        short_hash, issue_num, labels.dismissed
+                    )
+                    .dimmed()
+                );
+            } else {
+                println!(
+                    "{}",
+                    format!("Review dismissed (issue close failed)").yellow()
+                );
+            }
+        } else {
+            println!(
+                "{}",
+                format!(
+                    "Review for {} dismissed (no open review issue found)",
+                    short_hash
+                )
+                .dimmed()
+            );
+        }
+    } else {
+        println!(
+            "{}",
+            format!("Review for {} dismissed", short_hash).dimmed()
+        );
+    }
+
+    Ok(())
+}
+
+/// Closes a GitHub issue associated with a commit review, adding the accepted label.
+fn close_github_review_issue(
+    labels: &ReviewLabelsConfig,
+    short_hash: &str,
+    verbose: bool,
+) -> Result<()> {
     if !is_gh_cli_available() {
         println!(
             "{}",
@@ -602,6 +1133,47 @@ fn close_github_review_issue(short_hash: &str, verbose: bool) -> Result<()> {
 
         // Simple JSON parsing for issue number
         if let Some(issue_num) = extract_issue_number(&json_output) {
+            let issue_num_str = issue_num.to_string();
+
+            // Remove pending/concern labels and add accepted label
+            if verbose {
+                println!(
+                    "{} Updating labels on issue #{}",
+                    "[INFO]".cyan(),
+                    issue_num
+                );
+            }
+
+            let _ = Command::new("gh")
+                .args([
+                    "issue",
+                    "edit",
+                    &issue_num_str,
+                    "--remove-label",
+                    &labels.pending,
+                ])
+                .output();
+
+            let _ = Command::new("gh")
+                .args([
+                    "issue",
+                    "edit",
+                    &issue_num_str,
+                    "--remove-label",
+                    &labels.concern,
+                ])
+                .output();
+
+            let _ = Command::new("gh")
+                .args([
+                    "issue",
+                    "edit",
+                    &issue_num_str,
+                    "--add-label",
+                    &labels.accepted,
+                ])
+                .output();
+
             if verbose {
                 println!("{} Closing issue #{}", "[INFO]".cyan(), issue_num);
             }
@@ -610,7 +1182,7 @@ fn close_github_review_issue(short_hash: &str, verbose: bool) -> Result<()> {
                 .args([
                     "issue",
                     "close",
-                    &issue_num.to_string(),
+                    &issue_num_str,
                     "--comment",
                     "Approved via `tbdflow review --approve`",
                 ])
@@ -621,8 +1193,8 @@ fn close_github_review_issue(short_hash: &str, verbose: bool) -> Result<()> {
                 println!(
                     "{}",
                     format!(
-                        "Commit {} approved and review issue #{} closed",
-                        short_hash, issue_num
+                        "Commit {} approved and review issue #{} closed (label: {})",
+                        short_hash, issue_num, labels.accepted
                     )
                     .green()
                 );

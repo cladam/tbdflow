@@ -256,11 +256,24 @@ fn main() -> anyhow::Result<()> {
             trigger,
             digest,
             approve,
+            concern,
+            dismiss,
+            message,
             since,
             reviewers,
         } => {
             if let Some(commit_hash) = approve {
                 review::handle_review_approve(&config, &commit_hash, verbose, dry_run)?;
+            } else if let Some(commit_hash) = concern {
+                let msg = message.ok_or_else(|| {
+                    anyhow::anyhow!("--message is required when raising a concern")
+                })?;
+                review::handle_review_concern(&config, &commit_hash, &msg, verbose, dry_run)?;
+            } else if let Some(commit_hash) = dismiss {
+                let msg = message.ok_or_else(|| {
+                    anyhow::anyhow!("--message is required when dismissing a review")
+                })?;
+                review::handle_review_dismiss(&config, &commit_hash, &msg, verbose, dry_run)?;
             } else if digest {
                 review::handle_review_digest(&config, &since, verbose, dry_run)?;
             } else if trigger {

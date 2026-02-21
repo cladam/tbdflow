@@ -175,23 +175,36 @@ pub enum Commands {
         tbdflow review --trigger                    # Create review for HEAD commit\n  \
         tbdflow review --digest                     # Show commits since yesterday\n  \
         tbdflow review --digest --since \"3 days ago\"\n  \
-        tbdflow review --approve abc1234           # Mark commit as reviewed\n\n\
+        tbdflow review --approve abc1234           # Mark commit as reviewed\n  \
+        tbdflow review --concern abc1234 -m \"Thread safety issue\"\n  \
+        tbdflow review --dismiss abc1234 -m \"Won't fix, out of scope\"\n\n\
         WORKFLOW:\n  \
         1. Commit directly to main with 'tbdflow commit'\n  \
         2. Review is triggered automatically (if enabled) or manually\n  \
         3. Team reviews asynchronously without blocking\n  \
-        4. Use --approve to mark commits as reviewed"
+        4. Use --concern to flag issues (keeps issue open)\n  \
+        5. Use --approve to mark commits as reviewed\n  \
+        6. Use --dismiss to close without fixing"
     )]
     Review {
         /// Trigger a review request for the current HEAD commit.
-        #[arg(long, conflicts_with_all = ["digest", "approve"])]
+        #[arg(long, conflicts_with_all = ["digest", "approve", "concern", "dismiss"])]
         trigger: bool,
         /// Generate a digest of commits needing review.
-        #[arg(long, conflicts_with_all = ["trigger", "approve"])]
+        #[arg(long, conflicts_with_all = ["trigger", "approve", "concern", "dismiss"])]
         digest: bool,
-        /// Mark a specific commit as approved/reviewed.
-        #[arg(long, conflicts_with_all = ["trigger", "digest"])]
+        /// Mark a specific commit as approved/reviewed (closes issue with review-accepted label).
+        #[arg(long, conflicts_with_all = ["trigger", "digest", "concern", "dismiss"])]
         approve: Option<String>,
+        /// Raise a concern on a commit (keeps issue open, adds review-concern label).
+        #[arg(long, conflicts_with_all = ["trigger", "digest", "approve", "dismiss"])]
+        concern: Option<String>,
+        /// Dismiss a review (closes issue with review-dismissed label).
+        #[arg(long, conflicts_with_all = ["trigger", "digest", "approve", "concern"])]
+        dismiss: Option<String>,
+        /// Message for concern or dismiss (required with --concern or --dismiss).
+        #[arg(short, long)]
+        message: Option<String>,
         /// Time range for digest (e.g., "1 day ago", "2024-01-01").
         #[arg(long, default_value = "1 day ago")]
         since: String,

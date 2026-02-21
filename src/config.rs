@@ -48,6 +48,49 @@ pub struct ReviewRule {
     pub reviewers: Option<Vec<String>>,
 }
 
+/// Configuration for review labels with nuanced statuses.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ReviewLabelsConfig {
+    /// Label for reviews awaiting attention.
+    #[serde(default = "ReviewLabelsConfig::default_pending")]
+    pub pending: String,
+    /// Label for reviews with raised concerns.
+    #[serde(default = "ReviewLabelsConfig::default_concern")]
+    pub concern: String,
+    /// Label for accepted/approved reviews.
+    #[serde(default = "ReviewLabelsConfig::default_accepted")]
+    pub accepted: String,
+    /// Label for dismissed reviews (won't fix).
+    #[serde(default = "ReviewLabelsConfig::default_dismissed")]
+    pub dismissed: String,
+}
+
+impl Default for ReviewLabelsConfig {
+    fn default() -> Self {
+        Self {
+            pending: Self::default_pending(),
+            concern: Self::default_concern(),
+            accepted: Self::default_accepted(),
+            dismissed: Self::default_dismissed(),
+        }
+    }
+}
+
+impl ReviewLabelsConfig {
+    fn default_pending() -> String {
+        "review-pending".to_string()
+    }
+    fn default_concern() -> String {
+        "review-concern".to_string()
+    }
+    fn default_accepted() -> String {
+        "review-accepted".to_string()
+    }
+    fn default_dismissed() -> String {
+        "review-dismissed".to_string()
+    }
+}
+
 /// Configuration for non-blocking post-commit reviews.
 /// This enables TBD-style reviews where code is committed first and reviewed asynchronously.
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -68,6 +111,13 @@ pub struct ReviewConfig {
     /// Rules for targeted review based on file patterns.
     #[serde(default)]
     pub rules: Vec<ReviewRule>,
+    /// Configurable labels for review statuses.
+    #[serde(default)]
+    pub labels: ReviewLabelsConfig,
+    /// If true, raising a concern sets commit status to 'failure'.
+    /// If false (default), it stays 'pending'.
+    #[serde(default)]
+    pub concern_blocks_status: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
