@@ -428,9 +428,8 @@ When you raise a concern with `--concern`:
 
 1. The issue label changes from `review-pending` to `review-concern`
 2. A comment is added to the issue with the concern message
-3. The commit author is notified via `CC @author` in the comment
-4. A checklist item is appended to the issue body: `- [ ] <concern>`
-5. (Optional) A commit status is set based on `concern_blocks_status` config
+3. A checklist item is appended to the issue body: `- [ ] <concern>`
+4. (Optional) A commit status is set based on `concern_blocks_status` config
 
 This is **always non-blocking** - concerns are informational and encourage fix-forward patterns.
 

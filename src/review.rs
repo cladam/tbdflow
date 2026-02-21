@@ -731,9 +731,6 @@ fn raise_github_concern(
     if let Some(issue_num) = extract_issue_number(&json_output) {
         let issue_num_str = issue_num.to_string();
 
-        // Get the commit author to CC them
-        let author = git::get_commit_author(commit_hash, verbose, false).unwrap_or_default();
-
         // Update labels: remove pending, add concern
         if verbose {
             println!(
@@ -763,8 +760,8 @@ fn raise_github_concern(
             ])
             .output();
 
-        // Add a comment with the concern, mentioning the author
-        let comment = format!("**Concern Raised**\n\n{}\n\nCC @{}", message, author);
+        // Add a comment with the concern
+        let comment = format!("**Concern Raised**\n\n{}", message);
 
         let _ = Command::new("gh")
             .args(["issue", "comment", &issue_num_str, "--body", &comment])
@@ -784,7 +781,6 @@ fn raise_github_concern(
             )
             .yellow()
         );
-        println!("   CC @{}", author);
     } else {
         println!(
             "{}",

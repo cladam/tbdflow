@@ -490,18 +490,6 @@ pub fn get_commit_message(commit_hash: &str, verbose: bool, dry_run: bool) -> Re
     run_git_command("log", &["-1", "--format=%s", commit_hash], verbose, dry_run)
 }
 
-/// Get the author's email local-part for a specific commit hash.
-/// This extracts the part before @ from the email (e.g., "claes.adamsson" from "claes.adamsson@gmail.com"),
-/// which is more likely to match a GitHub username than the full name.
-pub fn get_commit_author(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<String> {
-    run_git_command(
-        "log",
-        &["-1", "--format=%al", commit_hash],
-        verbose,
-        dry_run,
-    )
-}
-
 /// Get the commit log since a given date/time.
 /// Returns format: hash|author|subject
 pub fn get_log_since(since: &str, verbose: bool, dry_run: bool) -> Result<String> {
