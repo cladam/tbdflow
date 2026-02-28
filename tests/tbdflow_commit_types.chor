@@ -18,26 +18,22 @@ var REPO_DIR = "/tmp/tbdflow_types_test"
 var BARE_REPO = "/tmp/tbdflow_types_bare.git"
 var COMMIT_TYPES = ["feat", "fix", "chore", "docs", "refactor", "test", "build", "ci", "perf", "revert", "style"]
 
-scenario "Every valid commit type is accepted" {
+# Suite-level setup - runs once before all scenarios
+background {
+    Terminal run "rm -rf ${REPO_DIR} ${BARE_REPO} && mkdir -p ${REPO_DIR}"
+    Terminal run "git init --bare ${BARE_REPO}"
+    Terminal run "git -C ${REPO_DIR} init && git -C ${REPO_DIR} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${REPO_DIR} remote add origin ${BARE_REPO}"
+    Terminal run "git -C ${REPO_DIR} push -u origin main"
+    Terminal set_cwd "${REPO_DIR}"
+}
 
-    test Setup "Initialize test repository" {
-        given:
-            Test can_start
-        when:
-            Terminal run "rm -rf ${REPO_DIR} ${BARE_REPO} && mkdir -p ${REPO_DIR}"
-            Terminal run "git init --bare ${BARE_REPO}"
-            Terminal run "git -C ${REPO_DIR} init && git -C ${REPO_DIR} commit --allow-empty -m 'init'"
-            Terminal run "git -C ${REPO_DIR} remote add origin ${BARE_REPO}"
-            Terminal run "git -C ${REPO_DIR} push -u origin main"
-            Terminal set_cwd "${REPO_DIR}"
-        then:
-            Terminal last_command succeeded
-    }
+scenario "Every valid commit type is accepted" {
 
     foreach TYPE in ${COMMIT_TYPES} {
         test "Commit_${TYPE}" "tbdflow accepts type '${TYPE}'" {
             given:
-                Test has_succeeded Setup
+                Test can_start
                 System log "Testing commit type: ${TYPE}"
             when:
                 Terminal run "echo ${TYPE} > ${TYPE}.txt"
