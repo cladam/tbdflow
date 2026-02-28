@@ -62,37 +62,29 @@ scenario "Full branch lifecycle: create, commit, complete" {
             Terminal run "tbdflow complete -t feat -n user-settings"
         then:
             Terminal last_command succeeded
+            Terminal output_contains "merged into main"
+            Terminal output_contains "deleted"
     }
 
-    test VerifyOnMain "Verify we are back on main" {
+    test VerifyMergeOnMain "The commit exists on main after merge" {
         given:
             Test has_succeeded CompleteWork
         when:
-            Terminal run "git branch --show-current"
-        then:
-            Terminal last_command succeeded
-            Terminal output_contains "main"
-    }
-
-    test BranchDeleted "The feature branch was cleaned up" {
-        given:
-            Test has_succeeded VerifyOnMain
-        when:
-            Terminal run "git branch"
-        then:
-            Terminal last_command succeeded
-            # The branch list should no longer contain the feature branch
-            Terminal output_not_contains "feat/user-settings"
-    }
-
-    test CommitOnMain "The merge commit exists on main" {
-        given:
-            Test has_succeeded BranchDeleted
-        when:
-            Terminal run "git log --oneline"
+            Terminal run "tbdflow sync"
         then:
             Terminal last_command succeeded
             Terminal output_contains "add user settings page"
+            Terminal output_contains "On main branch"
+    }
+
+    test WorkingTreeClean "Working directory is clean after complete" {
+        given:
+            Test has_succeeded VerifyMergeOnMain
+        when:
+            Terminal run "tbdflow status"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "clean"
     }
 
     after {

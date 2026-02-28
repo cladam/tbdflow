@@ -58,11 +58,10 @@ parallel scenario "Creating valid conventional commits" {
         given:
             Test has_succeeded SimpleFeat
         when:
-            Terminal run "git log --oneline -1"
+            Terminal run "tbdflow sync"
         then:
             Terminal last_command succeeded
-            Terminal output_contains "feat"
-            Terminal output_contains "add user greeting"
+            Terminal output_contains "feat: add user greeting"
     }
 
     test ScopedFix "Commit a scoped fix" {
@@ -79,11 +78,10 @@ parallel scenario "Creating valid conventional commits" {
         given:
             Test has_succeeded ScopedFix
         when:
-            Terminal run "git log --oneline -1"
+            Terminal run "tbdflow sync"
         then:
             Terminal last_command succeeded
-            Terminal output_contains "fix(auth)"
-            Terminal output_contains "resolve token expiry"
+            Terminal output_contains "fix(auth): resolve token expiry"
     }
 
     test BreakingChange "Commit with breaking change flag" {

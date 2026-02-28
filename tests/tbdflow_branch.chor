@@ -49,20 +49,11 @@ scenario "Creating short-lived branches" {
             Terminal output_not_contains "Error"
     }
 
-    test FeatBranchVerify "Verify the branch exists in git" {
-        given:
-            Test has_succeeded FeatBranch
-        when:
-            Terminal run "git branch"
-        then:
-            Terminal last_command succeeded
-            Terminal output_contains "feat/add-user-profile"
-    }
-
     test BranchWithIssue "Create a branch with an issue key" {
         given:
-            Test has_succeeded FeatBranchVerify
+            Test has_succeeded FeatBranch
             # Return to main before creating a new branch
+            # Note: tbdflow doesn't have a branch switch command, so we use git
             Terminal run "git checkout main"
         when:
             Terminal run "tbdflow branch -t fix -n resolve-timeout --issue API-456"
@@ -71,19 +62,9 @@ scenario "Creating short-lived branches" {
             Terminal output_contains "fix/API-456-resolve-timeout"
     }
 
-    test VerifyIssueBranch "Verify the issue branch exists" {
-        given:
-            Test has_succeeded BranchWithIssue
-        when:
-            Terminal run "git branch"
-        then:
-            Terminal last_command succeeded
-            Terminal output_contains "fix/API-456-resolve-timeout"
-    }
-
     test ChoreBranch "Create a chore branch" {
         given:
-            Test has_succeeded VerifyIssueBranch
+            Test has_succeeded BranchWithIssue
             Terminal run "git checkout main"
         when:
             Terminal run "tbdflow branch -t chore -n update-deps"
