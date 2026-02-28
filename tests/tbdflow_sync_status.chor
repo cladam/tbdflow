@@ -26,7 +26,7 @@ var CHANGELOG_BARE = "/tmp/tbdflow_changelog_bare.git"
 
 scenario "Sync and status on a clean repo" {
 
-    test SyncSetup "Initialize test repository" {
+    test Setup "Initialize test repository" {
         given:
             Test can_start
         when:
@@ -42,7 +42,7 @@ scenario "Sync and status on a clean repo" {
 
     test StatusClean "Status reports a clean working tree" {
         given:
-            Test has_succeeded SyncSetup
+            Test has_succeeded Setup
         when:
             Terminal run "tbdflow status"
         then:
@@ -83,7 +83,7 @@ scenario "Sync and status on a clean repo" {
 
 scenario "Generating a changelog from commit history" {
 
-    test ChangelogSetup "Initialize test repository with a tag" {
+    test Setup "Initialize test repository with a tag" {
         given:
             Test can_start
         when:
@@ -100,7 +100,7 @@ scenario "Generating a changelog from commit history" {
 
     test SeedCommits "Create a series of conventional commits" {
         given:
-            Test has_succeeded ChangelogSetup
+            Test has_succeeded Setup
         when:
             Terminal run "echo a > a.txt"
             Terminal run "tbdflow commit -t feat -m 'add feature a'"

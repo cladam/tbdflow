@@ -27,7 +27,7 @@ var INVALID_BARE = "/tmp/tbdflow_commit_invalid_bare.git"
 
 scenario "Creating valid conventional commits" {
 
-    test ValidSetup "Initialize test repository" {
+    test Setup "Initialize test repository" {
         given:
             Test can_start
         when:
@@ -43,7 +43,7 @@ scenario "Creating valid conventional commits" {
 
     test SimpleFeat "Commit a simple feature" {
         given:
-            Test has_succeeded ValidSetup
+            Test has_succeeded Setup
         when:
             # tbdflow stages changes automatically; create a file first
             Terminal run "echo hello > new_feature.txt"
@@ -116,7 +116,7 @@ scenario "Creating valid conventional commits" {
 
 scenario "Rejecting invalid commit messages" {
 
-    test InvalidSetup "Initialize test repository" {
+    test Setup "Initialize test repository" {
         given:
             Test can_start
         when:
@@ -132,7 +132,7 @@ scenario "Rejecting invalid commit messages" {
 
     test InvalidType "Reject an unknown commit type" {
         given:
-            Test has_succeeded InvalidSetup
+            Test has_succeeded Setup
         when:
             Terminal run "echo x > tmp.txt"
             Terminal run "tbdflow commit -t feature -m 'add something'"
