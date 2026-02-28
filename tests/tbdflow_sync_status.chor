@@ -1,0 +1,131 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# tbdflow — Sync, Status & Changelog
+# ═══════════════════════════════════════════════════════════════════════════════
+# Validates the informational commands: sync, status, and changelog.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+feature "tbdflow Sync, Status & Changelog"
+
+actors: Terminal, System
+
+settings {
+    timeout_seconds = 30
+    stop_on_failure = true
+    shell_path = "/bin/bash"
+}
+
+# Each parallel scenario gets its own isolated repo
+var SYNC_REPO = "/tmp/tbdflow_sync_test"
+var SYNC_BARE = "/tmp/tbdflow_sync_bare.git"
+var CHANGELOG_REPO = "/tmp/tbdflow_changelog_test"
+var CHANGELOG_BARE = "/tmp/tbdflow_changelog_bare.git"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Scenario 1 — Sync & Status
+# ─────────────────────────────────────────────────────────────────────────────
+
+parallel scenario "Sync and status on a clean repo" {
+
+    test Setup "Initialize test repository" {
+        given:
+            Test can_start
+        when:
+            Terminal run "rm -rf ${SYNC_REPO} ${SYNC_BARE} && mkdir -p ${SYNC_REPO}"
+            Terminal run "git init --bare ${SYNC_BARE}"
+            Terminal run "git -C ${SYNC_REPO} init && git -C ${SYNC_REPO} commit --allow-empty -m 'init'"
+            Terminal run "git -C ${SYNC_REPO} remote add origin ${SYNC_BARE}"
+            Terminal run "git -C ${SYNC_REPO} push -u origin main"
+            Terminal set_cwd "${SYNC_REPO}"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test StatusClean "Status reports a clean working tree" {
+        given:
+            Test has_succeeded Setup
+        when:
+            Terminal run "tbdflow status"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "clean"
+            Terminal output_not_contains "Error"
+    }
+
+    test SyncClean "Sync succeeds on a repo with remote" {
+        given:
+            Test has_succeeded StatusClean
+        when:
+            Terminal run "tbdflow sync"
+        then:
+            Terminal last_command succeeded
+            Terminal output_not_contains "Error"
+    }
+
+    test StatusAfterChanges "Status detects uncommitted changes" {
+        given:
+            Test has_succeeded SyncClean
+        when:
+            Terminal run "echo dirty > untracked.txt"
+            Terminal run "tbdflow status"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "untracked.txt"
+    }
+
+    after {
+        Terminal run "rm -rf ${SYNC_REPO} ${SYNC_BARE}"
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Scenario 2 — Changelog generation
+# ─────────────────────────────────────────────────────────────────────────────
+
+parallel scenario "Generating a changelog from commit history" {
+
+    test Setup "Initialize test repository with a tag" {
+        given:
+            Test can_start
+        when:
+            Terminal run "rm -rf ${CHANGELOG_REPO} ${CHANGELOG_BARE} && mkdir -p ${CHANGELOG_REPO}"
+            Terminal run "git init --bare ${CHANGELOG_BARE}"
+            Terminal run "git -C ${CHANGELOG_REPO} init && git -C ${CHANGELOG_REPO} commit --allow-empty -m 'init'"
+            Terminal run "git -C ${CHANGELOG_REPO} tag v0.0.0"
+            Terminal run "git -C ${CHANGELOG_REPO} remote add origin ${CHANGELOG_BARE}"
+            Terminal run "git -C ${CHANGELOG_REPO} push -u origin main --tags"
+            Terminal set_cwd "${CHANGELOG_REPO}"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test SeedCommits "Create a series of conventional commits" {
+        given:
+            Test has_succeeded Setup
+        when:
+            Terminal run "echo a > a.txt"
+            Terminal run "tbdflow commit -t feat -m 'add feature a'"
+            Terminal run "echo b > b.txt"
+            Terminal run "tbdflow commit -t fix -s core -m 'resolve crash on startup'"
+            Terminal run "echo c > c.txt"
+            Terminal run "tbdflow commit -t docs -m 'update readme'"
+        then:
+            Terminal last_command succeeded
+            Terminal output_not_contains "Error"
+    }
+
+    test UnreleasedChangelog "Changelog --unreleased shows recent work" {
+        given:
+            Test has_succeeded SeedCommits
+        when:
+            Terminal run "tbdflow changelog --unreleased"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "add feature a"
+            Terminal output_contains "resolve crash on startup"
+            Terminal output_not_contains "Error"
+    }
+
+    after {
+        Terminal run "rm -rf ${CHANGELOG_REPO} ${CHANGELOG_BARE}"
+    }
+}

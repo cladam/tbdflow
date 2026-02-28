@@ -1,0 +1,124 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# tbdflow — Branch Creation & Naming
+# ═══════════════════════════════════════════════════════════════════════════════
+# Validates that `tbdflow branch` creates short-lived branches with the
+# correct naming conventions and that invalid inputs are rejected.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+feature "tbdflow Branch Creation"
+
+actors: Terminal, FileSystem
+
+settings {
+    timeout_seconds = 30
+    stop_on_failure = true
+    shell_path = "/bin/bash"
+}
+
+# Each parallel scenario gets its own isolated repo
+var VALID_REPO = "/tmp/tbdflow_branch_valid"
+var VALID_BARE = "/tmp/tbdflow_branch_valid_bare.git"
+var INVALID_REPO = "/tmp/tbdflow_branch_invalid"
+var INVALID_BARE = "/tmp/tbdflow_branch_invalid_bare.git"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Scenario 1 — Happy-path branch creation
+# ─────────────────────────────────────────────────────────────────────────────
+
+parallel scenario "Creating valid short-lived branches" {
+
+    test Setup "Initialize test repository" {
+        given:
+            Test can_start
+        when:
+            Terminal run "rm -rf ${VALID_REPO} ${VALID_BARE} && mkdir -p ${VALID_REPO}"
+            Terminal run "git init --bare ${VALID_BARE}"
+            Terminal run "git -C ${VALID_REPO} init && git -C ${VALID_REPO} commit --allow-empty -m 'init'"
+            Terminal run "git -C ${VALID_REPO} remote add origin ${VALID_BARE}"
+            Terminal run "git -C ${VALID_REPO} push -u origin main"
+            Terminal set_cwd "${VALID_REPO}"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test FeatBranch "Create a feature branch" {
+        given:
+            Test has_succeeded Setup
+        when:
+            Terminal run "tbdflow branch -t feat -n add-user-profile"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "feat/add-user-profile"
+            Terminal output_not_contains "Error"
+    }
+
+    test FeatBranchVerify "Verify the branch exists in git" {
+        given:
+            Test has_succeeded FeatBranch
+        when:
+            Terminal run "git branch"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "feat/add-user-profile"
+    }
+
+    test BranchWithIssue "Create a branch with an issue key" {
+        given:
+            Test has_succeeded FeatBranchVerify
+            # Return to main before creating a new branch
+            Terminal run "git checkout main"
+        when:
+            Terminal run "tbdflow branch -t fix -n resolve-timeout --issue API-456"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "fix/API-456-resolve-timeout"
+    }
+
+    after {
+        Terminal run "rm -rf ${VALID_REPO} ${VALID_BARE}"
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Scenario 2 — Invalid branch inputs are rejected
+# ─────────────────────────────────────────────────────────────────────────────
+
+parallel scenario "Rejecting invalid branch names" {
+
+    test Setup "Initialize test repository" {
+        given:
+            Test can_start
+        when:
+            Terminal run "rm -rf ${INVALID_REPO} ${INVALID_BARE} && mkdir -p ${INVALID_REPO}"
+            Terminal run "git init --bare ${INVALID_BARE}"
+            Terminal run "git -C ${INVALID_REPO} init && git -C ${INVALID_REPO} commit --allow-empty -m 'init'"
+            Terminal run "git -C ${INVALID_REPO} remote add origin ${INVALID_BARE}"
+            Terminal run "git -C ${INVALID_REPO} push -u origin main"
+            Terminal set_cwd "${INVALID_REPO}"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test InvalidType "Reject an unknown branch type" {
+        given:
+            Test has_succeeded Setup
+        when:
+            Terminal run "tbdflow branch -t feature -n something"
+        then:
+            Terminal last_command failed
+            Terminal output_not_contains "Created branch"
+    }
+
+    test UppercaseName "Reject an uppercase branch name" {
+        given:
+            Test has_succeeded Setup
+        when:
+            Terminal run "tbdflow branch -t feat -n AddUser"
+        then:
+            Terminal last_command failed
+    }
+
+    after {
+        Terminal run "rm -rf ${INVALID_REPO} ${INVALID_BARE}"
+    }
+}

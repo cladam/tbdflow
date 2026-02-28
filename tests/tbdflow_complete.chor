@@ -1,0 +1,101 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# tbdflow — Workflow Completion (merge & cleanup)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Validates the full lifecycle: branch → commit → complete (merge back to main)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+feature "tbdflow Workflow Completion"
+
+actors: Terminal
+
+settings {
+    timeout_seconds = 30
+    stop_on_failure = true
+    shell_path = "/bin/bash"
+}
+
+var REPO_DIR = "/tmp/tbdflow_complete_test"
+var BARE_REPO = "/tmp/tbdflow_complete_bare.git"
+
+scenario "Full branch lifecycle: create, commit, complete" {
+
+    test Setup "Initialize test repository" {
+        given:
+            Test can_start
+        when:
+            Terminal run "rm -rf ${REPO_DIR} ${BARE_REPO} && mkdir -p ${REPO_DIR}"
+            Terminal run "git init --bare ${BARE_REPO}"
+            Terminal run "git -C ${REPO_DIR} init && git -C ${REPO_DIR} commit --allow-empty -m 'init'"
+            Terminal run "git -C ${REPO_DIR} remote add origin ${BARE_REPO}"
+            Terminal run "git -C ${REPO_DIR} push -u origin main"
+            Terminal set_cwd "${REPO_DIR}"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test CreateBranch "Start a short-lived feature branch" {
+        given:
+            Test has_succeeded Setup
+        when:
+            Terminal run "tbdflow branch -t feat -n user-settings"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "feat/user-settings"
+            Terminal output_not_contains "Error"
+    }
+
+    test CommitWork "Commit work on the branch" {
+        given:
+            Test has_succeeded CreateBranch
+        when:
+            Terminal run "echo settings_page > settings.txt"
+            Terminal run "tbdflow commit -t feat -m 'add user settings page'"
+        then:
+            Terminal last_command succeeded
+            Terminal output_not_contains "Error"
+    }
+
+    test CompleteWork "Merge the branch back to main" {
+        given:
+            Test has_succeeded CommitWork
+        when:
+            Terminal run "tbdflow complete -t feat -n user-settings"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test VerifyOnMain "Verify we are back on main" {
+        given:
+            Test has_succeeded CompleteWork
+        when:
+            Terminal run "git branch --show-current"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "main"
+    }
+
+    test BranchDeleted "The feature branch was cleaned up" {
+        given:
+            Test has_succeeded VerifyOnMain
+        when:
+            Terminal run "git branch"
+        then:
+            Terminal last_command succeeded
+            # The branch list should no longer contain the feature branch
+            Terminal output_not_contains "feat/user-settings"
+    }
+
+    test CommitOnMain "The merge commit exists on main" {
+        given:
+            Test has_succeeded BranchDeleted
+        when:
+            Terminal run "git log --oneline"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "add user settings page"
+    }
+
+    after {
+        Terminal run "rm -rf ${REPO_DIR} ${BARE_REPO}"
+    }
+}
