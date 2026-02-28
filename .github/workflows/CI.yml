@@ -40,6 +40,15 @@ jobs:
       - name: Install choreo
         run: cargo install choreo
 
+      - name: Install tbdflow on PATH
+        run: cargo install --path .
+
+      - name: Configure git for BDD tests
+        run: |
+          git config --global user.email "ci@tbdflow.dev"
+          git config --global user.name "tbdflow CI"
+          git config --global init.defaultBranch main
+
       - name: Run choreo BDD tests
         run: |
           choreo run --file tests/tbdflow_branch.chor
