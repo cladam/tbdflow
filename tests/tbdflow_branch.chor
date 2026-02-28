@@ -24,7 +24,7 @@ var BARE_REPO = "/tmp/tbdflow_branch_bare.git"
 
 scenario "Creating short-lived branches" {
 
-    test Setup "Initialize test repository" {
+    test BranchSetup "Initialize test repository" {
         given:
             Test can_start
         when:
@@ -40,7 +40,7 @@ scenario "Creating short-lived branches" {
 
     test FeatBranch "Create a feature branch" {
         given:
-            Test has_succeeded Setup
+            Test has_succeeded BranchSetup
         when:
             Terminal run "tbdflow branch -t feat -n add-user-profile"
         then:

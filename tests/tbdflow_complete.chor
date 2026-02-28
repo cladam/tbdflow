@@ -19,7 +19,7 @@ var BARE_REPO = "/tmp/tbdflow_complete_bare.git"
 
 scenario "Full branch lifecycle: create, commit, complete" {
 
-    test Setup "Initialize test repository" {
+    test CompleteSetup "Initialize test repository" {
         given:
             Test can_start
         when:
@@ -35,7 +35,7 @@ scenario "Full branch lifecycle: create, commit, complete" {
 
     test CreateBranch "Start a short-lived feature branch" {
         given:
-            Test has_succeeded Setup
+            Test has_succeeded CompleteSetup
         when:
             Terminal run "tbdflow branch -t feat -n user-settings"
         then:
