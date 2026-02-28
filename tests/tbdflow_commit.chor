@@ -15,17 +15,17 @@ settings {
     shell_path = "/bin/bash"
 }
 
-# Each parallel scenario gets its own isolated repo to avoid conflicts
+# Each scenario gets its own isolated repo
 var VALID_REPO = "/tmp/tbdflow_commit_valid"
 var VALID_BARE = "/tmp/tbdflow_commit_valid_bare.git"
 var INVALID_REPO = "/tmp/tbdflow_commit_invalid"
 var INVALID_BARE = "/tmp/tbdflow_commit_invalid_bare.git"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Scenario 1 — Valid commits (can run in parallel)
+# Scenario 1 — Valid commits
 # ─────────────────────────────────────────────────────────────────────────────
 
-parallel scenario "Creating valid conventional commits" {
+scenario "Creating valid conventional commits" {
 
     test Setup "Initialize test repository" {
         given:
@@ -111,10 +111,10 @@ parallel scenario "Creating valid conventional commits" {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Scenario 2 — Invalid commits are rejected (can run in parallel)
+# Scenario 2 — Invalid commits are rejected
 # ─────────────────────────────────────────────────────────────────────────────
 
-parallel scenario "Rejecting invalid commit messages" {
+scenario "Rejecting invalid commit messages" {
 
     test Setup "Initialize test repository" {
         given:

@@ -24,7 +24,7 @@ var CHANGELOG_BARE = "/tmp/tbdflow_changelog_bare.git"
 # Scenario 1 — Sync & Status
 # ─────────────────────────────────────────────────────────────────────────────
 
-parallel scenario "Sync and status on a clean repo" {
+scenario "Sync and status on a clean repo" {
 
     test Setup "Initialize test repository" {
         given:
@@ -81,7 +81,7 @@ parallel scenario "Sync and status on a clean repo" {
 # Scenario 2 — Changelog generation
 # ─────────────────────────────────────────────────────────────────────────────
 
-parallel scenario "Generating a changelog from commit history" {
+scenario "Generating a changelog from commit history" {
 
     test Setup "Initialize test repository with a tag" {
         given:
