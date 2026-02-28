@@ -1,7 +1,8 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # tbdflow — Commit Types (data-driven)
 # ═══════════════════════════════════════════════════════════════════════════════
-# Uses choreo's foreach to verify that every valid commit type is accepted.
+# User Story: As a developer, I want tbdflow to support all conventional
+# commit types so that my team's workflow is not limited by tooling.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 feature "tbdflow Commit Type Coverage"
@@ -18,18 +19,46 @@ var REPO_DIR = "/tmp/tbdflow_types_test"
 var BARE_REPO = "/tmp/tbdflow_types_bare.git"
 var COMMIT_TYPES = ["feat", "fix", "chore", "docs", "refactor", "test", "build", "ci", "perf", "revert", "style"]
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER — Tasks hide the "how"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+task make_change_and_commit(type) {
+    Terminal run "echo ${type} > ${type}.txt"
+    Terminal run "tbdflow commit -t ${type} -m 'validate ${type} type'"
+}
+
+task verify_commit_succeeded() {
+    Terminal last_command succeeded
+    Terminal output_not_contains "Error"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUSINESS SPECIFICATION LAYER — Scenarios describe the "what"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# AC1: Every standard conventional commit type must be accepted.
+
 scenario "Every valid commit type is accepted" {
 
-    test Setup "Initialize test repository" {
+    test Setup "Initialise test repository" {
         given:
             Test can_start
         when:
-            Terminal run "rm -rf ${REPO_DIR} ${BARE_REPO} && mkdir -p ${REPO_DIR}"
-            Terminal run "git init --bare ${BARE_REPO}"
-            Terminal run "git -C ${REPO_DIR} init && git -C ${REPO_DIR} commit --allow-empty -m 'init'"
-            Terminal run "git -C ${REPO_DIR} remote add origin ${BARE_REPO}"
-            Terminal run "git -C ${REPO_DIR} push -u origin main"
-            Terminal set_cwd "${REPO_DIR}"
+            init_repo("${REPO_DIR}", "${BARE_REPO}")
         then:
             Terminal last_command succeeded
     }
@@ -40,15 +69,13 @@ scenario "Every valid commit type is accepted" {
                 Test has_succeeded Setup
                 System log "Testing commit type: ${TYPE}"
             when:
-                Terminal run "echo ${TYPE} > ${TYPE}.txt"
-                Terminal run "tbdflow commit -t ${TYPE} -m 'validate ${TYPE} type'"
+                make_change_and_commit("${TYPE}")
             then:
-                Terminal last_command succeeded
-                Terminal output_not_contains "Error"
+                verify_commit_succeeded()
         }
     }
 
     after {
-        Terminal run "rm -rf ${REPO_DIR} ${BARE_REPO}"
+        cleanup_repo("${REPO_DIR}", "${BARE_REPO}")
     }
 }

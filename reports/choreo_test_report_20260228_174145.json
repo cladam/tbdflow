@@ -1,0 +1,108 @@
+[
+  {
+    "uri": "tests/tbdflow_sync_status.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Sync, Status & Changelog",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Background",
+        "steps": [
+          {
+            "name": "Background Setup",
+            "description": "Setup steps from Background",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2880
+            }
+          }
+        ],
+        "after": []
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Sync and status on a clean repo",
+        "steps": [
+          {
+            "name": "StatusClean",
+            "description": "Status reports a clean working tree",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2393
+            }
+          },
+          {
+            "name": "SyncClean",
+            "description": "Sync succeeds on a local-only repo",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2287
+            }
+          },
+          {
+            "name": "StatusAfterChanges",
+            "description": "Status detects uncommitted changes",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2071
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_sync_test /tmp/tbdflow_sync_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Generating a changelog from commit history",
+        "steps": [
+          {
+            "name": "SetupRepo",
+            "description": "Create a fresh repo for changelog tests",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1741
+            }
+          },
+          {
+            "name": "SeedCommits",
+            "description": "Create a series of conventional commits",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1299
+            }
+          },
+          {
+            "name": "UnreleasedChangelog",
+            "description": "Changelog --unreleased shows recent work",
+            "result": {
+              "status": "failed",
+              "durationInMs": 160,
+              "errorMessage": "Synchronous test failed. Stderr: Error: Git command failed: fatal: No names found, cannot describe anything."
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_sync_test /tmp/tbdflow_sync_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 7,
+      "failures": 1,
+      "totalTimeInSeconds": 2.8835893
+    }
+  }
+]

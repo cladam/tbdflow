@@ -1,7 +1,8 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # tbdflow — Workflow Completion (merge & cleanup)
 # ═══════════════════════════════════════════════════════════════════════════════
-# Validates the full lifecycle: branch → commit → complete (merge back to main)
+# User Story: As a developer, I want to merge my short-lived branch back to
+# main with a single command so that integration is fast and friction-free.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 feature "tbdflow Workflow Completion"
@@ -17,18 +18,86 @@ settings {
 var REPO_DIR = "/tmp/tbdflow_complete_test"
 var BARE_REPO = "/tmp/tbdflow_complete_bare.git"
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER — Tasks hide the "how"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# --- Setup drivers ---
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+# --- Action drivers ---
+
+task create_branch(type, name) {
+    Terminal run "tbdflow branch -t ${type} -n ${name}"
+}
+
+task make_change(filename, content) {
+    Terminal run "echo ${content} > ${filename}"
+}
+
+task commit(type, message) {
+    Terminal run "tbdflow commit -t ${type} -m '${message}'"
+}
+
+task complete_branch(type, name) {
+    Terminal run "tbdflow complete -t ${type} -n ${name}"
+}
+
+task sync() {
+    Terminal run "tbdflow sync"
+}
+
+task check_status() {
+    Terminal run "tbdflow status"
+}
+
+# --- Condition drivers ---
+
+task verify_branch_merged_and_deleted() {
+    Terminal last_command succeeded
+    Terminal output_contains "merged into main"
+    Terminal output_contains "deleted"
+}
+
+task verify_on_main_with_commit(expected_message) {
+    Terminal last_command succeeded
+    Terminal output_contains "${expected_message}"
+    Terminal output_contains "On main branch"
+}
+
+task verify_working_tree_clean() {
+    Terminal last_command succeeded
+    Terminal output_contains "clean"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUSINESS SPECIFICATION LAYER — Scenarios describe the "what"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# AC1: `tbdflow complete` must merge the branch back to main.
+# AC2: The feature branch must be deleted after merging.
+# AC3: The commit history on main must contain the work from the branch.
+# AC4: The working tree must be clean after completion.
+
 scenario "Full branch lifecycle: create, commit, complete" {
 
-    test Setup "Initialize test repository" {
+    test Setup "Initialise test repository" {
         given:
             Test can_start
         when:
-            Terminal run "rm -rf ${REPO_DIR} ${BARE_REPO} && mkdir -p ${REPO_DIR}"
-            Terminal run "git init --bare ${BARE_REPO}"
-            Terminal run "git -C ${REPO_DIR} init && git -C ${REPO_DIR} commit --allow-empty -m 'init'"
-            Terminal run "git -C ${REPO_DIR} remote add origin ${BARE_REPO}"
-            Terminal run "git -C ${REPO_DIR} push -u origin main"
-            Terminal set_cwd "${REPO_DIR}"
+            init_repo("${REPO_DIR}", "${BARE_REPO}")
         then:
             Terminal last_command succeeded
     }
@@ -37,7 +106,7 @@ scenario "Full branch lifecycle: create, commit, complete" {
         given:
             Test has_succeeded Setup
         when:
-            Terminal run "tbdflow branch -t feat -n user-settings"
+            create_branch("feat", "user-settings")
         then:
             Terminal last_command succeeded
             Terminal output_contains "feat/user-settings"
@@ -48,8 +117,8 @@ scenario "Full branch lifecycle: create, commit, complete" {
         given:
             Test has_succeeded CreateBranch
         when:
-            Terminal run "echo settings_page > settings.txt"
-            Terminal run "tbdflow commit -t feat -m 'add user settings page'"
+            make_change("settings.txt", "settings_page")
+            commit("feat", "add user settings page")
         then:
             Terminal last_command succeeded
             Terminal output_not_contains "Error"
@@ -59,35 +128,30 @@ scenario "Full branch lifecycle: create, commit, complete" {
         given:
             Test has_succeeded CommitWork
         when:
-            Terminal run "tbdflow complete -t feat -n user-settings"
+            complete_branch("feat", "user-settings")
         then:
-            Terminal last_command succeeded
-            Terminal output_contains "merged into main"
-            Terminal output_contains "deleted"
+            verify_branch_merged_and_deleted()
     }
 
     test VerifyMergeOnMain "The commit exists on main after merge" {
         given:
             Test has_succeeded CompleteWork
         when:
-            Terminal run "tbdflow sync"
+            sync()
         then:
-            Terminal last_command succeeded
-            Terminal output_contains "add user settings page"
-            Terminal output_contains "On main branch"
+            verify_on_main_with_commit("add user settings page")
     }
 
     test WorkingTreeClean "Working directory is clean after complete" {
         given:
             Test has_succeeded VerifyMergeOnMain
         when:
-            Terminal run "tbdflow status"
+            check_status()
         then:
-            Terminal last_command succeeded
-            Terminal output_contains "clean"
+            verify_working_tree_clean()
     }
 
     after {
-        Terminal run "rm -rf ${REPO_DIR} ${BARE_REPO}"
+        cleanup_repo("${REPO_DIR}", "${BARE_REPO}")
     }
 }

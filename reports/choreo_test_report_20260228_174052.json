@@ -1,0 +1,100 @@
+[
+  {
+    "uri": "tests/tbdflow_sync_status.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Sync, Status & Changelog",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Background",
+        "steps": [
+          {
+            "name": "Background Setup",
+            "description": "Setup steps from Background",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1536
+            }
+          }
+        ],
+        "after": []
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Sync and status on a clean repo",
+        "steps": [
+          {
+            "name": "StatusClean",
+            "description": "Status reports a clean working tree",
+            "result": {
+              "status": "passed",
+              "durationInMs": 984
+            }
+          },
+          {
+            "name": "SyncClean",
+            "description": "Sync succeeds on a local-only repo",
+            "result": {
+              "status": "passed",
+              "durationInMs": 874
+            }
+          },
+          {
+            "name": "StatusAfterChanges",
+            "description": "Status detects uncommitted changes",
+            "result": {
+              "status": "passed",
+              "durationInMs": 655
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_sync_test /tmp/tbdflow_sync_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Generating a changelog from commit history",
+        "steps": [
+          {
+            "name": "SeedCommits",
+            "description": "Create a series of conventional commits",
+            "result": {
+              "status": "failed",
+              "durationInMs": 384,
+              "errorMessage": "Synchronous test failed. Stderr: /bin/bash: line 0: cd: /tmp/tbdflow_sync_test: No such file or directory"
+            }
+          },
+          {
+            "name": "UnreleasedChangelog",
+            "description": "Changelog --unreleased shows recent work",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_sync_test /tmp/tbdflow_sync_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 6,
+      "failures": 1,
+      "totalTimeInSeconds": 1.5384119
+    }
+  }
+]

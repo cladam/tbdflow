@@ -1,0 +1,45 @@
+[
+  {
+    "uri": "/tmp/test_cwd.chor",
+    "keyword": "Feature",
+    "name": "Test set_cwd",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Test cwd",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Set cwd",
+            "result": {
+              "status": "passed",
+              "durationInMs": 281
+            }
+          },
+          {
+            "name": "CreateFile",
+            "description": "Create file",
+            "result": {
+              "status": "passed",
+              "durationInMs": 222
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/cwd_test'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 2,
+      "failures": 0,
+      "totalTimeInSeconds": 0.2858621
+    }
+  }
+]

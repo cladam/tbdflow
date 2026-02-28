@@ -1,0 +1,132 @@
+[
+  {
+    "uri": "tests/tbdflow_commit.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Standardised Commits",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Creating valid conventional commits",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Initialise test repository",
+            "result": {
+              "status": "passed",
+              "durationInMs": 3827
+            }
+          },
+          {
+            "name": "SimpleFeat",
+            "description": "Commit a simple feature",
+            "result": {
+              "status": "passed",
+              "durationInMs": 3114
+            }
+          },
+          {
+            "name": "VerifyFeatCommit",
+            "description": "The commit message follows conventional format",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2685
+            }
+          },
+          {
+            "name": "ScopedFix",
+            "description": "Commit a scoped fix",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2466
+            }
+          },
+          {
+            "name": "VerifyScopedCommit",
+            "description": "The scoped commit appears in the log",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2084
+            }
+          },
+          {
+            "name": "BreakingChange",
+            "description": "Commit with breaking change flag",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1872
+            }
+          },
+          {
+            "name": "CommitWithIssue",
+            "description": "Commit referencing an issue key",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1497
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "task cleanup_repo()",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Rejecting invalid commit messages",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Initialise test repository",
+            "result": {
+              "status": "passed",
+              "durationInMs": 940
+            }
+          },
+          {
+            "name": "InvalidType",
+            "description": "Reject an unknown commit type",
+            "result": {
+              "status": "passed",
+              "durationInMs": 436
+            }
+          },
+          {
+            "name": "CapitalisedMessage",
+            "description": "Reject a message starting with a capital letter",
+            "result": {
+              "status": "passed",
+              "durationInMs": 328
+            }
+          },
+          {
+            "name": "TrailingPeriod",
+            "description": "Reject a message ending with a period",
+            "result": {
+              "status": "passed",
+              "durationInMs": 219
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "task cleanup_repo()",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 11,
+      "failures": 0,
+      "totalTimeInSeconds": 3.832075
+    }
+  }
+]

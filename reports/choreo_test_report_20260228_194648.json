@@ -1,0 +1,37 @@
+[
+  {
+    "uri": "/tmp/test_setcwd.chor",
+    "keyword": "Feature",
+    "name": "Test set_cwd",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Verify set_cwd works",
+        "steps": [
+          {
+            "name": "SetCwd",
+            "description": "Set working directory and create file",
+            "result": {
+              "status": "passed",
+              "durationInMs": 275
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/setcwd_test'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 1,
+      "failures": 0,
+      "totalTimeInSeconds": 0.28302693
+    }
+  }
+]

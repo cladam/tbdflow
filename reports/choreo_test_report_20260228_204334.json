@@ -1,0 +1,44 @@
+[
+  {
+    "uri": "/tmp/test_foreach_cwd.chor",
+    "keyword": "Feature",
+    "name": "Test foreach with set_cwd",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Test foreach cwd",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Set cwd",
+            "result": {
+              "status": "passed",
+              "durationInMs": 443
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'ls /tmp/foreach_test'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          },
+          {
+            "name": "Terminal runs 'rm -rf /tmp/foreach_test'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 3,
+      "failures": 0,
+      "totalTimeInSeconds": 0.44981533
+    }
+  }
+]

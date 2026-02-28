@@ -1,0 +1,77 @@
+[
+  {
+    "uri": "tests/tbdflow_complete.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Workflow Completion",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Full branch lifecycle: create, commit, complete",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Initialize test repository",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1888
+            }
+          },
+          {
+            "name": "CreateBranch",
+            "description": "Start a short-lived feature branch",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1459
+            }
+          },
+          {
+            "name": "CommitWork",
+            "description": "Commit work on the branch",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1183
+            }
+          },
+          {
+            "name": "CompleteWork",
+            "description": "Merge the branch back to main",
+            "result": {
+              "status": "passed",
+              "durationInMs": 857
+            }
+          },
+          {
+            "name": "VerifyMergeOnMain",
+            "description": "The commit exists on main after merge",
+            "result": {
+              "status": "passed",
+              "durationInMs": 429
+            }
+          },
+          {
+            "name": "WorkingTreeClean",
+            "description": "Working directory is clean after complete",
+            "result": {
+              "status": "passed",
+              "durationInMs": 213
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_complete_test /tmp/tbdflow_complete_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 6,
+      "failures": 0,
+      "totalTimeInSeconds": 1.8964939
+    }
+  }
+]

@@ -1,7 +1,9 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # tbdflow — Sync, Status & Changelog
 # ═══════════════════════════════════════════════════════════════════════════════
-# Validates the informational commands: sync, status, and changelog.
+# User Story: As a developer, I want to see the current state of my repo
+# and generate changelogs so that I always know what has changed and what
+# is ready for release.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 feature "tbdflow Sync, Status & Changelog"
@@ -20,22 +22,91 @@ var SYNC_BARE = "/tmp/tbdflow_sync_bare.git"
 var CHANGELOG_REPO = "/tmp/tbdflow_changelog_test"
 var CHANGELOG_BARE = "/tmp/tbdflow_changelog_bare.git"
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER — Tasks hide the "how"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# --- Setup drivers ---
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task init_repo_with_tag(repo, bare, tag) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} tag ${tag}"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main --tags"
+    Terminal set_cwd "${repo}"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+# --- Action drivers ---
+
+task make_change(filename, content) {
+    Terminal run "echo ${content} > ${filename}"
+}
+
+task commit(type, message) {
+    Terminal run "tbdflow commit -t ${type} -m '${message}'"
+}
+
+task commit_scoped(type, scope, message) {
+    Terminal run "tbdflow commit -t ${type} -s ${scope} -m '${message}'"
+}
+
+task check_status() {
+    Terminal run "tbdflow status"
+}
+
+task sync() {
+    Terminal run "tbdflow sync"
+}
+
+task generate_unreleased_changelog() {
+    Terminal run "tbdflow changelog --unreleased"
+}
+
+# --- Condition drivers ---
+
+task verify_status_clean() {
+    Terminal last_command succeeded
+    Terminal output_contains "clean"
+    Terminal output_not_contains "Error"
+}
+
+task verify_no_errors() {
+    Terminal last_command succeeded
+    Terminal output_not_contains "Error"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUSINESS SPECIFICATION LAYER — Scenarios describe the "what"
+# ═══════════════════════════════════════════════════════════════════════════════
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Scenario 1 — Sync & Status
+# AC1: `tbdflow status` must report a clean tree when nothing has changed.
+# AC2: `tbdflow sync` must pull latest and succeed without errors.
+# AC3: `tbdflow status` must detect uncommitted changes.
 # ─────────────────────────────────────────────────────────────────────────────
 
 scenario "Sync and status on a clean repo" {
 
-    test Setup "Initialize test repository" {
+    test Setup "Initialise test repository" {
         given:
             Test can_start
         when:
-            Terminal run "rm -rf ${SYNC_REPO} ${SYNC_BARE} && mkdir -p ${SYNC_REPO}"
-            Terminal run "git init --bare ${SYNC_BARE}"
-            Terminal run "git -C ${SYNC_REPO} init && git -C ${SYNC_REPO} commit --allow-empty -m 'init'"
-            Terminal run "git -C ${SYNC_REPO} remote add origin ${SYNC_BARE}"
-            Terminal run "git -C ${SYNC_REPO} push -u origin main"
-            Terminal set_cwd "${SYNC_REPO}"
+            init_repo("${SYNC_REPO}", "${SYNC_BARE}")
         then:
             Terminal last_command succeeded
     }
@@ -44,56 +115,48 @@ scenario "Sync and status on a clean repo" {
         given:
             Test has_succeeded Setup
         when:
-            Terminal run "tbdflow status"
+            check_status()
         then:
-            Terminal last_command succeeded
-            Terminal output_contains "clean"
-            Terminal output_not_contains "Error"
+            verify_status_clean()
     }
 
     test SyncClean "Sync succeeds on a repo with remote" {
         given:
             Test has_succeeded StatusClean
         when:
-            Terminal run "tbdflow sync"
+            sync()
         then:
-            Terminal last_command succeeded
-            Terminal output_not_contains "Error"
+            verify_no_errors()
     }
 
     test StatusAfterChanges "Status detects uncommitted changes" {
         given:
             Test has_succeeded SyncClean
         when:
-            Terminal run "echo dirty > untracked.txt"
-            Terminal run "tbdflow status"
+            make_change("untracked.txt", "dirty")
+            check_status()
         then:
             Terminal last_command succeeded
             Terminal output_contains "untracked.txt"
     }
 
     after {
-        Terminal run "rm -rf ${SYNC_REPO} ${SYNC_BARE}"
+        cleanup_repo("${SYNC_REPO}", "${SYNC_BARE}")
     }
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Scenario 2 — Changelog generation
+# AC4: `tbdflow changelog --unreleased` must list commits since the last tag.
+# AC5: The changelog must include both features and fixes.
 # ─────────────────────────────────────────────────────────────────────────────
 
 scenario "Generating a changelog from commit history" {
 
-    test Setup "Initialize test repository with a tag" {
+    test Setup "Initialise test repository with a tag" {
         given:
             Test can_start
         when:
-            Terminal run "rm -rf ${CHANGELOG_REPO} ${CHANGELOG_BARE} && mkdir -p ${CHANGELOG_REPO}"
-            Terminal run "git init --bare ${CHANGELOG_BARE}"
-            Terminal run "git -C ${CHANGELOG_REPO} init && git -C ${CHANGELOG_REPO} commit --allow-empty -m 'init'"
-            Terminal run "git -C ${CHANGELOG_REPO} tag v0.0.0"
-            Terminal run "git -C ${CHANGELOG_REPO} remote add origin ${CHANGELOG_BARE}"
-            Terminal run "git -C ${CHANGELOG_REPO} push -u origin main --tags"
-            Terminal set_cwd "${CHANGELOG_REPO}"
+            init_repo_with_tag("${CHANGELOG_REPO}", "${CHANGELOG_BARE}", "v0.0.0")
         then:
             Terminal last_command succeeded
     }
@@ -102,22 +165,21 @@ scenario "Generating a changelog from commit history" {
         given:
             Test has_succeeded Setup
         when:
-            Terminal run "echo a > a.txt"
-            Terminal run "tbdflow commit -t feat -m 'add feature a'"
-            Terminal run "echo b > b.txt"
-            Terminal run "tbdflow commit -t fix -s core -m 'resolve crash on startup'"
-            Terminal run "echo c > c.txt"
-            Terminal run "tbdflow commit -t docs -m 'update readme'"
+            make_change("a.txt", "a")
+            commit("feat", "add feature a")
+            make_change("b.txt", "b")
+            commit_scoped("fix", "core", "resolve crash on startup")
+            make_change("c.txt", "c")
+            commit("docs", "update readme")
         then:
-            Terminal last_command succeeded
-            Terminal output_not_contains "Error"
+            verify_no_errors()
     }
 
     test UnreleasedChangelog "Changelog --unreleased shows recent work" {
         given:
             Test has_succeeded SeedCommits
         when:
-            Terminal run "tbdflow changelog --unreleased"
+            generate_unreleased_changelog()
         then:
             Terminal last_command succeeded
             Terminal output_contains "add feature a"
@@ -126,6 +188,6 @@ scenario "Generating a changelog from commit history" {
     }
 
     after {
-        Terminal run "rm -rf ${CHANGELOG_REPO} ${CHANGELOG_BARE}"
+        cleanup_repo("${CHANGELOG_REPO}", "${CHANGELOG_BARE}")
     }
 }

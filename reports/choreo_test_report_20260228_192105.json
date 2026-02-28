@@ -1,0 +1,101 @@
+[
+  {
+    "uri": "tests/tbdflow_branch.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Branch Creation",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Creating valid short-lived branches",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Initialize test repository",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1140
+            }
+          },
+          {
+            "name": "FeatBranch",
+            "description": "Create a feature branch",
+            "result": {
+              "status": "passed",
+              "durationInMs": 433
+            }
+          },
+          {
+            "name": "FeatBranchVerify",
+            "description": "Verify the branch exists in git",
+            "result": {
+              "status": "passed",
+              "durationInMs": 111
+            }
+          },
+          {
+            "name": "BranchWithIssue",
+            "description": "Create a branch with an issue key",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_branch_valid /tmp/tbdflow_branch_valid_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Rejecting invalid branch names",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Initialize test repository",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1141
+            }
+          },
+          {
+            "name": "InvalidType",
+            "description": "Reject an unknown branch type",
+            "result": {
+              "status": "failed",
+              "durationInMs": 433,
+              "errorMessage": "Synchronous test conditions not met"
+            }
+          },
+          {
+            "name": "UppercaseName",
+            "description": "Reject an uppercase branch name",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_branch_invalid /tmp/tbdflow_branch_invalid_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 6,
+      "failures": 1,
+      "totalTimeInSeconds": 1.1478773
+    }
+  }
+]

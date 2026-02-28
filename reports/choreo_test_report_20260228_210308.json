@@ -1,0 +1,61 @@
+[
+  {
+    "uri": "tests/tbdflow_branch.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Branch Creation",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Creating short-lived branches",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Initialise test repository",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2795
+            }
+          },
+          {
+            "name": "FeatBranch",
+            "description": "Create a feature branch",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1937
+            }
+          },
+          {
+            "name": "BranchWithIssue",
+            "description": "Create a branch with an issue key",
+            "result": {
+              "status": "passed",
+              "durationInMs": 977
+            }
+          },
+          {
+            "name": "ChoreBranch",
+            "description": "Create a chore branch",
+            "result": {
+              "status": "passed",
+              "durationInMs": 540
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_branch_test /tmp/tbdflow_branch_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 4,
+      "failures": 0,
+      "totalTimeInSeconds": 2.8009703
+    }
+  }
+]

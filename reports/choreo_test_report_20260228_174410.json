@@ -1,0 +1,99 @@
+[
+  {
+    "uri": "tests/tbdflow_branch.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Branch Creation",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Background",
+        "steps": [
+          {
+            "name": "Background Setup",
+            "description": "Setup steps from Background",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1362
+            }
+          }
+        ],
+        "after": []
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Creating valid short-lived branches",
+        "steps": [
+          {
+            "name": "FeatBranch",
+            "description": "Create a feature branch",
+            "result": {
+              "status": "passed",
+              "durationInMs": 928
+            }
+          },
+          {
+            "name": "FeatBranchVerify",
+            "description": "Verify the branch exists in git",
+            "result": {
+              "status": "passed",
+              "durationInMs": 657
+            }
+          },
+          {
+            "name": "BranchWithIssue",
+            "description": "Create a branch with an issue key",
+            "result": {
+              "status": "passed",
+              "durationInMs": 606
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_branch_test /tmp/tbdflow_branch_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Rejecting invalid branch names",
+        "steps": [
+          {
+            "name": "InvalidType",
+            "description": "Reject an unknown branch type",
+            "result": {
+              "status": "passed",
+              "durationInMs": 219
+            }
+          },
+          {
+            "name": "UppercaseName",
+            "description": "Reject an uppercase branch name",
+            "result": {
+              "status": "passed",
+              "durationInMs": 164
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_branch_test /tmp/tbdflow_branch_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 6,
+      "failures": 0,
+      "totalTimeInSeconds": 1.3656164
+    }
+  }
+]

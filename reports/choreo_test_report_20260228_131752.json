@@ -1,0 +1,100 @@
+[
+  {
+    "uri": "tests/tbdflow_branch.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Branch Creation",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Background",
+        "steps": [
+          {
+            "name": "Background Setup",
+            "description": "Setup steps from Background",
+            "result": {
+              "status": "passed",
+              "durationInMs": 222
+            }
+          }
+        ],
+        "after": []
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Creating valid short-lived branches",
+        "steps": [
+          {
+            "name": "FeatBranch",
+            "description": "Create a feature branch",
+            "result": {
+              "status": "failed",
+              "durationInMs": 111,
+              "errorMessage": "Synchronous test failed. Stderr: cd: no such file or directory: /tmp/tbdflow_branch_test && tbdflow branch -t feat -n add-user-profile"
+            }
+          },
+          {
+            "name": "FeatBranchVerify",
+            "description": "Verify the branch exists in git",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          },
+          {
+            "name": "BranchWithIssue",
+            "description": "Create a branch with an issue key",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_branch_test'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Rejecting invalid branch names",
+        "steps": [
+          {
+            "name": "InvalidType",
+            "description": "Reject an unknown branch type",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          },
+          {
+            "name": "UppercaseName",
+            "description": "Reject an uppercase branch name",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_branch_test'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 6,
+      "failures": 1,
+      "totalTimeInSeconds": 0.22528584
+    }
+  }
+]

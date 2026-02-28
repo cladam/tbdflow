@@ -1,0 +1,77 @@
+[
+  {
+    "uri": "tests/tbdflow_branch.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Branch Creation",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Creating short-lived branches",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Initialize test repository",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1561
+            }
+          },
+          {
+            "name": "FeatBranch",
+            "description": "Create a feature branch",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1185
+            }
+          },
+          {
+            "name": "FeatBranchVerify",
+            "description": "Verify the branch exists in git",
+            "result": {
+              "status": "passed",
+              "durationInMs": 862
+            }
+          },
+          {
+            "name": "BranchWithIssue",
+            "description": "Create a branch with an issue key",
+            "result": {
+              "status": "passed",
+              "durationInMs": 810
+            }
+          },
+          {
+            "name": "VerifyIssueBranch",
+            "description": "Verify the issue branch exists",
+            "result": {
+              "status": "passed",
+              "durationInMs": 489
+            }
+          },
+          {
+            "name": "ChoreBranch",
+            "description": "Create a chore branch",
+            "result": {
+              "status": "passed",
+              "durationInMs": 433
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_branch_test /tmp/tbdflow_branch_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 6,
+      "failures": 0,
+      "totalTimeInSeconds": 1.567114
+    }
+  }
+]

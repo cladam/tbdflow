@@ -1,13 +1,13 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # tbdflow — Standardised Commits
 # ═══════════════════════════════════════════════════════════════════════════════
-# Validates that `tbdflow commit` produces conventional commits with the
-# correct type, scope, message format, and breaking-change markers.
+# User Story: As a developer, I want my commits to follow a standardised
+# format so that changelogs and release notes can be generated automatically.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 feature "tbdflow Standardised Commits"
 
-actors: Terminal, FileSystem
+actors: Terminal
 
 settings {
     timeout_seconds = 30
@@ -21,22 +21,87 @@ var VALID_BARE = "/tmp/tbdflow_commit_valid_bare.git"
 var INVALID_REPO = "/tmp/tbdflow_commit_invalid"
 var INVALID_BARE = "/tmp/tbdflow_commit_invalid_bare.git"
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER — Tasks hide the "how"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# --- Setup drivers ---
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+# --- Action drivers (for when: blocks) ---
+
+task make_change(filename, content) {
+    Terminal run "echo ${content} > ${filename}"
+}
+
+task commit(type, message) {
+    Terminal run "tbdflow commit -t ${type} -m '${message}'"
+}
+
+task commit_scoped(type, scope, message) {
+    Terminal run "tbdflow commit -t ${type} -s ${scope} -m '${message}'"
+}
+
+task commit_breaking(type, scope, message) {
+    Terminal run "tbdflow commit -t ${type} -s ${scope} -m '${message}' -b"
+}
+
+task commit_with_issue(type, message, issue) {
+    Terminal run "tbdflow commit -t ${type} -m '${message}' --issue ${issue}"
+}
+
+task sync() {
+    Terminal run "tbdflow sync"
+}
+
+# --- Condition drivers (for then: blocks) ---
+
+task verify_commit_succeeded() {
+    Terminal last_command succeeded
+    Terminal output_contains "Successfully committed"
+    Terminal output_not_contains "Error"
+}
+
+task verify_commit_rejected() {
+    Terminal last_command failed
+    Terminal output_not_contains "Successfully committed"
+}
+
+task verify_history_contains(expected_message) {
+    Terminal last_command succeeded
+    Terminal output_contains "${expected_message}"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUSINESS SPECIFICATION LAYER — Scenarios describe the "what"
+# ═══════════════════════════════════════════════════════════════════════════════
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Scenario 1 — Valid commits
+# AC1: Commits must use conventional types (feat, fix, chore, etc.).
+# AC2: Commits may include an optional scope.
+# AC3: Commits may reference an issue key.
+# AC4: Breaking changes must be flagged explicitly.
 # ─────────────────────────────────────────────────────────────────────────────
 
 scenario "Creating valid conventional commits" {
 
-    test Setup "Initialize test repository" {
+    test Setup "Initialise test repository" {
         given:
             Test can_start
         when:
-            Terminal run "rm -rf ${VALID_REPO} ${VALID_BARE} && mkdir -p ${VALID_REPO}"
-            Terminal run "git init --bare ${VALID_BARE}"
-            Terminal run "git -C ${VALID_REPO} init && git -C ${VALID_REPO} commit --allow-empty -m 'init'"
-            Terminal run "git -C ${VALID_REPO} remote add origin ${VALID_BARE}"
-            Terminal run "git -C ${VALID_REPO} push -u origin main"
-            Terminal set_cwd "${VALID_REPO}"
+            init_repo("${VALID_REPO}", "${VALID_BARE}")
         then:
             Terminal last_command succeeded
     }
@@ -45,31 +110,27 @@ scenario "Creating valid conventional commits" {
         given:
             Test has_succeeded Setup
         when:
-            # tbdflow stages changes automatically; create a file first
-            Terminal run "echo hello > new_feature.txt"
-            Terminal run "tbdflow commit -t feat -m 'add user greeting'"
+            make_change("new_feature.txt", "hello")
+            commit("feat", "add user greeting")
         then:
-            Terminal last_command succeeded
-            Terminal output_contains "Successfully committed"
-            Terminal output_not_contains "Error"
+            verify_commit_succeeded()
     }
 
     test VerifyFeatCommit "The commit message follows conventional format" {
         given:
             Test has_succeeded SimpleFeat
         when:
-            Terminal run "tbdflow sync"
+            sync()
         then:
-            Terminal last_command succeeded
-            Terminal output_contains "feat: add user greeting"
+            verify_history_contains("feat: add user greeting")
     }
 
     test ScopedFix "Commit a scoped fix" {
         given:
             Test has_succeeded VerifyFeatCommit
         when:
-            Terminal run "echo patched > bugfix.txt"
-            Terminal run "tbdflow commit -t fix -s auth -m 'resolve token expiry'"
+            make_change("bugfix.txt", "patched")
+            commit_scoped("fix", "auth", "resolve token expiry")
         then:
             Terminal last_command succeeded
     }
@@ -78,18 +139,17 @@ scenario "Creating valid conventional commits" {
         given:
             Test has_succeeded ScopedFix
         when:
-            Terminal run "tbdflow sync"
+            sync()
         then:
-            Terminal last_command succeeded
-            Terminal output_contains "fix(auth): resolve token expiry"
+            verify_history_contains("fix(auth): resolve token expiry")
     }
 
     test BreakingChange "Commit with breaking change flag" {
         given:
             Test has_succeeded VerifyScopedCommit
         when:
-            Terminal run "echo v2 > api.txt"
-            Terminal run "tbdflow commit -t feat -s api -m 'remove legacy endpoint' -b"
+            make_change("api.txt", "v2")
+            commit_breaking("feat", "api", "remove legacy endpoint")
         then:
             Terminal last_command succeeded
     }
@@ -98,34 +158,30 @@ scenario "Creating valid conventional commits" {
         given:
             Test has_succeeded BreakingChange
         when:
-            Terminal run "echo ticket_work > ticket.txt"
-            Terminal run "tbdflow commit -t chore -m 'update dependencies' --issue PROJ-123"
+            make_change("ticket.txt", "ticket_work")
+            commit_with_issue("chore", "update dependencies", "PROJ-123")
         then:
-            Terminal last_command succeeded
-            Terminal output_not_contains "Error"
+            verify_commit_succeeded()
     }
 
     after {
-        Terminal run "rm -rf ${VALID_REPO} ${VALID_BARE}"
+        cleanup_repo("${VALID_REPO}", "${VALID_BARE}")
     }
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Scenario 2 — Invalid commits are rejected
+# AC5: Invalid commit types must be rejected.
+# AC6: Commit messages starting with a capital letter must be rejected.
+# AC7: Commit messages ending with a period must be rejected.
 # ─────────────────────────────────────────────────────────────────────────────
 
 scenario "Rejecting invalid commit messages" {
 
-    test Setup "Initialize test repository" {
+    test Setup "Initialise test repository" {
         given:
             Test can_start
         when:
-            Terminal run "rm -rf ${INVALID_REPO} ${INVALID_BARE} && mkdir -p ${INVALID_REPO}"
-            Terminal run "git init --bare ${INVALID_BARE}"
-            Terminal run "git -C ${INVALID_REPO} init && git -C ${INVALID_REPO} commit --allow-empty -m 'init'"
-            Terminal run "git -C ${INVALID_REPO} remote add origin ${INVALID_BARE}"
-            Terminal run "git -C ${INVALID_REPO} push -u origin main"
-            Terminal set_cwd "${INVALID_REPO}"
+            init_repo("${INVALID_REPO}", "${INVALID_BARE}")
         then:
             Terminal last_command succeeded
     }
@@ -134,34 +190,33 @@ scenario "Rejecting invalid commit messages" {
         given:
             Test has_succeeded Setup
         when:
-            Terminal run "echo x > tmp.txt"
-            Terminal run "tbdflow commit -t feature -m 'add something'"
+            make_change("tmp.txt", "x")
+            commit("feature", "add something")
         then:
-            Terminal last_command failed
-            Terminal output_not_contains "Successfully committed"
+            verify_commit_rejected()
     }
 
     test CapitalisedMessage "Reject a message starting with a capital letter" {
         given:
             Test has_succeeded InvalidType
         when:
-            Terminal run "echo x > tmp2.txt"
-            Terminal run "tbdflow commit -t fix -m 'Fix the bug'"
+            make_change("tmp2.txt", "x")
+            commit("fix", "Fix the bug")
         then:
-            Terminal last_command failed
+            verify_commit_rejected()
     }
 
     test TrailingPeriod "Reject a message ending with a period" {
         given:
             Test has_succeeded CapitalisedMessage
         when:
-            Terminal run "echo x > tmp3.txt"
-            Terminal run "tbdflow commit -t fix -m 'fix the bug.'"
+            make_change("tmp3.txt", "x")
+            commit("fix", "fix the bug.")
         then:
-            Terminal last_command failed
+            verify_commit_rejected()
     }
 
     after {
-        Terminal run "rm -rf ${INVALID_REPO} ${INVALID_BARE}"
+        cleanup_repo("${INVALID_REPO}", "${INVALID_BARE}")
     }
 }

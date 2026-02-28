@@ -1,0 +1,45 @@
+[
+  {
+    "uri": "/tmp/test_setcwd2.chor",
+    "keyword": "Feature",
+    "name": "Test set_cwd across tests",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Verify set_cwd persists",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Set working directory",
+            "result": {
+              "status": "passed",
+              "durationInMs": 280
+            }
+          },
+          {
+            "name": "CreateFile",
+            "description": "Create file in set directory",
+            "result": {
+              "status": "passed",
+              "durationInMs": 224
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/setcwd_test2'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 2,
+      "failures": 0,
+      "totalTimeInSeconds": 0.28514826
+    }
+  }
+]

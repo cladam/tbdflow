@@ -1,0 +1,100 @@
+[
+  {
+    "uri": "tests/tbdflow_sync_status.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Sync, Status & Changelog",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Sync and status on a clean repo",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Initialize test repository",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2942
+            }
+          },
+          {
+            "name": "StatusClean",
+            "description": "Status reports a clean working tree",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2507
+            }
+          },
+          {
+            "name": "SyncClean",
+            "description": "Sync succeeds on a repo with remote",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2399
+            }
+          },
+          {
+            "name": "StatusAfterChanges",
+            "description": "Status detects uncommitted changes",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2182
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_sync_test /tmp/tbdflow_sync_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Generating a changelog from commit history",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Initialize test repository with a tag",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1910
+            }
+          },
+          {
+            "name": "SeedCommits",
+            "description": "Create a series of conventional commits",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1467
+            }
+          },
+          {
+            "name": "UnreleasedChangelog",
+            "description": "Changelog --unreleased shows recent work",
+            "result": {
+              "status": "passed",
+              "durationInMs": 277
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_changelog_test /tmp/tbdflow_changelog_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 7,
+      "failures": 0,
+      "totalTimeInSeconds": 2.9447703
+    }
+  }
+]

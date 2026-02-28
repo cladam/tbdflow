@@ -1,0 +1,37 @@
+[
+  {
+    "uri": "tests/tbdflow_commit_types.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Commit Type Coverage",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Every valid commit type is accepted",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Initialize test repository",
+            "result": {
+              "status": "passed",
+              "durationInMs": 5208
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_types_test /tmp/tbdflow_types_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 12,
+      "failures": 0,
+      "totalTimeInSeconds": 5.216217
+    }
+  }
+]

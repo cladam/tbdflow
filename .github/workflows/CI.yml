@@ -37,6 +37,17 @@ jobs:
       - name: Run tests
         run: cargo test
 
+      - name: Install choreo
+        run: cargo install choreo
+
+      - name: Run choreo BDD tests
+        run: |
+          choreo run --file tests/tbdflow_branch.chor
+          choreo run --file tests/tbdflow_commit_types.chor
+          choreo run --file tests/tbdflow_commit.chor
+          choreo run --file tests/tbdflow_complete.chor
+          choreo run --file tests/tbdflow_sync_status.chor
+
   # Job 2: Creates the release on GitHub. Only runs on new tags.
   create_release:
     name: Create GitHub Release

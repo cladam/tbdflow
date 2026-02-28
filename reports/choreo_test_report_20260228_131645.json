@@ -1,0 +1,132 @@
+[
+  {
+    "uri": "tests/tbdflow_commit.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Standardised Commits",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Background",
+        "steps": [
+          {
+            "name": "Background Setup",
+            "description": "Setup steps from Background",
+            "result": {
+              "status": "passed",
+              "durationInMs": 224
+            }
+          }
+        ],
+        "after": []
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Creating valid conventional commits",
+        "steps": [
+          {
+            "name": "SimpleFeat",
+            "description": "Commit a simple feature",
+            "result": {
+              "status": "failed",
+              "durationInMs": 110,
+              "errorMessage": "Synchronous test failed. Stderr: cd: no such file or directory: /tmp/tbdflow_commit_test && tbdflow commit -t feat -m 'add user greeting'"
+            }
+          },
+          {
+            "name": "VerifyFeatCommit",
+            "description": "The commit message follows conventional format",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          },
+          {
+            "name": "ScopedFix",
+            "description": "Commit a scoped fix",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          },
+          {
+            "name": "VerifyScopedCommit",
+            "description": "The scoped commit appears in the log",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          },
+          {
+            "name": "BreakingChange",
+            "description": "Commit with breaking change flag",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          },
+          {
+            "name": "CommitWithIssue",
+            "description": "Commit referencing an issue key",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_commit_test'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Rejecting invalid commit messages",
+        "steps": [
+          {
+            "name": "InvalidType",
+            "description": "Reject an unknown commit type",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          },
+          {
+            "name": "CapitalisedMessage",
+            "description": "Reject a message starting with a capital letter",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          },
+          {
+            "name": "TrailingPeriod",
+            "description": "Reject a message ending with a period",
+            "result": {
+              "status": "skipped",
+              "durationInMs": 0
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_commit_test'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 10,
+      "failures": 1,
+      "totalTimeInSeconds": 0.22668621
+    }
+  }
+]

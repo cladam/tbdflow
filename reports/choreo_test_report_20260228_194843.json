@@ -1,0 +1,132 @@
+[
+  {
+    "uri": "/Users/claes.adamsson/IKEA/code/tbdflow/tests/tbdflow_commit.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Standardised Commits",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Creating valid conventional commits",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Initialize test repository",
+            "result": {
+              "status": "passed",
+              "durationInMs": 3150
+            }
+          },
+          {
+            "name": "SimpleFeat",
+            "description": "Commit a simple feature",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2606
+            }
+          },
+          {
+            "name": "VerifyFeatCommit",
+            "description": "The commit message follows conventional format",
+            "result": {
+              "status": "passed",
+              "durationInMs": 2170
+            }
+          },
+          {
+            "name": "ScopedFix",
+            "description": "Commit a scoped fix",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1952
+            }
+          },
+          {
+            "name": "VerifyScopedCommit",
+            "description": "The scoped commit appears in the log",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1573
+            }
+          },
+          {
+            "name": "BreakingChange",
+            "description": "Commit with breaking change flag",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1358
+            }
+          },
+          {
+            "name": "CommitWithIssue",
+            "description": "Commit referencing an issue key",
+            "result": {
+              "status": "passed",
+              "durationInMs": 978
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_commit_valid /tmp/tbdflow_commit_valid_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      },
+      {
+        "keyword": "Scenario",
+        "name": "Rejecting invalid commit messages",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Initialize test repository",
+            "result": {
+              "status": "passed",
+              "durationInMs": 3150
+            }
+          },
+          {
+            "name": "InvalidType",
+            "description": "Reject an unknown commit type",
+            "result": {
+              "status": "passed",
+              "durationInMs": 436
+            }
+          },
+          {
+            "name": "CapitalisedMessage",
+            "description": "Reject a message starting with a capital letter",
+            "result": {
+              "status": "passed",
+              "durationInMs": 327
+            }
+          },
+          {
+            "name": "TrailingPeriod",
+            "description": "Reject a message ending with a period",
+            "result": {
+              "status": "passed",
+              "durationInMs": 215
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_commit_invalid /tmp/tbdflow_commit_invalid_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 10,
+      "failures": 0,
+      "totalTimeInSeconds": 3.1549113
+    }
+  }
+]

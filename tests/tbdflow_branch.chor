@@ -1,13 +1,13 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # tbdflow — Branch Creation & Naming
 # ═══════════════════════════════════════════════════════════════════════════════
-# Validates that `tbdflow branch` creates short-lived branches with the
-# correct naming conventions.
+# User Story: As a developer, I want to create short-lived branches with
+# consistent naming so that my team can understand work-in-progress at a glance.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 feature "tbdflow Branch Creation"
 
-actors: Terminal, FileSystem
+actors: Terminal
 
 settings {
     timeout_seconds = 30
@@ -18,22 +18,56 @@ settings {
 var REPO_DIR = "/tmp/tbdflow_branch_test"
 var BARE_REPO = "/tmp/tbdflow_branch_bare.git"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Scenario — Branch creation workflows
-# ─────────────────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER — Tasks hide the "how"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+task create_branch(type, name) {
+    Terminal run "tbdflow branch -t ${type} -n ${name}"
+}
+
+task create_branch_with_issue(type, name, issue) {
+    Terminal run "tbdflow branch -t ${type} -n ${name} --issue ${issue}"
+}
+
+task return_to_main() {
+    Terminal run "git checkout main"
+}
+
+task verify_branch_created(expected_name) {
+    Terminal last_command succeeded
+    Terminal output_contains "${expected_name}"
+    Terminal output_not_contains "Error"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUSINESS SPECIFICATION LAYER — Scenarios describe the "what"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# AC1: Branches must follow the <type>/<name> convention.
+# AC2: Issue keys must be embedded in the branch name when provided.
+# AC3: Multiple branch types (feat, fix, chore) must be supported.
 
 scenario "Creating short-lived branches" {
 
-    test Setup "Initialize test repository" {
+    test Setup "Initialise test repository" {
         given:
             Test can_start
         when:
-            Terminal run "rm -rf ${REPO_DIR} ${BARE_REPO} && mkdir -p ${REPO_DIR}"
-            Terminal run "git init --bare ${BARE_REPO}"
-            Terminal run "git -C ${REPO_DIR} init && git -C ${REPO_DIR} commit --allow-empty -m 'init'"
-            Terminal run "git -C ${REPO_DIR} remote add origin ${BARE_REPO}"
-            Terminal run "git -C ${REPO_DIR} push -u origin main"
-            Terminal set_cwd "${REPO_DIR}"
+            init_repo("${REPO_DIR}", "${BARE_REPO}")
         then:
             Terminal last_command succeeded
     }
@@ -42,38 +76,32 @@ scenario "Creating short-lived branches" {
         given:
             Test has_succeeded Setup
         when:
-            Terminal run "tbdflow branch -t feat -n add-user-profile"
+            create_branch("feat", "add-user-profile")
         then:
-            Terminal last_command succeeded
-            Terminal output_contains "feat/add-user-profile"
-            Terminal output_not_contains "Error"
+            verify_branch_created("feat/add-user-profile")
     }
 
     test BranchWithIssue "Create a branch with an issue key" {
         given:
             Test has_succeeded FeatBranch
-            # Return to main before creating a new branch
-            # Note: tbdflow doesn't have a branch switch command, so we use git
-            Terminal run "git checkout main"
+            return_to_main()
         when:
-            Terminal run "tbdflow branch -t fix -n resolve-timeout --issue API-456"
+            create_branch_with_issue("fix", "resolve-timeout", "API-456")
         then:
-            Terminal last_command succeeded
-            Terminal output_contains "fix/API-456-resolve-timeout"
+            verify_branch_created("fix/API-456-resolve-timeout")
     }
 
     test ChoreBranch "Create a chore branch" {
         given:
             Test has_succeeded BranchWithIssue
-            Terminal run "git checkout main"
+            return_to_main()
         when:
-            Terminal run "tbdflow branch -t chore -n update-deps"
+            create_branch("chore", "update-deps")
         then:
-            Terminal last_command succeeded
-            Terminal output_contains "chore/update-deps"
+            verify_branch_created("chore/update-deps")
     }
 
     after {
-        Terminal run "rm -rf ${REPO_DIR} ${BARE_REPO}"
+        cleanup_repo("${REPO_DIR}", "${BARE_REPO}")
     }
 }

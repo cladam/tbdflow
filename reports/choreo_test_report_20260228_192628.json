@@ -1,0 +1,85 @@
+[
+  {
+    "uri": "tests/tbdflow_complete.chor",
+    "keyword": "Feature",
+    "name": "tbdflow Workflow Completion",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "name": "Full branch lifecycle: create, commit, complete",
+        "steps": [
+          {
+            "name": "Setup",
+            "description": "Initialize test repository",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1685
+            }
+          },
+          {
+            "name": "CreateBranch",
+            "description": "Start a short-lived feature branch",
+            "result": {
+              "status": "passed",
+              "durationInMs": 1251
+            }
+          },
+          {
+            "name": "CommitWork",
+            "description": "Commit work on the branch",
+            "result": {
+              "status": "passed",
+              "durationInMs": 975
+            }
+          },
+          {
+            "name": "CompleteWork",
+            "description": "Merge the branch back to main",
+            "result": {
+              "status": "passed",
+              "durationInMs": 653
+            }
+          },
+          {
+            "name": "VerifyOnMain",
+            "description": "Verify we are back on main",
+            "result": {
+              "status": "passed",
+              "durationInMs": 272
+            }
+          },
+          {
+            "name": "BranchDeleted",
+            "description": "The feature branch was cleaned up",
+            "result": {
+              "status": "passed",
+              "durationInMs": 218
+            }
+          },
+          {
+            "name": "CommitOnMain",
+            "description": "The merge commit exists on main",
+            "result": {
+              "status": "passed",
+              "durationInMs": 162
+            }
+          }
+        ],
+        "after": [
+          {
+            "name": "Terminal runs 'rm -rf /tmp/tbdflow_complete_test /tmp/tbdflow_complete_bare.git'",
+            "result": {
+              "status": "passed",
+              "durationInMs": 0
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "tests": 7,
+      "failures": 0,
+      "totalTimeInSeconds": 1.6884198
+    }
+  }
+]
