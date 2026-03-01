@@ -1,0 +1,228 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# tbdflow — Persona: The Git-Flow Refugee
+# ═══════════════════════════════════════════════════════════════════════════════
+# Profile: Comes from a Git-Flow background. Habitually creates long-lived
+# branches. Struggles with the "main is default" mindset shift.
+# Priority: Guardrail Effectiveness.
+#
+# This persona validates that tbdflow's guardrails effectively guide
+# a Git-Flow user toward trunk-based patterns without being hostile.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+feature "Persona: The Git-Flow Refugee"
+
+actors: Terminal, System
+
+settings {
+    timeout_seconds = 30
+    stop_on_failure = true
+    shell_path = "/bin/bash"
+}
+
+var REPO_DIR = "/tmp/tbdflow_refugee_test"
+var BARE_REPO = "/tmp/tbdflow_refugee_bare.git"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+task make_change(filename, content) {
+    Terminal run "echo ${content} > ${filename}"
+}
+
+# --- Refugee actions: habits from Git-Flow ---
+
+task create_branch(type, name) {
+    Terminal run "tbdflow branch -t ${type} -n ${name}"
+}
+
+task complete_branch(type, name) {
+    Terminal run "tbdflow complete -t ${type} -n ${name}"
+}
+
+task commit(type, message) {
+    Terminal run "tbdflow commit -t ${type} -m '${message}' --no-verify"
+}
+
+task sync() {
+    Terminal run "tbdflow sync"
+}
+
+task check_status() {
+    Terminal run "tbdflow status"
+}
+
+task check_stale_branches() {
+    Terminal run "tbdflow check-branches"
+}
+
+# --- Friction checks: what the refugee cares about ---
+
+task verify_branch_created(expected_name) {
+    Terminal last_command succeeded
+    Terminal output_contains "${expected_name}"
+}
+
+task verify_branch_completed() {
+    Terminal last_command succeeded
+    Terminal output_contains "merged into main"
+    Terminal output_contains "deleted"
+}
+
+task check_current_branch() {
+    Terminal run "tbdflow current-branch"
+}
+
+task verify_on_main() {
+    Terminal last_command succeeded
+    Terminal output_contains "main"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUSINESS SPECIFICATION LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# User Story: As a developer coming from Git-Flow, I want tbdflow to
+# guide me toward short-lived branches and fast integration so that
+# I unlearn long-lived branch habits without feeling lost.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AC1: Branch creation must enforce the type/name convention.
+# AC2: The complete command must merge AND delete the branch.
+# AC3: After completing, I must land back on main automatically.
+# AC4: Stale branch detection must remind me to integrate quickly.
+# AC5: The full branch→commit→complete cycle must feel natural.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "The branch-commit-complete cycle feels natural" {
+
+    test Setup "Initialise test repository" {
+        given:
+            Test can_start
+            System log "Persona: Git-Flow Refugee — learning the TBD cycle"
+        when:
+            init_repo("${REPO_DIR}", "${BARE_REPO}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test CreateFeatureBranch "Create a short-lived feature branch" {
+        given:
+            Test has_succeeded Setup
+        when:
+            create_branch("feat", "login-page")
+        then:
+            verify_branch_created("feat/login-page")
+    }
+
+    test CommitOnBranch "Commit work on the branch" {
+        given:
+            Test has_succeeded CreateFeatureBranch
+        when:
+            make_change("login.rs", "login-page-v1")
+            commit("feat", "add login page")
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "Successfully"
+    }
+
+    test CompleteBranch "Merge the branch back to main" {
+        given:
+            Test has_succeeded CommitOnBranch
+        when:
+            complete_branch("feat", "login-page")
+        then:
+            verify_branch_completed()
+    }
+
+    test BackOnMain "I'm back on main after completing" {
+        given:
+            Test has_succeeded CompleteBranch
+        when:
+            check_current_branch()
+        then:
+            verify_on_main()
+    }
+
+    test WorkOnMain "The commit is visible on main" {
+        given:
+            Test has_succeeded BackOnMain
+        when:
+            sync()
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "add login page"
+            Terminal output_contains "On main branch"
+    }
+
+    after {
+        cleanup_repo("${REPO_DIR}", "${BARE_REPO}")
+    }
+}
+
+scenario "Guardrails catch Git-Flow habits" {
+
+    test Setup "Initialise test repository" {
+        given:
+            Test can_start
+        when:
+            init_repo("${REPO_DIR}", "${BARE_REPO}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test FeatureBranchStillWorks "tbdflow allows 'feature' as a branch type" {
+        given:
+            Test has_succeeded Setup
+            System log "UX OBSERVATION: Git-Flow refugee can still create feature/ branches — the guardrail is on commit types, not branch types"
+            System log "UX OBSERVATION: Default prefix for 'feature' is 'feature_' (underscore), not 'feature/' — only overridden by .tbdflow.yml"
+        when:
+            Terminal run "tbdflow branch -t feature -n some-work"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "feature_some-work"
+    }
+
+    test FeatureCommitTypeRejected "But 'feature' is NOT a valid commit type" {
+        given:
+            Test has_succeeded FeatureBranchStillWorks
+        when:
+            make_change("work.txt", "refugee-work")
+            Terminal run "tbdflow commit -t feature -m 'add something' --no-verify"
+        then:
+            Terminal last_command failed
+            Terminal output_contains "not a valid"
+    }
+
+    test StaleCheckOnCleanRepo "Stale branch check works on fresh repo" {
+        given:
+            Test has_succeeded FeatureCommitTypeRejected
+        when:
+            Terminal run "git checkout main"
+            check_stale_branches()
+        then:
+            Terminal last_command succeeded
+            Terminal output_not_contains "Error"
+    }
+
+    after {
+        cleanup_repo("${REPO_DIR}", "${BARE_REPO}")
+    }
+}
+
+
+
+

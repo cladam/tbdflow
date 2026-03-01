@@ -1,0 +1,175 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# tbdflow — Persona: The TBD Purist
+# ═══════════════════════════════════════════════════════════════════════════════
+# Profile: Commits 10x a day directly to main. Hates unnecessary prompts.
+# Expects zero friction between "code done" and "code pushed."
+# Priority: Speed and Minimal Keystrokes.
+#
+# This persona validates that tbdflow's happy path is frictionless
+# and that the tool never gets in the way of a developer in flow.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+feature "Persona: The TBD Purist"
+
+actors: Terminal, System
+
+settings {
+    timeout_seconds = 30
+    stop_on_failure = true
+    shell_path = "/bin/bash"
+}
+
+var REPO_DIR = "/tmp/tbdflow_purist_test"
+var BARE_REPO = "/tmp/tbdflow_purist_bare.git"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+task make_change(filename, content) {
+    Terminal run "echo ${content} > ${filename}"
+}
+
+# --- Purist actions: short flags, no extras ---
+
+task quick_commit(type, message) {
+    Terminal run "tbdflow commit -t ${type} -m '${message}' --no-verify"
+}
+
+task quick_commit_scoped(type, scope, message) {
+    Terminal run "tbdflow commit -t ${type} -s ${scope} -m '${message}' --no-verify"
+}
+
+task sync() {
+    Terminal run "tbdflow sync"
+}
+
+task check_status() {
+    Terminal run "tbdflow status"
+}
+
+# --- Friction checks: what the purist cares about ---
+
+task verify_committed_and_pushed() {
+    Terminal last_command succeeded
+    Terminal output_contains "Successfully committed"
+    Terminal output_not_contains "Error"
+}
+
+task verify_no_unnecessary_prompts() {
+    Terminal last_command succeeded
+    Terminal output_not_contains "confirm"
+    Terminal output_not_contains "Warning"
+    Terminal output_not_contains "checklist"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUSINESS SPECIFICATION LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# User Story: As a TBD purist, I want to commit and push in a single
+# command with zero prompts so that my flow state is never interrupted.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AC1: A commit with --no-verify must go straight through without prompts.
+# AC2: Short flags (-t, -m, -s) must work as expected.
+# AC3: Rapid sequential commits must all succeed.
+# AC4: Sync before commit must be fast and non-disruptive.
+# AC5: The tool must never block on interactive input with --no-verify.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Rapid-fire commits to main" {
+
+    test Setup "Initialise test repository" {
+        given:
+            Test can_start
+            System log "Persona: TBD Purist — rapid commits to main"
+        when:
+            init_repo("${REPO_DIR}", "${BARE_REPO}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test SyncFirst "Sync before starting work" {
+        given:
+            Test has_succeeded Setup
+        when:
+            sync()
+        then:
+            Terminal last_command succeeded
+            Terminal output_not_contains "Error"
+    }
+
+    test FirstCommit "Quick commit with short flags" {
+        given:
+            Test has_succeeded SyncFirst
+        when:
+            make_change("api.rs", "api-handler-v1")
+            quick_commit("feat", "add api handler")
+        then:
+            verify_committed_and_pushed()
+            verify_no_unnecessary_prompts()
+    }
+
+    test SecondCommit "Immediate follow-up commit" {
+        given:
+            Test has_succeeded FirstCommit
+        when:
+            make_change("api.rs", "api-handler-v2")
+            quick_commit("fix", "handle empty response")
+        then:
+            verify_committed_and_pushed()
+    }
+
+    test ThirdCommitScoped "Scoped commit with short flags" {
+        given:
+            Test has_succeeded SecondCommit
+        when:
+            make_change("auth.rs", "token-verify")
+            quick_commit_scoped("feat", "auth", "add token verification")
+        then:
+            verify_committed_and_pushed()
+    }
+
+    test FourthCommit "Chore commit — zero ceremony" {
+        given:
+            Test has_succeeded ThirdCommitScoped
+        when:
+            make_change("deps.txt", "updated")
+            quick_commit("chore", "update dependencies")
+        then:
+            verify_committed_and_pushed()
+    }
+
+    test VerifyAllInHistory "All four commits landed on main" {
+        given:
+            Test has_succeeded FourthCommit
+        when:
+            sync()
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "add api handler"
+            Terminal output_contains "handle empty response"
+            Terminal output_contains "add token verification"
+            Terminal output_contains "update dependencies"
+    }
+
+    after {
+        cleanup_repo("${REPO_DIR}", "${BARE_REPO}")
+    }
+}
+
+

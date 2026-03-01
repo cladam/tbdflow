@@ -1,0 +1,181 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# tbdflow — Persona: The Monorepo Architect
+# ═══════════════════════════════════════════════════════════════════════════════
+# Profile: Operates in deep directory structures with multiple sub-projects.
+# Needs to know exactly which parts of the repo are affected.
+# Priority: Context Awareness.
+#
+# This persona validates that tbdflow provides clear context about
+# what is being committed, synced, and affected in a complex repo.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+feature "Persona: The Monorepo Architect"
+
+actors: Terminal, System
+
+settings {
+    timeout_seconds = 30
+    stop_on_failure = true
+    shell_path = "/bin/bash"
+}
+
+var REPO_DIR = "/tmp/tbdflow_monorepo_test"
+var BARE_REPO = "/tmp/tbdflow_monorepo_bare.git"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+task create_project_structure() {
+    Terminal run "mkdir -p services/api services/web libs/shared"
+    Terminal run "echo api-main > services/api/main.rs"
+    Terminal run "echo web-main > services/web/main.rs"
+    Terminal run "echo shared-lib > libs/shared/lib.rs"
+    Terminal run "echo root-config > config.yml"
+}
+
+task commit(type, message) {
+    Terminal run "tbdflow commit -t ${type} -m '${message}' --no-verify"
+}
+
+task commit_scoped(type, scope, message) {
+    Terminal run "tbdflow commit -t ${type} -s ${scope} -m '${message}' --no-verify"
+}
+
+task check_status() {
+    Terminal run "tbdflow status"
+}
+
+task sync() {
+    Terminal run "tbdflow sync"
+}
+
+task generate_changelog() {
+    Terminal run "tbdflow changelog --unreleased"
+}
+
+# --- Friction checks: what the architect cares about ---
+
+task verify_context_aware_output() {
+    Terminal last_command succeeded
+    Terminal output_not_contains "Error"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUSINESS SPECIFICATION LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# User Story: As a monorepo architect, I want tbdflow to give me clear
+# context about what is being committed so that I never accidentally
+# push changes from the wrong sub-project.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AC1: Status must show files across the full repo structure.
+# AC2: Scoped commits must work to attribute changes to sub-projects.
+# AC3: Changelog must reflect scoped commits correctly.
+# AC4: Multiple commits across different areas must all be tracked.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Working across multiple sub-projects" {
+
+    test Setup "Initialise monorepo structure" {
+        given:
+            Test can_start
+            System log "Persona: Monorepo Architect — multi-project context"
+        when:
+            init_repo("${REPO_DIR}", "${BARE_REPO}")
+            Terminal run "git -C ${REPO_DIR} tag v0.0.0"
+            Terminal run "git -C ${REPO_DIR} push origin --tags"
+            create_project_structure()
+        then:
+            Terminal last_command succeeded
+    }
+
+    test StatusShowsAllFiles "Status reveals changes across the tree" {
+        given:
+            Test has_succeeded Setup
+        when:
+            check_status()
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "services/"
+            Terminal output_contains "libs/"
+            Terminal output_contains "config.yml"
+    }
+
+    test CommitApiService "Scoped commit for the API service" {
+        given:
+            Test has_succeeded StatusShowsAllFiles
+        when:
+            commit_scoped("feat", "api", "add api entrypoint")
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "Successfully committed"
+    }
+
+    test CommitWebService "Second commit for a different service" {
+        given:
+            Test has_succeeded CommitApiService
+        when:
+            Terminal run "echo web-updated > services/web/main.rs"
+            commit_scoped("feat", "web", "add web entrypoint")
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "Successfully committed"
+    }
+
+    test CommitSharedLib "Third commit for shared library" {
+        given:
+            Test has_succeeded CommitWebService
+        when:
+            Terminal run "echo shared-util-v2 > libs/shared/lib.rs"
+            commit_scoped("refactor", "shared", "extract shared utility")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test ChangelogShowsScopes "Changelog reflects all scoped commits" {
+        given:
+            Test has_succeeded CommitSharedLib
+        when:
+            generate_changelog()
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "api"
+            Terminal output_contains "web"
+            Terminal output_contains "shared"
+    }
+
+    test SyncShowsFullHistory "Sync shows all commits in context" {
+        given:
+            Test has_succeeded ChangelogShowsScopes
+        when:
+            sync()
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "add api entrypoint"
+            Terminal output_contains "add web entrypoint"
+            Terminal output_contains "extract shared utility"
+    }
+
+    after {
+        cleanup_repo("${REPO_DIR}", "${BARE_REPO}")
+    }
+}
+
+
+
+

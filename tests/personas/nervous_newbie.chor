@@ -1,0 +1,267 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# tbdflow — Persona: The Nervous Newbie
+# ═══════════════════════════════════════════════════════════════════════════════
+# Profile: Low confidence in Git. New to trunk-based development.
+# Uses --dry-run frequently. Gets overwhelmed by verbose output.
+# Priority: Safety and Clarity.
+#
+# This persona validates that tbdflow provides a safe, guided experience
+# for developers who are afraid of breaking the trunk.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+feature "Persona: The Nervous Newbie"
+
+actors: Terminal, System
+
+settings {
+    timeout_seconds = 30
+    stop_on_failure = true
+    shell_path = "/bin/bash"
+}
+
+var REPO_DIR = "/tmp/tbdflow_newbie_test"
+var BARE_REPO = "/tmp/tbdflow_newbie_bare.git"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+task make_change(filename, content) {
+    Terminal run "echo ${content} > ${filename}"
+}
+
+# --- Newbie actions: always cautious ---
+
+task dry_run_commit(type, message) {
+    Terminal run "tbdflow --dry-run commit -t ${type} -m '${message}'"
+}
+
+task real_commit(type, message) {
+    Terminal run "tbdflow commit -t feat -m '${message}'"
+}
+
+task check_help(subcommand) {
+    Terminal run "tbdflow ${subcommand} --help"
+}
+
+task check_status() {
+    Terminal run "tbdflow status"
+}
+
+task sync() {
+    Terminal run "tbdflow sync"
+}
+
+# --- Friction checks: what the newbie cares about ---
+
+task verify_safe_output() {
+    Terminal last_command succeeded
+    Terminal output_not_contains "fatal"
+    Terminal output_not_contains "CONFLICT"
+    Terminal output_not_contains "panic"
+}
+
+task verify_clear_error(expected_hint) {
+    Terminal last_command failed
+    Terminal output_contains "${expected_hint}"
+}
+
+task verify_help_is_useful(expected_keyword) {
+    Terminal last_command succeeded
+    Terminal output_contains "${expected_keyword}"
+}
+
+task verify_dry_run_is_safe() {
+    Terminal last_command succeeded
+    Terminal output_contains "DRY RUN"
+    Terminal output_not_contains "Successfully committed"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUSINESS SPECIFICATION LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# User Story: As a nervous new developer, I want tbdflow to guide me
+# safely so that I never accidentally break the trunk or lose my work.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AC1: Help text must be discoverable and explain what each command does.
+# AC2: --dry-run must show what WOULD happen without making changes.
+# AC3: Error messages must be clear and actionable, not cryptic.
+# AC4: Status and sync must feel safe — no scary output on a clean repo.
+# AC5: Invalid input must be rejected with a helpful hint, not a stack trace.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "First contact: discovering the tool" {
+
+    test Setup "Initialise test repository" {
+        given:
+            Test can_start
+            System log "Persona: Nervous Newbie — first time using tbdflow"
+        when:
+            init_repo("${REPO_DIR}", "${BARE_REPO}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test HelpIsDiscoverable "The main help text lists all commands" {
+        given:
+            Test has_succeeded Setup
+        when:
+            Terminal run "tbdflow --help"
+        then:
+            verify_help_is_useful("commit")
+            Terminal output_contains "branch"
+            Terminal output_contains "sync"
+            Terminal output_contains "status"
+            Terminal output_contains "complete"
+    }
+
+    test CommitHelpExplainsTypes "Commit help lists allowed types and examples" {
+        given:
+            Test has_succeeded HelpIsDiscoverable
+        when:
+            check_help("commit")
+        then:
+            verify_help_is_useful("feat")
+            Terminal output_contains "fix"
+            Terminal output_contains "EXAMPLES"
+    }
+
+    after {
+        cleanup_repo("${REPO_DIR}", "${BARE_REPO}")
+    }
+}
+
+scenario "Safe exploration with --dry-run" {
+
+    test Setup "Initialise test repository" {
+        given:
+            Test can_start
+        when:
+            init_repo("${REPO_DIR}", "${BARE_REPO}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test DryRunCommit "Dry-run shows intent without making changes" {
+        given:
+            Test has_succeeded Setup
+        when:
+            make_change("feature.txt", "tentative work")
+            dry_run_commit("feat", "add tentative feature")
+        then:
+            verify_dry_run_is_safe()
+    }
+
+    test NothingActuallyChanged "No commit was created during dry-run" {
+        given:
+            Test has_succeeded DryRunCommit
+        when:
+            Terminal run "git -C ${REPO_DIR} log --oneline"
+        then:
+            Terminal last_command succeeded
+            Terminal output_not_contains "add tentative feature"
+    }
+
+    after {
+        cleanup_repo("${REPO_DIR}", "${BARE_REPO}")
+    }
+}
+
+scenario "Safe status checks on a clean repo" {
+
+    test Setup "Initialise test repository" {
+        given:
+            Test can_start
+        when:
+            init_repo("${REPO_DIR}", "${BARE_REPO}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test StatusFeelsSafe "Status on a clean repo is calm and reassuring" {
+        given:
+            Test has_succeeded Setup
+        when:
+            check_status()
+        then:
+            verify_safe_output()
+            Terminal output_contains "clean"
+    }
+
+    test SyncFeelsSafe "Sync on a clean repo is calm and reassuring" {
+        given:
+            Test has_succeeded StatusFeelsSafe
+        when:
+            sync()
+        then:
+            verify_safe_output()
+            Terminal output_not_contains "error"
+    }
+
+    after {
+        cleanup_repo("${REPO_DIR}", "${BARE_REPO}")
+    }
+}
+
+scenario "Clear error messages for common mistakes" {
+
+    test Setup "Initialise test repository" {
+        given:
+            Test can_start
+        when:
+            init_repo("${REPO_DIR}", "${BARE_REPO}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test WrongCommitType "Using 'feature' instead of 'feat' gives a clear error" {
+        given:
+            Test has_succeeded Setup
+        when:
+            make_change("oops.txt", "mistake")
+            Terminal run "tbdflow commit -t feature -m 'my first feature'"
+        then:
+            verify_clear_error("not a valid")
+    }
+
+    test CapitalMessage "Capital letter in message gives a clear error" {
+        given:
+            Test has_succeeded WrongCommitType
+        when:
+            make_change("oops2.txt", "mistake2")
+            Terminal run "tbdflow commit -t feat -m 'Add something'"
+        then:
+            verify_clear_error("capital")
+    }
+
+    test MissingFlags "Committing without flags fails gracefully without a terminal" {
+        given:
+            Test has_succeeded CapitalMessage
+        when:
+            Terminal run "tbdflow commit"
+        then:
+            Terminal last_command failed
+            Terminal output_not_contains "panic"
+    }
+
+    after {
+        cleanup_repo("${REPO_DIR}", "${BARE_REPO}")
+    }
+}
+
+
