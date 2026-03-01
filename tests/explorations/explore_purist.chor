@@ -1,0 +1,310 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# tbdflow — Exploration Agent: The TBD Purist
+# ═══════════════════════════════════════════════════════════════════════════════
+# Profile: Senior developer. Commits 10x/day. Zero tolerance for friction.
+# Types fast, expects instant feedback, gets irritated by prompts.
+#
+# Exploration strategy: Speedrun the happy path. Time everything mentally.
+# Try to break the tool with rapid-fire commands. Find the ceiling.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+feature "Exploration: The TBD Purist's Speedrun"
+
+actors: Terminal, System
+
+settings {
+    timeout_seconds = 30
+    stop_on_failure = false
+    shell_path = "/bin/bash"
+}
+
+var REPO = "/tmp/explore_purist"
+var BARE = "/tmp/explore_purist_bare.git"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EXPLORATION SCENARIOS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Journey 1: "How fast can I go from idea to pushed commit?"
+#
+# The purist measures friction in keystrokes. Every unnecessary prompt
+# is a bug. Every flag that could have a default is a design flaw.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Speedrunning the commit-push cycle" {
+
+    test Setup "I need a repo, fast" {
+        given:
+            Test can_start
+            System log "THOUGHT: Set up and go. No time to waste."
+        when:
+            init_repo("${REPO}", "${BARE}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test BlitzCommit1 "First commit: minimal keystrokes" {
+        given:
+            Test has_succeeded Setup
+            System log "THOUGHT: -t, -m, --no-verify. That's the minimum."
+        when:
+            Terminal run "echo v1 > api.rs"
+            Terminal run "tbdflow commit -t feat -m 'add api' --no-verify"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "Successfully committed"
+            # FRICTION: Was there any unnecessary output?
+            Terminal output_not_contains "Warning"
+            Terminal output_not_contains "checklist"
+    }
+
+    test BlitzCommit2 "Immediate second commit" {
+        given:
+            Test has_succeeded BlitzCommit1
+            System log "THOUGHT: No sync needed, I just pushed. Go go go."
+        when:
+            Terminal run "echo v2 > api.rs"
+            Terminal run "tbdflow commit -t fix -m 'fix null check' --no-verify"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "Successfully committed"
+    }
+
+    test BlitzCommit3 "Third commit, scoped" {
+        given:
+            Test has_succeeded BlitzCommit2
+            System log "THOUGHT: Scope it for the changelog."
+        when:
+            Terminal run "echo v3 > auth.rs"
+            Terminal run "tbdflow commit -t feat -s auth -m 'add jwt validation' --no-verify"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test BlitzCommit4 "Fourth commit, chore" {
+        given:
+            Test has_succeeded BlitzCommit3
+        when:
+            Terminal run "echo v1 > deps.lock"
+            Terminal run "tbdflow commit -t chore -m 'update lockfile' --no-verify"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test BlitzCommit5 "Fifth commit, with issue ref" {
+        given:
+            Test has_succeeded BlitzCommit4
+            System log "THOUGHT: Manager wants issue refs. Fine."
+        when:
+            Terminal run "echo v1 > perf.rs"
+            Terminal run "tbdflow commit -t perf -m 'optimize hot path' --issue PERF-42 --no-verify"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test VerifyAllLanded "Did all 5 commits land on main?" {
+        given:
+            Test has_succeeded BlitzCommit5
+            System log "THOUGHT: Let me check sync output shows everything."
+        when:
+            Terminal run "tbdflow sync"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "add api"
+            Terminal output_contains "fix null check"
+            Terminal output_contains "add jwt validation"
+            Terminal output_contains "update lockfile"
+            Terminal output_contains "optimize hot path"
+    }
+
+    after {
+        cleanup_repo("${REPO}", "${BARE}")
+        System log "JOURNAL: 5 commits. Zero unnecessary prompts. Acceptable."
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Journey 2: "What are the shortest possible commands?"
+#
+# The purist explores the minimum viable command for each action.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Finding the shortest commands" {
+
+    test Setup "Fresh repo" {
+        given:
+            Test can_start
+        when:
+            init_repo("${REPO}", "${BARE}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test ShortestSync "Is there a shorter way to sync?" {
+        given:
+            Test has_succeeded Setup
+            System log "THOUGHT: tbdflow sync — 12 chars. Can I alias it?"
+        when:
+            Terminal run "tbdflow sync"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test ShortestStatus "How about status?" {
+        given:
+            Test has_succeeded ShortestSync
+            System log "THOUGHT: tbdflow status — 15 chars. Feels long."
+        when:
+            Terminal run "tbdflow status"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test ShortestCommit "Minimum viable commit" {
+        given:
+            Test has_succeeded ShortestStatus
+            System log "THOUGHT: Minimum flags: -t, -m, --no-verify. 3 flags."
+        when:
+            Terminal run "echo short > short.txt"
+            Terminal run "tbdflow commit -t fix -m 'x' --no-verify"
+        then:
+            Terminal last_command succeeded
+            # FRICTION: Even a 1-char message works. Good.
+    }
+
+    test ShortestBranch "Minimum viable branch" {
+        given:
+            Test has_succeeded ShortestCommit
+            System log "THOUGHT: -t and -n required. Can I skip -n?"
+        when:
+            Terminal run "tbdflow branch -t fix -n x"
+        then:
+            Terminal last_command succeeded
+            # OBSERVATION: Single-char branch name works.
+    }
+
+    test ShortestComplete "Minimum viable complete" {
+        given:
+            Test has_succeeded ShortestBranch
+            System log "THOUGHT: Complete needs -t and -n. Fair."
+        when:
+            Terminal run "echo y > y.txt"
+            Terminal run "tbdflow commit -t fix -m 'y' --no-verify"
+            Terminal run "tbdflow complete -t fix -n x"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "merged into main"
+    }
+
+    after {
+        cleanup_repo("${REPO}", "${BARE}")
+        System log "JOURNAL: Minimum commands found. No unnecessary ceremony."
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Journey 3: "What happens under stress?"
+#
+# Rapid context switches. The purist simulates a hectic day.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "A hectic morning: branch, commit, switch, commit, complete" {
+
+    test Setup "Fresh repo for chaos" {
+        given:
+            Test can_start
+            System log "THOUGHT: Simulating a morning with 3 tasks in parallel."
+        when:
+            init_repo("${REPO}", "${BARE}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test StartTask1 "Start a feature branch" {
+        given:
+            Test has_succeeded Setup
+        when:
+            Terminal run "tbdflow branch -t feat -n task-one"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test CommitOnTask1 "Quick commit on task 1" {
+        given:
+            Test has_succeeded StartTask1
+        when:
+            Terminal run "echo task1 > task1.txt"
+            Terminal run "tbdflow commit -t feat -m 'task one done' --no-verify"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test SwitchToMain "Drop task 1, switch back to main" {
+        given:
+            Test has_succeeded CommitOnTask1
+            System log "THOUGHT: Boss says task 2 is more urgent. Switch."
+        when:
+            Terminal run "git checkout main"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test HotfixOnMain "Emergency fix directly on main" {
+        given:
+            Test has_succeeded SwitchToMain
+            System log "THOUGHT: Hotfix goes straight to main. No branch needed."
+        when:
+            Terminal run "echo hotfix > hotfix.txt"
+            Terminal run "tbdflow commit -t fix -m 'emergency hotfix' --no-verify"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "Successfully committed"
+    }
+
+    test CompleteTask1 "Back to task 1, finish it" {
+        given:
+            Test has_succeeded HotfixOnMain
+            System log "THOUGHT: OK, let me merge task 1 now."
+        when:
+            Terminal run "tbdflow complete -t feat -n task-one"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "merged into main"
+    }
+
+    test VerifyEverything "Check the full history" {
+        given:
+            Test has_succeeded CompleteTask1
+            System log "THOUGHT: Let me verify everything is on main."
+        when:
+            Terminal run "tbdflow sync"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "task one done"
+            Terminal output_contains "emergency hotfix"
+    }
+
+    after {
+        cleanup_repo("${REPO}", "${BARE}")
+        System log "JOURNAL: Branch switch + hotfix + complete all in one session. Clean."
+    }
+}
+

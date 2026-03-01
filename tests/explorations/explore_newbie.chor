@@ -1,0 +1,338 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# tbdflow — Exploration Agent: The Nervous Newbie
+# ═══════════════════════════════════════════════════════════════════════════════
+# Profile: First week on the team. Knows basic Git but has never used a
+# workflow tool. Afraid of breaking things. Explores cautiously.
+#
+# Exploration strategy: Start with --help and --dry-run before touching
+# anything real. Try the wrong thing, read the error, try again.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+feature "Exploration: The Nervous Newbie's First Day"
+
+actors: Terminal, System
+
+settings {
+    timeout_seconds = 30
+    stop_on_failure = false
+    shell_path = "/bin/bash"
+}
+
+var REPO = "/tmp/explore_newbie"
+var BARE = "/tmp/explore_newbie_bare.git"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EXPLORATION SCENARIOS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Journey 1: "I just got this tool, what does it do?"
+#
+# The newbie opens a terminal and types the tool name with no arguments.
+# Then tries --help. Then explores each subcommand's help.
+# Friction = anything confusing, missing, or scary in the output.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Discovering what tbdflow does" {
+
+    test WhatIsThis "Type the tool name with no arguments" {
+        given:
+            Test can_start
+            System log "THOUGHT: What does this tool do? Let me just type the name..."
+        when:
+            Terminal run "tbdflow"
+        then:
+            # OBSERVE: Does it print something useful or just crash?
+            Terminal output_not_contains "panic"
+            Terminal output_not_contains "fatal"
+    }
+
+    test ReadTheManual "Try --help to understand the tool" {
+        given:
+            Test can_start
+            System log "THOUGHT: OK let me try --help like any CLI..."
+        when:
+            Terminal run "tbdflow --help"
+        then:
+            # FRICTION CHECK: Can I understand what this tool does in 5 seconds?
+            Terminal last_command succeeded
+            Terminal output_contains "commit"
+            Terminal output_contains "branch"
+            Terminal output_contains "sync"
+    }
+
+    test WhatVersion "Check what version I have" {
+        given:
+            Test can_start
+            System log "THOUGHT: What version did IT install for me?"
+        when:
+            Terminal run "tbdflow --version"
+        then:
+            Terminal last_command succeeded
+            # FRICTION CHECK: Does it show a version number?
+            Terminal output_contains "tbdflow"
+    }
+
+    test ExploreCommitHelp "Dive deeper into commit" {
+        given:
+            Test can_start
+            System log "THOUGHT: Commit is what I'll do most. Let me learn it."
+        when:
+            Terminal run "tbdflow commit --help"
+        then:
+            Terminal last_command succeeded
+            # FRICTION CHECK: Are examples shown? Types listed?
+            Terminal output_contains "EXAMPLES"
+            Terminal output_contains "feat"
+            Terminal output_contains "fix"
+    }
+
+    test ExploreBranchHelp "What about branching?" {
+        given:
+            Test can_start
+            System log "THOUGHT: Do I need to make branches? Let me check."
+        when:
+            Terminal run "tbdflow branch --help"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "EXAMPLES"
+    }
+
+    test ExploreCompleteHelp "How do I finish my work?" {
+        given:
+            Test can_start
+            System log "THOUGHT: There's a complete command. How does merging work?"
+        when:
+            Terminal run "tbdflow complete --help"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "EXAMPLES"
+    }
+
+    after {
+        System log "JOURNAL: Help text exploration complete. Did I feel oriented?"
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Journey 2: "Let me try committing something safely"
+#
+# The newbie has a repo. They want to commit but are scared.
+# They try --dry-run first. Then make mistakes. Then succeed.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "First commit attempt — cautious and scared" {
+
+    test Setup "Set up a safe playground" {
+        given:
+            Test can_start
+            System log "THOUGHT: Let me create a test repo so I don't break anything real."
+        when:
+            init_repo("${REPO}", "${BARE}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test CheckStatusFirst "What's the current state?" {
+        given:
+            Test has_succeeded Setup
+            System log "THOUGHT: Before I do anything, let me check status..."
+        when:
+            Terminal run "tbdflow status"
+        then:
+            Terminal last_command succeeded
+            # FRICTION CHECK: Does 'clean' mean I'm safe?
+            Terminal output_contains "clean"
+    }
+
+    test SyncBeforeAnything "Better sync first, the docs said to" {
+        given:
+            Test has_succeeded CheckStatusFirst
+            System log "THOUGHT: I read somewhere I should sync before working..."
+        when:
+            Terminal run "tbdflow sync"
+        then:
+            Terminal last_command succeeded
+            # FRICTION CHECK: Is the sync output reassuring?
+            Terminal output_not_contains "error"
+            Terminal output_not_contains "CONFLICT"
+    }
+
+    test MakeAChange "Create a small file to commit" {
+        given:
+            Test has_succeeded SyncBeforeAnything
+            System log "THOUGHT: OK, let me make a tiny change..."
+        when:
+            Terminal run "echo hello-world > greeting.txt"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test DryRunFirst "Try dry-run before real commit — I'm scared" {
+        given:
+            Test has_succeeded MakeAChange
+            System log "THOUGHT: I'll use --dry-run first to see what WOULD happen..."
+        when:
+            Terminal run "tbdflow --dry-run commit -t feat -m 'add greeting'"
+        then:
+            # FRICTION CHECK: Does dry-run make me feel safe?
+            Terminal last_command succeeded
+            Terminal output_contains "DRY RUN"
+    }
+
+    test TryWrongTypeFirst "Oops, I typed 'feature' not 'feat'" {
+        given:
+            Test has_succeeded DryRunFirst
+            System log "THOUGHT: OK let me do it for real now... feature seems right."
+        when:
+            Terminal run "tbdflow commit -t feature -m 'add greeting'"
+        then:
+            # FRICTION CHECK: Is the error message helpful?
+            Terminal last_command failed
+            Terminal output_contains "not a valid"
+    }
+
+    test TryCapitalLetter "I naturally capitalize my sentences" {
+        given:
+            Test has_succeeded TryWrongTypeFirst
+            System log "THOUGHT: Oh it's feat not feature. Let me try again."
+        when:
+            Terminal run "tbdflow commit -t feat -m 'Add greeting'"
+        then:
+            # FRICTION CHECK: Does it tell me WHY it failed?
+            Terminal last_command failed
+            Terminal output_contains "capital"
+    }
+
+    test FinallyGetItRight "Third time's the charm" {
+        given:
+            Test has_succeeded TryCapitalLetter
+            System log "THOUGHT: Lowercase, no period, short. Got it."
+        when:
+            Terminal run "tbdflow commit -t feat -m 'add greeting' --no-verify"
+        then:
+            # RELIEF CHECK: Does success feel clear?
+            Terminal last_command succeeded
+            Terminal output_contains "Successfully committed"
+    }
+
+    test VerifyItWorked "Did my commit actually land?" {
+        given:
+            Test has_succeeded FinallyGetItRight
+            System log "THOUGHT: I need to verify it actually worked..."
+        when:
+            Terminal run "tbdflow sync"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "add greeting"
+            # RELIEF CHECK: I can see my commit. I didn't break anything.
+    }
+
+    after {
+        cleanup_repo("${REPO}", "${BARE}")
+        System log "JOURNAL: First commit took 3 attempts. Error messages guided me."
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Journey 3: "What happens if I mess up?"
+#
+# The newbie deliberately explores edge cases to build confidence.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Exploring error boundaries to build confidence" {
+
+    test Setup "Fresh repo for error exploration" {
+        given:
+            Test can_start
+            System log "THOUGHT: Let me see how tbdflow handles my mistakes."
+        when:
+            init_repo("${REPO}", "${BARE}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test CommitWithNothing "What if I commit with no changes?" {
+        given:
+            Test has_succeeded Setup
+            System log "THOUGHT: What happens if I commit but nothing changed?"
+        when:
+            Terminal run "tbdflow commit -t chore -m 'empty commit' --no-verify"
+        then:
+            # FRICTION CHECK: Does it handle this gracefully?
+            Terminal output_not_contains "panic"
+            Terminal output_not_contains "fatal"
+    }
+
+    test CompleteOnMain "What if I try to complete while on main?" {
+        given:
+            Test has_succeeded CommitWithNothing
+            System log "THOUGHT: What if I accidentally run complete on main?"
+        when:
+            Terminal run "tbdflow complete -t feat -n main"
+        then:
+            # FRICTION CHECK: Does it stop me with a clear message?
+            Terminal last_command failed
+            Terminal output_not_contains "panic"
+    }
+
+    test BranchWithEmptyName "What if I forget the branch name?" {
+        given:
+            Test has_succeeded CompleteOnMain
+            System log "THOUGHT: What if I forget to pass a name?"
+        when:
+            Terminal run "tbdflow branch -t feat"
+        then:
+            # FRICTION CHECK: Clear error or cryptic crash?
+            Terminal last_command failed
+            Terminal output_not_contains "panic"
+    }
+
+    test MessageWithPeriod "I always end sentences with a period" {
+        given:
+            Test has_succeeded BranchWithEmptyName
+            System log "THOUGHT: My English teacher taught me to end with a period."
+        when:
+            Terminal run "echo oops > period.txt"
+            Terminal run "tbdflow commit -t fix -m 'fix the thing.'"
+        then:
+            Terminal last_command failed
+            # FRICTION CHECK: Does it explain the no-period rule?
+            Terminal output_contains "period"
+    }
+
+    test VeryLongMessage "I like to be descriptive" {
+        given:
+            Test has_succeeded MessageWithPeriod
+            System log "THOUGHT: Let me write a really detailed message..."
+        when:
+            Terminal run "tbdflow commit -t feat -m 'add a really long and detailed commit message that describes every single change I made including the refactoring and the tests'"
+        then:
+            Terminal last_command failed
+            # FRICTION CHECK: Does it mention the max length?
+            Terminal output_contains "length"
+    }
+
+    after {
+        cleanup_repo("${REPO}", "${BARE}")
+        System log "JOURNAL: Error handling exploration done. Every mistake was caught."
+    }
+}
+

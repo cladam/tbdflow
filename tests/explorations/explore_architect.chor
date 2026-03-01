@@ -1,0 +1,288 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# tbdflow — Exploration Agent: The Monorepo Architect
+# ═══════════════════════════════════════════════════════════════════════════════
+# Profile: Manages 5 services and 3 shared libs in one repo. Needs to know
+# exactly what gets committed, where scopes map, and how changelogs partition.
+#
+# Exploration strategy: Build a realistic directory structure, then probe
+# tbdflow's awareness of sub-project boundaries.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+feature "Exploration: The Monorepo Architect's Deep Dive"
+
+actors: Terminal, System
+
+settings {
+    timeout_seconds = 30
+    stop_on_failure = false
+    shell_path = "/bin/bash"
+}
+
+var REPO = "/tmp/explore_monorepo"
+var BARE = "/tmp/explore_monorepo_bare.git"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+task build_monorepo_structure() {
+    Terminal run "mkdir -p services/payments services/auth services/gateway"
+    Terminal run "mkdir -p libs/shared-models libs/auth-utils libs/logging"
+    Terminal run "mkdir -p infra/terraform infra/k8s"
+    Terminal run "echo payments-v1 > services/payments/main.rs"
+    Terminal run "echo auth-v1 > services/auth/main.rs"
+    Terminal run "echo gateway-v1 > services/gateway/main.rs"
+    Terminal run "echo models-v1 > libs/shared-models/lib.rs"
+    Terminal run "echo auth-utils-v1 > libs/auth-utils/lib.rs"
+    Terminal run "echo logging-v1 > libs/logging/lib.rs"
+    Terminal run "echo tf-main > infra/terraform/main.tf"
+    Terminal run "echo k8s-deploy > infra/k8s/deploy.yml"
+    Terminal run "echo root-readme > README.md"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EXPLORATION SCENARIOS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Journey 1: "Does tbdflow understand my project structure?"
+#
+# The architect creates a realistic monorepo and checks what tbdflow sees.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Can tbdflow see my project structure?" {
+
+    test Setup "Build a realistic monorepo" {
+        given:
+            Test can_start
+            System log "THOUGHT: Let me build something that looks like a real monorepo."
+        when:
+            init_repo("${REPO}", "${BARE}")
+            build_monorepo_structure()
+        then:
+            Terminal last_command succeeded
+    }
+
+    test StatusShowsEverything "Does status show the full tree?" {
+        given:
+            Test has_succeeded Setup
+            System log "THOUGHT: I need to know exactly what tbdflow will commit."
+        when:
+            Terminal run "tbdflow status"
+        then:
+            Terminal last_command succeeded
+            # OBSERVATION: Does status show individual files or just directories?
+            Terminal output_contains "services/"
+            Terminal output_contains "libs/"
+            Terminal output_contains "infra/"
+    }
+
+    test CommitEverythingAtOnce "First commit: the whole structure" {
+        given:
+            Test has_succeeded StatusShowsEverything
+            System log "THOUGHT: Committing the initial structure as one big commit."
+        when:
+            Terminal run "tbdflow commit -t chore -m 'initial monorepo structure' --no-verify"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "Successfully committed"
+    }
+
+    test TagForChangelog "Tag so we can test changelog later" {
+        given:
+            Test has_succeeded CommitEverythingAtOnce
+        when:
+            Terminal run "git tag v0.0.0"
+        then:
+            Terminal last_command succeeded
+    }
+
+    after {
+        System log "JOURNAL: tbdflow commits everything. No sub-project awareness without .tbdflow.yml monorepo config."
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Journey 2: "Can I scope my commits to specific services?"
+#
+# The architect makes changes in different services and uses scopes
+# to attribute commits to the right sub-project.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Scoping commits across services" {
+
+    test Setup "Start from tagged baseline" {
+        given:
+            Test can_start
+            System log "THOUGHT: Now let me work on individual services."
+        when:
+            init_repo("${REPO}", "${BARE}")
+            build_monorepo_structure()
+            Terminal run "tbdflow commit -t chore -m 'initial structure' --no-verify"
+            Terminal run "git tag v0.0.0"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test PaymentsChange "Change the payments service" {
+        given:
+            Test has_succeeded Setup
+            System log "THOUGHT: Payment processing update. Scope: payments."
+        when:
+            Terminal run "echo payments-v2 > services/payments/main.rs"
+            Terminal run "tbdflow commit -t feat -s payments -m 'add stripe integration' --no-verify"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test AuthChange "Change the auth service" {
+        given:
+            Test has_succeeded PaymentsChange
+            System log "THOUGHT: Now auth needs a fix. Scope: auth."
+        when:
+            Terminal run "echo auth-v2 > services/auth/main.rs"
+            Terminal run "tbdflow commit -t fix -s auth -m 'fix token refresh' --no-verify"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test SharedLibChangeHyphen "Hyphenated scope — natural for monorepos" {
+        given:
+            Test has_succeeded AuthChange
+            System log "THOUGHT: Shared models need a breaking change. Scope: shared-models."
+        when:
+            Terminal run "echo models-v2 > libs/shared-models/lib.rs"
+            Terminal run "tbdflow commit -t feat -s shared-models -m 'add payment model' -b --no-verify"
+        then:
+            # UX FINDING: Hyphens in scope are rejected by is_valid_scope()!
+            # char::is_lowercase() returns false for '-' because it's not a letter.
+            Terminal last_command failed
+    }
+
+    test SharedLibChangeUnderscore "Try underscore instead" {
+        given:
+            Test has_succeeded SharedLibChangeHyphen
+            System log "THOUGHT: Hyphen didn't work. Let me try underscore."
+        when:
+            Terminal run "tbdflow commit -t feat -s shared_models -m 'add payment model' -b --no-verify"
+        then:
+            # UX FINDING: Underscore ALSO fails! is_lowercase() rejects all non-letters.
+            Terminal last_command failed
+    }
+
+    test SharedLibChangeNoSeparator "Only letters work in scope" {
+        given:
+            Test has_succeeded SharedLibChangeUnderscore
+            System log "THOUGHT: Neither hyphen nor underscore works. Trying no separator."
+            System log "UX FINDING: is_valid_scope() uses char::is_lowercase() which rejects hyphens AND underscores. Only pure letters pass. This is a real bug for monorepo scopes."
+        when:
+            Terminal run "tbdflow commit -t feat -s sharedmodels -m 'add payment model' -b --no-verify"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test InfraChange "Terraform update" {
+        given:
+            Test has_succeeded SharedLibChangeNoSeparator
+            System log "THOUGHT: Infra change too. Scope: terraform."
+        when:
+            Terminal run "echo tf-v2 > infra/terraform/main.tf"
+            Terminal run "tbdflow commit -t ci -s terraform -m 'add monitoring module' --no-verify"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test CrossCuttingChange "Change that spans multiple services" {
+        given:
+            Test has_succeeded InfraChange
+            System log "THOUGHT: This change affects both auth and gateway. What scope do I use?"
+        when:
+            Terminal run "echo auth-v3 > services/auth/main.rs"
+            Terminal run "echo gateway-v2 > services/gateway/main.rs"
+            Terminal run "tbdflow commit -t refactor -m 'unify auth middleware' --no-verify"
+        then:
+            # OBSERVATION: No scope for cross-cutting changes. That's OK.
+            Terminal last_command succeeded
+    }
+
+    after {
+        System log "JOURNAL: Scopes work but are honor-based. tbdflow doesn't validate scope against directory."
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Journey 3: "Does the changelog reflect my scoped work?"
+#
+# The architect generates a changelog and checks if scopes partition
+# the output in a useful way.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Changelog reflects scoped monorepo work" {
+
+    test Setup "Build, commit scoped work, tag baseline" {
+        given:
+            Test can_start
+            System log "THOUGHT: Let me recreate the scenario and check the changelog."
+        when:
+            init_repo("${REPO}", "${BARE}")
+            build_monorepo_structure()
+            Terminal run "tbdflow commit -t chore -m 'initial structure' --no-verify"
+            Terminal run "git tag v0.0.0"
+            Terminal run "echo pay-v2 > services/payments/main.rs"
+            Terminal run "tbdflow commit -t feat -s payments -m 'add stripe integration' --no-verify"
+            Terminal run "echo auth-v2 > services/auth/main.rs"
+            Terminal run "tbdflow commit -t fix -s auth -m 'fix token refresh' --no-verify"
+            Terminal run "echo docs-v1 > README.md"
+            Terminal run "tbdflow commit -t docs -m 'update readme' --no-verify"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test UnreleasedChangelog "Does --unreleased show scoped commits?" {
+        given:
+            Test has_succeeded Setup
+            System log "THOUGHT: The changelog should group by type and show scopes."
+        when:
+            Terminal run "tbdflow changelog --unreleased"
+        then:
+            Terminal last_command succeeded
+            # OBSERVATION: Are scopes visible in the changelog?
+            Terminal output_contains "payments"
+            Terminal output_contains "auth"
+            Terminal output_contains "stripe integration"
+            Terminal output_contains "token refresh"
+    }
+
+    test InfoCommand "Does tbdflow info show monorepo config?" {
+        given:
+            Test has_succeeded UnreleasedChangelog
+            System log "THOUGHT: Let me check what tbdflow thinks my project looks like."
+        when:
+            Terminal run "tbdflow info"
+        then:
+            Terminal last_command succeeded
+            Terminal output_not_contains "panic"
+    }
+
+    after {
+        cleanup_repo("${REPO}", "${BARE}")
+        System log "JOURNAL: Changelog shows scopes. Good. But no per-service changelog filtering."
+    }
+}
+
+
+
+

@@ -1,0 +1,304 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# tbdflow — Exploration Agent: The Git-Flow Refugee
+# ═══════════════════════════════════════════════════════════════════════════════
+# Profile: 5 years on Git-Flow. Muscle memory types 'git checkout -b feature/'.
+# Confused by "main is default." Expects develop, staging, release branches.
+#
+# Exploration strategy: Try the Git-Flow workflow and see where tbdflow
+# redirects, blocks, or confuses me. Surface the mental model gap.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+feature "Exploration: The Git-Flow Refugee's Culture Shock"
+
+actors: Terminal, System
+
+settings {
+    timeout_seconds = 30
+    stop_on_failure = false
+    shell_path = "/bin/bash"
+}
+
+var REPO = "/tmp/explore_refugee"
+var BARE = "/tmp/explore_refugee_bare.git"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EXPLORATION SCENARIOS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Journey 1: "Where's the develop branch?"
+#
+# The refugee's first instinct is to check out develop, create a feature
+# branch from it, and eventually merge back through a PR. None of this
+# exists in TBD. How does tbdflow handle the confusion?
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Looking for the Git-Flow landmarks" {
+
+    test Setup "Get my bearings" {
+        given:
+            Test can_start
+            System log "THOUGHT: OK new project, let me check the branch structure."
+        when:
+            init_repo("${REPO}", "${BARE}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test WhereIsDevelop "Try to check out develop" {
+        given:
+            Test has_succeeded Setup
+            System log "THOUGHT: First thing I always do is checkout develop..."
+        when:
+            Terminal run "git checkout develop"
+        then:
+            # OBSERVATION: There IS no develop branch. TBD only has main.
+            Terminal last_command failed
+    }
+
+    test TryToCreateDevelop "Old habit: try to create develop" {
+        given:
+            Test has_succeeded WhereIsDevelop
+            System log "THOUGHT: Hmm, no develop. Let me create it like I usually do."
+        when:
+            Terminal run "git checkout -b develop"
+        then:
+            # OBSERVATION: Git allows it, but tbdflow won't use it.
+            Terminal last_command succeeded
+    }
+
+    test TryToCommitOnDevelop "Try committing on develop" {
+        given:
+            Test has_succeeded TryToCreateDevelop
+            System log "THOUGHT: Let me commit on develop like I always do."
+        when:
+            Terminal run "echo work > work.txt"
+            Terminal run "tbdflow commit -t feat -m 'my work on develop' --no-verify"
+        then:
+            # OBSERVATION: tbdflow commits AND pushes. But develop has no upstream.
+            # FRICTION: The push fails. The error mentions git push --set-upstream.
+            # This reveals that tbdflow always pushes — unlike raw git commit.
+            Terminal last_command failed
+            Terminal output_not_contains "panic"
+    }
+
+    test TryToSyncOnDevelop "Will sync work on develop?" {
+        given:
+            Test has_succeeded TryToCommitOnDevelop
+            System log "THOUGHT: Commit failed because of push. What about sync?"
+        when:
+            Terminal run "tbdflow sync"
+        then:
+            # FRICTION CHECK: sync on a non-main branch without upstream
+            Terminal output_not_contains "panic"
+    }
+
+    test GoBackToMain "OK, I guess main is the trunk here" {
+        given:
+            Test has_succeeded TryToSyncOnDevelop
+            System log "THOUGHT: I think in TBD there's only main. Let me go back."
+        when:
+            Terminal run "git checkout main"
+        then:
+            Terminal last_command succeeded
+    }
+
+    after {
+        cleanup_repo("${REPO}", "${BARE}")
+        System log "JOURNAL: Develop doesn't exist. tbdflow operates on main only."
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Journey 2: "OK, I'll use tbdflow branches. But my way."
+#
+# The refugee tries to use tbdflow branch with their Git-Flow vocabulary.
+# feature vs feat, release vs hotfix, long branch names.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Translating Git-Flow vocabulary to TBD" {
+
+    test Setup "Fresh repo" {
+        given:
+            Test can_start
+            System log "THOUGHT: Let me try the tbdflow branch command."
+        when:
+            init_repo("${REPO}", "${BARE}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test TryFeatureBranch "I type 'feature' because that's what I know" {
+        given:
+            Test has_succeeded Setup
+            System log "THOUGHT: feature/login-page — that's how I've always done it."
+        when:
+            Terminal run "tbdflow branch -t feature -n login-page"
+        then:
+            # OBSERVATION: Does tbdflow accept 'feature' or only 'feat'?
+            Terminal output_not_contains "panic"
+    }
+
+    test CheckWhatWasCreated "What branch did it actually create?" {
+        given:
+            Test has_succeeded TryFeatureBranch
+            System log "THOUGHT: Let me see what the branch name looks like."
+        when:
+            Terminal run "tbdflow current-branch"
+        then:
+            Terminal last_command succeeded
+            # OBSERVATION: feature_ prefix with underscore, not slash!
+            # This is different from Git-Flow's feature/ convention.
+    }
+
+    test GoBackAndTryFeat "Let me try 'feat' instead" {
+        given:
+            Test has_succeeded CheckWhatWasCreated
+            System log "THOUGHT: Maybe the 'correct' prefix is feat, not feature."
+        when:
+            Terminal run "git checkout main"
+            Terminal run "tbdflow branch -t feat -n login-page-v2"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test CheckFeatBranch "What does a feat branch look like?" {
+        given:
+            Test has_succeeded GoBackAndTryFeat
+        when:
+            Terminal run "tbdflow current-branch"
+        then:
+            Terminal last_command succeeded
+            # OBSERVATION: feat/ with slash — different from feature_
+    }
+
+    test TryHotfix "In Git-Flow I'd use hotfix/" {
+        given:
+            Test has_succeeded CheckFeatBranch
+            System log "THOUGHT: What about hotfix branches? Do they exist?"
+        when:
+            Terminal run "git checkout main"
+            Terminal run "tbdflow branch -t hotfix -n urgent-fix"
+        then:
+            # OBSERVATION: Is 'hotfix' a valid branch type?
+            Terminal output_not_contains "panic"
+    }
+
+    test TryRelease "What about release branches?" {
+        given:
+            Test has_succeeded TryHotfix
+            System log "THOUGHT: In Git-Flow I create release/1.0.0 branches."
+        when:
+            Terminal run "git checkout main"
+            Terminal run "tbdflow branch -t release -n 1.0.0"
+        then:
+            # OBSERVATION: release IS a default branch type
+            Terminal output_not_contains "panic"
+    }
+
+    after {
+        cleanup_repo("${REPO}", "${BARE}")
+        System log "JOURNAL: Git-Flow vocabulary partially works. feature vs feat is confusing."
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Journey 3: "How do I complete my work without a PR?"
+#
+# The refugee tries the branch→commit→complete cycle.
+# Feels naked without a PR review step.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Completing work without a pull request" {
+
+    test Setup "Set up repo" {
+        given:
+            Test can_start
+            System log "THOUGHT: OK I'll do it the TBD way. Branch, commit, complete."
+        when:
+            init_repo("${REPO}", "${BARE}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test CreateBranch "Create a short-lived branch" {
+        given:
+            Test has_succeeded Setup
+        when:
+            Terminal run "tbdflow branch -t feat -n payment-flow"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test DoTheWork "Commit my changes" {
+        given:
+            Test has_succeeded CreateBranch
+        when:
+            Terminal run "echo payment-v1 > payment.rs"
+            Terminal run "tbdflow commit -t feat -m 'add payment flow' --no-verify"
+        then:
+            Terminal last_command succeeded
+    }
+
+    test CompleteWithAnxiety "Merge without a PR feels wrong" {
+        given:
+            Test has_succeeded DoTheWork
+            System log "THOUGHT: This feels scary. No PR. No review. Just... merge?"
+        when:
+            Terminal run "tbdflow complete -t feat -n payment-flow"
+        then:
+            Terminal last_command succeeded
+            Terminal output_contains "merged into main"
+            Terminal output_contains "deleted"
+    }
+
+    test WhereDidMyBranchGo "Wait, the branch is gone?" {
+        given:
+            Test has_succeeded CompleteWithAnxiety
+            System log "THOUGHT: Wait, it deleted the branch? Where's my code?"
+        when:
+            Terminal run "tbdflow sync"
+        then:
+            Terminal last_command succeeded
+            # RELIEF: The commit is visible on main. It's fine.
+            Terminal output_contains "add payment flow"
+    }
+
+    test CheckReviewSystem "Is there a review mechanism at all?" {
+        given:
+            Test has_succeeded WhereDidMyBranchGo
+            System log "THOUGHT: There must be SOME review process... right?"
+        when:
+            Terminal run "tbdflow review --help"
+        then:
+            Terminal last_command succeeded
+            # DISCOVERY: There IS a review command. Post-commit, not pre-merge.
+            Terminal output_contains "trigger"
+            Terminal output_contains "approve"
+            Terminal output_contains "concern"
+    }
+
+    after {
+        cleanup_repo("${REPO}", "${BARE}")
+        System log "JOURNAL: No PR needed. Review is post-commit. Branch auto-deletes. Scary but fast."
+    }
+}
+
+
