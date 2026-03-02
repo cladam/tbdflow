@@ -132,6 +132,13 @@ pub fn pull_latest_with_rebase(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("pull", &["--rebase", "--autostash"], verbose, dry_run)
 }
 
+/// Pull the latest changes using fast-forward only.
+/// Unlike rebase, this preserves existing commit SHAs.
+/// Fails if the local branch has diverged from the remote.
+pub fn pull_fast_forward_only(verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("pull", &["--ff-only"], verbose, dry_run)
+}
+
 /// Fetch the latest changes from the origin remote.
 pub fn fetch_origin(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("fetch", &["origin"], verbose, dry_run)

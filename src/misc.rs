@@ -457,10 +457,10 @@ pub fn handle_undo(
     // 3. Ensure working directory is clean
     git::is_working_directory_clean(verbose, dry_run)?;
 
-    // 4. Sync with remote (same pattern as tbdflow sync)
+    // 4. Sync with remote (fast-forward only to preserve commit SHAs)
     println!("Syncing with remote before reverting...");
     git::checkout_main(verbose, dry_run, main_branch)?;
-    git::pull_latest_with_rebase(verbose, dry_run)?;
+    git::pull_fast_forward_only(verbose, dry_run)?;
 
     // 5. Verify the commit is on the main branch
     if !git::is_ancestor_of(sha, main_branch, verbose, dry_run)? {
