@@ -524,15 +524,22 @@ pub fn revert_commit(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<
 }
 
 /// Check if a commit is an ancestor of the given branch (i.e. the commit exists on that branch).
+/// Resolves the commit hash first so that short SHAs work reliably with merge-base.
 pub fn is_ancestor_of(
     commit_hash: &str,
     branch: &str,
     verbose: bool,
     dry_run: bool,
 ) -> Result<bool> {
+    // Resolve to a full hash — short SHAs can be unreliable with merge-base
+    let full_hash = run_git_command("rev-parse", &["--verify", commit_hash], verbose, dry_run)?;
+    // In dry-run mode rev-parse returns "" so we just assume it's fine
+    if full_hash.is_empty() {
+        return Ok(true);
+    }
     let status = run_git_status_check(
         "merge-base",
-        &["--is-ancestor", commit_hash, branch],
+        &["--is-ancestor", &full_hash, branch],
         verbose,
         dry_run,
     )?;
@@ -546,8 +553,12 @@ pub fn get_commit_subject(commit_hash: &str, verbose: bool, dry_run: bool) -> Re
 
 /// Verify that a commit SHA exists in the repository.
 pub fn commit_exists(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<bool> {
-    let status = run_git_status_check("cat-file", &["-t", commit_hash], verbose, dry_run)?;
-    Ok(status.code() == Some(0))
+    // Use rev-parse --verify which exits non-zero if the ref doesn't exist.
+    // run_git_command respects dry-run (returns Ok("")) so we assume it exists in that mode.
+    match run_git_command("rev-parse", &["--verify", commit_hash], verbose, dry_run) {
+        Ok(_) => Ok(true),
+        Err(_) => Ok(false),
+    }
 }
 
 /// Unit tests for the Git module.
