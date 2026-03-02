@@ -457,7 +457,7 @@ review:
   concern_blocks_status: false
 ```
 
-**Commit Status Behaviour:**
+**Commit Status Behavior:**
 
 When `concern_blocks_status` is configured:
 
@@ -571,7 +571,7 @@ tbdflow check-branches
 tbdflow update
 ```
 
-#### `undo`
+#### `undo` — The Panic Button
 
 In TBD, the rule is simple: if the trunk breaks, fix it or revert it immediately. `tbdflow undo` is a smart wrapper
 around `git revert` that syncs with the remote, verifies the commit is on the trunk, cleanly reverts it, and pushes —
