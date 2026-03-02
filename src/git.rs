@@ -531,7 +531,8 @@ pub fn revert_commit(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<
 }
 
 /// Check if a commit is an ancestor of the given branch (i.e. the commit exists on that branch).
-/// Resolves the commit hash first so that short SHAs work reliably with merge-base.
+/// Resolves the commit hash and uses the fully-qualified branch ref to avoid ambiguity
+/// (e.g. when a tag has the same name as the branch).
 pub fn is_ancestor_of(
     commit_hash: &str,
     branch: &str,
@@ -544,9 +545,12 @@ pub fn is_ancestor_of(
     if full_hash.is_empty() {
         return Ok(true);
     }
+    // Use refs/heads/ to unambiguously refer to the local branch,
+    // avoiding conflicts with tags or other refs that share the same name.
+    let qualified_branch = format!("refs/heads/{}", branch);
     let status = run_git_status_check(
         "merge-base",
-        &["--is-ancestor", &full_hash, branch],
+        &["--is-ancestor", &full_hash, &qualified_branch],
         verbose,
         dry_run,
     )?;
