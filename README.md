@@ -571,6 +571,37 @@ tbdflow check-branches
 tbdflow update
 ```
 
+#### `undo` — The Panic Button
+
+In TBD, the rule is simple: if the trunk breaks, fix it or revert it immediately. `tbdflow undo` is a smart wrapper
+around `git revert` that syncs with the remote, verifies the commit is on the trunk, cleanly reverts it, and pushes —
+all in one command.
+
+**Usage:**
+
+```bash
+tbdflow undo <sha> [options]
+```
+
+**Options:**
+
+| Flag      | Description                                       | Required |
+|-----------|---------------------------------------------------|----------|
+| --no-push | Create the revert commit locally without pushing. | No       |
+
+**Examples:**
+
+```bash
+# Revert a specific commit on the trunk
+tbdflow undo abc1234
+
+# Revert locally without pushing (e.g. to inspect the result first)
+tbdflow undo abc1234 --no-push
+
+# Preview what would happen without making changes
+tbdflow --dry-run undo abc1234
+```
+
 ### 7. Advanced Usage
 
 #### Shell Completion
