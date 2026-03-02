@@ -252,6 +252,9 @@ fn main() -> anyhow::Result<()> {
                 }
             }
         }
+        Commands::Undo { sha, no_push } => {
+            misc::handle_undo(&sha, no_push, verbose, dry_run, &config)?;
+        }
         Commands::Review {
             trigger,
             digest,

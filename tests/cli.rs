@@ -383,6 +383,113 @@ fn test_sync_command() {
         .stdout(contains("Syncing with remote"));
 }
 
+/// Tests that the 'undo' command reverts a specific commit by SHA on the trunk.
+#[test]
+#[serial]
+fn test_undo_command() {
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    // Create a file and commit it so we have something to revert
+    std::fs::write(repo_path.join("BAD_CHANGE.md"), "this breaks the build").unwrap();
+    std::process::Command::new("git")
+        .args(&["add", "."])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["commit", "-m", "feat: add bad change"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["push"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+
+    // Grab the SHA of the commit we just made
+    let sha_output = std::process::Command::new("git")
+        .args(&["rev-parse", "HEAD"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    let sha = String::from_utf8_lossy(&sha_output.stdout)
+        .trim()
+        .to_string();
+
+    // The file should exist before undo
+    assert!(repo_path.join("BAD_CHANGE.md").exists());
+
+    // Run the undo command
+    let mut cmd = Command::cargo_bin("tbdflow").unwrap();
+    cmd.arg("undo").arg(&sha);
+    cmd.assert()
+        .success()
+        .stdout(contains("Undo: The Panic Button"))
+        .stdout(contains(&format!("Commit '{}' has been reverted", &sha)));
+
+    // The file should be gone after the revert
+    assert!(
+        !repo_path.join("BAD_CHANGE.md").exists(),
+        "BAD_CHANGE.md should have been removed by the revert"
+    );
+}
+
+/// Tests that 'undo' with --no-push reverts locally without pushing.
+#[test]
+#[serial]
+fn test_undo_no_push_command() {
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    std::fs::write(repo_path.join("OOPS.md"), "oops").unwrap();
+    std::process::Command::new("git")
+        .args(&["add", "."])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["commit", "-m", "feat: oops"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["push"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+
+    let sha_output = std::process::Command::new("git")
+        .args(&["rev-parse", "HEAD"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    let sha = String::from_utf8_lossy(&sha_output.stdout)
+        .trim()
+        .to_string();
+
+    let mut cmd = Command::cargo_bin("tbdflow").unwrap();
+    cmd.arg("undo").arg(&sha).arg("--no-push");
+    cmd.assert()
+        .success()
+        .stdout(contains("Revert commit created locally (--no-push)"));
+
+    assert!(!repo_path.join("OOPS.md").exists());
+}
+
+/// Tests that 'undo' fails gracefully for a non-existent SHA.
+#[test]
+#[serial]
+fn test_undo_nonexistent_sha() {
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    let mut cmd = Command::cargo_bin("tbdflow").unwrap();
+    cmd.arg("undo").arg("deadbeefdeadbeef");
+    cmd.assert().failure();
+}
+
 /// Tests that the 'check-branches' lists and warns about branches that are stale (older than 1 day)
 #[test]
 #[serial]

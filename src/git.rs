@@ -518,6 +518,38 @@ pub fn get_changed_files(commit_hash: &str, verbose: bool, dry_run: bool) -> Res
         .collect())
 }
 
+/// Revert a specific commit by its SHA, creating a new revert commit.
+pub fn revert_commit(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("revert", &["--no-edit", commit_hash], verbose, dry_run)
+}
+
+/// Check if a commit is an ancestor of the given branch (i.e. the commit exists on that branch).
+pub fn is_ancestor_of(
+    commit_hash: &str,
+    branch: &str,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<bool> {
+    let status = run_git_status_check(
+        "merge-base",
+        &["--is-ancestor", commit_hash, branch],
+        verbose,
+        dry_run,
+    )?;
+    Ok(status.code() == Some(0))
+}
+
+/// Get the full subject line of a commit.
+pub fn get_commit_subject(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("log", &["-1", "--format=%s", commit_hash], verbose, dry_run)
+}
+
+/// Verify that a commit SHA exists in the repository.
+pub fn commit_exists(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<bool> {
+    let status = run_git_status_check("cat-file", &["-t", commit_hash], verbose, dry_run)?;
+    Ok(status.code() == Some(0))
+}
+
 /// Unit tests for the Git module.
 /// These tests check if Git is installed, if the run_git_command function works correctly,
 /// and if the status function returns expected results.

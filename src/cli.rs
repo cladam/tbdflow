@@ -168,6 +168,25 @@ pub enum Commands {
         #[arg(long)]
         get_dod: bool,
     },
+    /// Reverts a commit on the trunk by its SHA. The panic button for trunk-based development.
+    #[command(
+        name = "undo",
+        after_help = "THE PANIC BUTTON:\n  \
+    In TBD, if the trunk breaks, fix it or revert it immediately.\n  \
+    This command cleanly reverts a commit by SHA, syncs with remote first,\n  \
+    and pushes the revert — restoring the trunk to a green state.\n\n\
+    EXAMPLES:\n  \
+    tbdflow undo abc1234                    # Revert a specific commit\n  \
+    tbdflow undo abc1234 --no-push          # Revert locally without pushing\n  \
+    tbdflow --dry-run undo abc1234          # Preview what would happen"
+    )]
+    Undo {
+        /// The commit SHA to revert.
+        sha: String,
+        /// Skip pushing the revert commit to the remote.
+        #[arg(long, default_value_t = false)]
+        no_push: bool,
+    },
     /// Manages non-blocking post-commit reviews for trunk-based development.
     #[command(
         name = "review",

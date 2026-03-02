@@ -421,6 +421,101 @@ pub fn get_branch_prefix_or_error<'a>(
     })
 }
 
+/// Handle the `undo` command — the panic button for trunk-based development.
+/// Reverts a specific commit by SHA on the main branch, syncing first to ensure
+/// we're working with the latest state of the trunk.
+pub fn handle_undo(
+    sha: &str,
+    no_push: bool,
+    verbose: bool,
+    dry_run: bool,
+    config: &config::Config,
+) -> Result<()> {
+    println!(
+        "{}",
+        "--- Undo: The Panic Button ---".to_string().bold().red()
+    );
+
+    let main_branch = &config.main_branch_name;
+
+    // 1. Verify the commit exists
+    if !git::commit_exists(sha, verbose, dry_run)? {
+        println!(
+            "{}",
+            format!("Error: Commit '{}' does not exist in this repository.", sha).red()
+        );
+        return Err(anyhow::anyhow!("Commit not found: {}", sha));
+    }
+
+    // 2. Show what we're about to revert
+    let subject = git::get_commit_subject(sha, verbose, dry_run)?;
+    println!(
+        "{}",
+        format!("Commit to revert: {} ({})", sha, subject).yellow()
+    );
+
+    // 3. Ensure working directory is clean
+    git::is_working_directory_clean(verbose, dry_run)?;
+
+    // 4. Sync with remote (same pattern as tbdflow sync)
+    println!("Syncing with remote before reverting...");
+    git::checkout_main(verbose, dry_run, main_branch)?;
+    git::pull_latest_with_rebase(verbose, dry_run)?;
+
+    // 5. Verify the commit is on the main branch
+    if !git::is_ancestor_of(sha, main_branch, verbose, dry_run)? {
+        println!(
+            "{}",
+            format!(
+                "Error: Commit '{}' is not on the '{}' branch. Undo only works on trunk commits.",
+                sha, main_branch
+            )
+            .red()
+        );
+        return Err(anyhow::anyhow!(
+            "Commit '{}' is not on '{}'.",
+            sha,
+            main_branch
+        ));
+    }
+
+    // 6. Perform the revert
+    println!("{}", format!("Reverting commit {}...", sha).blue());
+    git::revert_commit(sha, verbose, dry_run)?;
+
+    // 7. Push the revert (unless --no-push)
+    if no_push {
+        println!(
+            "{}",
+            "Revert commit created locally (--no-push). Remember to push when ready.".yellow()
+        );
+    } else {
+        println!("Pushing revert to remote...");
+        git::push(verbose, dry_run)?;
+        println!(
+            "\n{}",
+            format!(
+                "Success! Commit '{}' has been reverted on '{}'.",
+                sha, main_branch
+            )
+            .green()
+        );
+    }
+
+    // 8. Show the result
+    let log_output = git::log_graph(verbose, dry_run)?;
+    println!("\n{}", "Recent activity:".bold());
+    println!("{}", log_output.cyan());
+
+    println!(
+        "\n{}",
+        "Hint: The reverted changes are still in your git history. You can re-apply them later."
+            .dimmed()
+    );
+
+    Ok(())
+}
+
 /// Generate a flattened man page for tbdflow to stdout, users can pipe this to a file.
 pub fn render_manpage_section(cmd: &Commands, buffer: &mut Vec<u8>) -> Result<(), anyhow::Error> {
     let man = clap_mangen::Man::new(cmd.clone());
