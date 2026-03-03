@@ -408,10 +408,10 @@ fn test_undo_command() {
         .output()
         .unwrap();
 
-    // Grab the SHA of the commit we just made
-    let sha_output = std::process::Command::new("git")
-        .args(&["rev-parse", "HEAD"])
-        .current_dir(&repo_path)
+    // Grab the SHA of the commit we just made using tbdflow head-sha
+    let sha_output = Command::cargo_bin("tbdflow")
+        .unwrap()
+        .arg("head-sha")
         .output()
         .unwrap();
     let sha = String::from_utf8_lossy(&sha_output.stdout)
@@ -460,9 +460,9 @@ fn test_undo_no_push_command() {
         .output()
         .unwrap();
 
-    let sha_output = std::process::Command::new("git")
-        .args(&["rev-parse", "HEAD"])
-        .current_dir(&repo_path)
+    let sha_output = Command::cargo_bin("tbdflow")
+        .unwrap()
+        .arg("head-sha")
         .output()
         .unwrap();
     let sha = String::from_utf8_lossy(&sha_output.stdout)
