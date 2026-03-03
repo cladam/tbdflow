@@ -59,6 +59,11 @@ fn main() -> anyhow::Result<()> {
                 // Add more functionality later for the config command ...
             }
         }
+        Commands::HeadSha => {
+            let sha = git::get_head_commit_hash(verbose, dry_run)?;
+            // Print the short (7-char) SHA for easy use with other commands
+            println!("{}", &sha[..std::cmp::min(7, sha.len())]);
+        }
         Commands::Update => {
             misc::handle_update_command()?;
         }

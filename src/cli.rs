@@ -168,6 +168,9 @@ pub enum Commands {
         #[arg(long)]
         get_dod: bool,
     },
+    /// Prints the short SHA of the current HEAD commit.
+    #[command(name = "head-sha", hide = true)]
+    HeadSha,
     /// Reverts a commit on the trunk by its SHA. The panic button for trunk-based development.
     #[command(
         name = "undo",

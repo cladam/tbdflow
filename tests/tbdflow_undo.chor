@@ -60,17 +60,17 @@ task sync() {
 }
 
 task undo_latest_commit() {
-    # Extracts the SHA from `tbdflow sync` output, same as a developer
-    # reading "* abc1234 feat: ..." and copying the hash.
-    Terminal run "SHA=$(tbdflow sync 2>&1 | grep '^\*' | head -1 | awk '{print $2}') && tbdflow undo $SHA"
+    # Uses `tbdflow head-sha` to get the SHA, same as a developer
+    # running `tbdflow sync` to see the history then copying the hash.
+    Terminal run "tbdflow undo $(tbdflow head-sha)"
 }
 
 task undo_latest_commit_no_push() {
-    Terminal run "SHA=$(tbdflow sync 2>&1 | grep '^\*' | head -1 | awk '{print $2}') && tbdflow undo $SHA --no-push"
+    Terminal run "tbdflow undo $(tbdflow head-sha) --no-push"
 }
 
 task undo_latest_commit_dry_run() {
-    Terminal run "SHA=$(tbdflow sync 2>&1 | grep '^\*' | head -1 | awk '{print $2}') && tbdflow --dry-run undo $SHA"
+    Terminal run "tbdflow --dry-run undo $(tbdflow head-sha)"
 }
 
 task undo(sha) {
