@@ -42,6 +42,10 @@ task cleanup_repo(repo, bare) {
 }
 
 # --- Action drivers ---
+# NOTE: SHA discovery uses `tbdflow sync` (the user-facing command) to
+# identify commits. The `head -1 | awk` pipeline extracts the short SHA
+# from the sync output — this mirrors how a developer reads the SHA from
+# the "Recent activity" section and copies it.
 
 task make_change(filename, content) {
     Terminal run "echo ${content} > ${filename}"
@@ -51,24 +55,26 @@ task commit(type, message) {
     Terminal run "tbdflow commit -t ${type} -m '${message}'"
 }
 
-task capture_head_sha() {
-    Terminal run "git rev-parse --short HEAD"
+task sync() {
+    Terminal run "tbdflow sync"
+}
+
+task undo_latest_commit() {
+    # Extracts the SHA from `tbdflow sync` output, same as a developer
+    # reading "* abc1234 feat: ..." and copying the hash.
+    Terminal run "SHA=$(tbdflow sync 2>&1 | grep '^\*' | head -1 | awk '{print $2}') && tbdflow undo $SHA"
+}
+
+task undo_latest_commit_no_push() {
+    Terminal run "SHA=$(tbdflow sync 2>&1 | grep '^\*' | head -1 | awk '{print $2}') && tbdflow undo $SHA --no-push"
+}
+
+task undo_latest_commit_dry_run() {
+    Terminal run "SHA=$(tbdflow sync 2>&1 | grep '^\*' | head -1 | awk '{print $2}') && tbdflow --dry-run undo $SHA"
 }
 
 task undo(sha) {
     Terminal run "tbdflow undo ${sha}"
-}
-
-task undo_no_push(sha) {
-    Terminal run "tbdflow undo ${sha} --no-push"
-}
-
-task undo_dry_run(sha) {
-    Terminal run "tbdflow --dry-run undo ${sha}"
-}
-
-task sync() {
-    Terminal run "tbdflow sync"
 }
 
 task check_file_exists(filename) {
@@ -145,27 +151,18 @@ scenario "Reverting a commit on the trunk" {
             Terminal output_contains "Successfully committed"
     }
 
-    test CaptureSha "Record the SHA of the bad commit" {
+    test IdentifyAndUndo "Use sync to find the bad commit, then undo it" {
         given:
             Test has_succeeded CommitBadChange
         when:
-            capture_head_sha()
-        then:
-            Terminal last_command succeeded
-    }
-
-    test UndoBadCommit "Revert the bad commit using its SHA" {
-        given:
-            Test has_succeeded CaptureSha
-        when:
-            undo("$(git rev-parse --short HEAD)")
+            undo_latest_commit()
         then:
             verify_undo_succeeded()
     }
 
     test FileRemoved "The bad file is no longer in the working tree" {
         given:
-            Test has_succeeded UndoBadCommit
+            Test has_succeeded IdentifyAndUndo
         when:
             check_file_exists("BAD_CHANGE.txt")
         then:
@@ -207,11 +204,11 @@ scenario "Reverting locally without pushing" {
             Terminal last_command succeeded
     }
 
-    test UndoLocalOnly "Revert with --no-push" {
+    test UndoLocalOnly "Use sync to find the commit, revert with --no-push" {
         given:
             Test has_succeeded CommitChange
         when:
-            undo_no_push("$(git rev-parse --short HEAD)")
+            undo_latest_commit_no_push()
         then:
             verify_undo_local_only()
     }
@@ -256,7 +253,7 @@ scenario "Rejecting invalid undo targets" {
         when:
             make_change("safe.txt", "safe")
             commit("feat", "add safe file")
-            undo_dry_run("$(git rev-parse --short HEAD)")
+            undo_latest_commit_dry_run()
         then:
             verify_dry_run_no_side_effects()
     }
