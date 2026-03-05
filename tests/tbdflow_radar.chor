@@ -82,18 +82,14 @@ task check_status() {
 }
 
 # Simulates a teammate: use tbdflow to create a branch, commit work,
-# then return to main. The branch stays active on the remote (not
+# then switch back to main. The branch stays active on the remote (not
 # completed) — it represents work-in-progress by another developer.
+# Uses raw `git checkout main` at the end because `tbdflow complete`
+# would merge and delete the branch — we need it to stay active.
 task simulate_teammate_on_branch(type, name, filename, content) {
-    create_branch("${type}", "${name}")
-    make_change("${filename}", "${content}")
-    commit("feat", "teammate work on ${filename}")
-}
-
-# Return to main after simulating teammate work on a branch.
-# Uses raw checkout because tbdflow complete would merge and delete
-# the branch — we need it to stay active on the remote.
-task return_to_main_after_teammate() {
+    Terminal run "tbdflow branch -t ${type} -n ${name}"
+    Terminal run "echo '${content}' > ${filename}"
+    Terminal run "tbdflow commit -t feat -m 'teammate work on ${filename}' --no-verify"
     Terminal run "git checkout main"
 }
 
@@ -208,7 +204,8 @@ scenario "Radar reports clean when no overlapping work exists" {
         given:
             Test has_succeeded NoLocalChanges
         when:
-            make_change("my_work.txt", "local changes")
+            # Modify an existing tracked file so radar sees local changes
+            Terminal run "echo '# modified' >> .tbdflow.yml"
             radar()
         then:
             verify_no_overlaps()
@@ -222,9 +219,8 @@ scenario "Radar reports clean when no overlapping work exists" {
             Terminal run "git checkout -- . 2>/dev/null; git clean -fd 2>/dev/null"
             # Teammate creates a branch and works on their_work.txt
             simulate_teammate_on_branch("feat", "other-feature", "their_work.txt", "teammate changes")
-            return_to_main_after_teammate()
-            # I modify a completely different file
-            make_change("my_work.txt", "my changes")
+            # I modify a different tracked file
+            Terminal run "echo '# my edit' >> .tbdflow.yml"
             radar()
         then:
             verify_no_overlaps()
@@ -256,7 +252,6 @@ scenario "Radar detects file-level overlap with an active branch" {
             Test has_succeeded Setup
         when:
             simulate_teammate_on_branch("feat", "teammate-work", "shared.txt", "teammate modified this")
-            return_to_main_after_teammate()
         then:
             Terminal last_command succeeded
     }
@@ -298,7 +293,6 @@ scenario "Radar integrates with sync to show overlap warnings" {
             Test has_succeeded Setup
         when:
             simulate_teammate_on_branch("feat", "api-refactor", "api.rs", "fn refactored() {}")
-            return_to_main_after_teammate()
         then:
             Terminal last_command succeeded
     }
