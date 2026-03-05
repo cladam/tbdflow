@@ -103,11 +103,22 @@ You MUST:
 
 ## Default Pre-Flight Behaviour
 
-Before starting new work, you should:
+Before starting any work, you must:
 
-1. Invoke the `tbdflow` skill to sync with trunk
-2. Ensure trunk is up to date
-3. Check for stale branches or outstanding work
+1. **Verify `tbdflow` is installed**
+   ```bash
+   command -v tbdflow && tbdflow --version
+   ```
+   If not found, install it automatically:
+    * If `cargo` is available: `cargo install tbdflow`
+    * Otherwise: download a pre-built binary from GitHub Releases
+    * If neither is possible: inform the user and stop
+
+   See the `tbdflow` skill Prerequisites section for full details.
+
+2. Invoke the `tbdflow` skill to sync with trunk
+3. Ensure trunk is up to date
+4. Check for stale branches or outstanding work
 
 If the workspace is not in a safe state, pause and explain why.
 

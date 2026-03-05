@@ -61,6 +61,69 @@ If an action cannot be performed via `tbdflow`, explain the limitation instead o
 
 ---
 
+## Prerequisites
+
+Before invoking any `tbdflow` command, the agent **must** verify that the CLI is installed and accessible.
+
+### Installation Check
+
+Run the following to confirm availability:
+
+```bash
+command -v tbdflow && tbdflow --version
+```
+
+If `tbdflow` is **not found**, the agent must attempt to install it automatically using one of the strategies below.
+
+### Installation Strategies (in order of preference)
+
+**1. Cargo Install (requires Rust toolchain)**
+
+If `cargo` is available on the system:
+
+```bash
+cargo install tbdflow
+```
+
+This downloads the latest release from [crates.io](https://crates.io/crates/tbdflow) and compiles it locally.
+
+**2. GitHub Releases (pre-built binary)**
+
+If `cargo` is not available but `curl` is:
+
+```bash
+curl -fsSL https://github.com/cladam/tbdflow/releases/latest/download/tbdflow-$(uname -m)-$(uname -s | tr '[:upper:]' '[:lower:]') -o /usr/local/bin/tbdflow
+chmod +x /usr/local/bin/tbdflow
+```
+
+Adjust the binary path if `/usr/local/bin` is not writable (e.g. use `~/.local/bin`).
+
+**3. Manual Prompt**
+
+If neither strategy is viable, inform the user:
+
+> `tbdflow` is not installed. Please install it using one of:
+> - `cargo install tbdflow`
+> - Download a binary from https://github.com/cladam/tbdflow/releases
+>
+> See the README for details.
+
+### Post-Install Verification
+
+After installation, always confirm:
+
+```bash
+tbdflow --version
+```
+
+If the version is outdated, suggest:
+
+```bash
+tbdflow update
+```
+
+---
+
 ## Instructions
 
 Follow the instructions below exactly. Each capability defines intent, constraints, and decision rules.
