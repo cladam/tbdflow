@@ -39,11 +39,12 @@ task init_repo(repo, bare) {
     Terminal set_cwd "${repo}"
 }
 
-task write_radar_config(repo, enabled) {
-    Terminal run "cat > ${repo}/.tbdflow.yml << 'EOF'\nmain_branch_name: main\nstale_branch_threshold_days: 1\nradar:\n  enabled: ${enabled}\n  level: file\n  on_sync: true\n  on_commit: off\nbranch_types:\n  feat: \"feat/\"\n  fix: \"fix/\"\nautomatic_tags:\n  release_prefix: \"v\"\nEOF"
-    Terminal run "git -C ${repo} add .tbdflow.yml"
-    Terminal run "git -C ${repo} commit -m 'chore: add tbdflow config'"
-    Terminal run "git -C ${repo} push"
+task write_radar_config(enabled) {
+    Terminal run "cat > .tbdflow.yml << 'EOF'\nmain_branch_name: main\nstale_branch_threshold_days: 1\nradar:\n  enabled: ${enabled}\n  level: file\n  on_sync: true\n  on_commit: off\nbranch_types:\n  feat: \"feat/\"\n  fix: \"fix/\"\nautomatic_tags:\n  release_prefix: \"v\"\nEOF"
+}
+
+task commit_config() {
+    Terminal run "tbdflow commit -t chore -m 'add tbdflow config' --no-verify"
 }
 
 task cleanup_repo(repo, bare) {
@@ -64,16 +65,8 @@ task create_branch(type, name) {
     Terminal run "tbdflow branch -t ${type} -n ${name}"
 }
 
-task return_to_main() {
-    Terminal run "git checkout main"
-}
-
-task push_current_branch() {
-    Terminal run "git push -u origin HEAD"
-}
-
-task commit_raw(message) {
-    Terminal run "git add . && git commit -m '${message}'"
+task complete_branch(type, name) {
+    Terminal run "tbdflow complete -t ${type} -n ${name}"
 }
 
 task radar() {
@@ -84,13 +77,24 @@ task sync() {
     Terminal run "tbdflow sync"
 }
 
-# Simulates a teammate by creating a branch, modifying a file, and pushing
-task simulate_teammate_branch(repo, branch_name, filename, content) {
-    Terminal run "git -C ${repo} checkout -b ${branch_name}"
-    Terminal run "echo '${content}' > ${repo}/${filename}"
-    Terminal run "git -C ${repo} add . && git -C ${repo} commit -m 'feat: teammate work'"
-    Terminal run "git -C ${repo} push -u origin ${branch_name}"
-    Terminal run "git -C ${repo} checkout main"
+task check_status() {
+    Terminal run "tbdflow status"
+}
+
+# Simulates a teammate: use tbdflow to create a branch, commit work,
+# then return to main. The branch stays active on the remote (not
+# completed) — it represents work-in-progress by another developer.
+task simulate_teammate_on_branch(type, name, filename, content) {
+    create_branch("${type}", "${name}")
+    make_change("${filename}", "${content}")
+    commit("feat", "teammate work on ${filename}")
+}
+
+# Return to main after simulating teammate work on a branch.
+# Uses raw checkout because tbdflow complete would merge and delete
+# the branch — we need it to stay active on the remote.
+task return_to_main_after_teammate() {
+    Terminal run "git checkout main"
 }
 
 # --- Condition drivers ---
@@ -158,7 +162,8 @@ scenario "Radar reports disabled when not enabled in config" {
             Test can_start
         when:
             init_repo("${DISABLED_REPO}", "${DISABLED_BARE}")
-            write_radar_config("${DISABLED_REPO}", "false")
+            write_radar_config("false")
+            commit_config()
         then:
             Terminal last_command succeeded
     }
@@ -184,7 +189,8 @@ scenario "Radar reports clean when no overlapping work exists" {
             Test can_start
         when:
             init_repo("${RADAR_REPO}", "${RADAR_BARE}")
-            write_radar_config("${RADAR_REPO}", "true")
+            write_radar_config("true")
+            commit_config()
         then:
             Terminal last_command succeeded
     }
@@ -208,15 +214,16 @@ scenario "Radar reports clean when no overlapping work exists" {
             verify_no_overlaps()
     }
 
-    test NoOverlapsDifferentFiles "Radar reports clean when a teammate touches different files" {
+    test NoOverlapsDifferentFiles "Radar is clear when teammate touches different files" {
         given:
             Test has_succeeded NoOverlaps
         when:
-            # Reset local changes
+            # Discard our local changes first
             Terminal run "git checkout -- . 2>/dev/null; git clean -fd 2>/dev/null"
-            # Teammate works on a completely different file
-            simulate_teammate_branch("${RADAR_REPO}", "feat/other-feature", "their_work.txt", "teammate changes")
-            # I modify a different file
+            # Teammate creates a branch and works on their_work.txt
+            simulate_teammate_on_branch("feat", "other-feature", "their_work.txt", "teammate changes")
+            return_to_main_after_teammate()
+            # I modify a completely different file
             make_change("my_work.txt", "my changes")
             radar()
         then:
@@ -235,26 +242,28 @@ scenario "Radar detects file-level overlap with an active branch" {
             Test can_start
         when:
             init_repo("${RADAR_REPO}", "${RADAR_BARE}")
-            write_radar_config("${RADAR_REPO}", "true")
-            # Create a base file on main that both sides will modify
+            write_radar_config("true")
+            commit_config()
+            # Create a shared file on main that both sides will modify
             make_change("shared.txt", "original content")
             commit("chore", "add shared file")
         then:
             Terminal last_command succeeded
     }
 
-    test TeammateCreatesOverlappingBranch "A teammate pushes a branch that modifies a shared file" {
+    test TeammateWork "A teammate creates a branch and modifies the shared file" {
         given:
             Test has_succeeded Setup
         when:
-            simulate_teammate_branch("${RADAR_REPO}", "feat/teammate-work", "shared.txt", "teammate modified this")
+            simulate_teammate_on_branch("feat", "teammate-work", "shared.txt", "teammate modified this")
+            return_to_main_after_teammate()
         then:
             Terminal last_command succeeded
     }
 
-    test RadarDetectsOverlap "Radar warns about the overlapping file" {
+    test RadarDetectsOverlap "Radar warns about the overlapping file and branch" {
         given:
-            Test has_succeeded TeammateCreatesOverlappingBranch
+            Test has_succeeded TeammateWork
         when:
             make_change("shared.txt", "my local modification")
             radar()
@@ -270,24 +279,26 @@ scenario "Radar detects file-level overlap with an active branch" {
 
 scenario "Radar integrates with sync to show overlap warnings" {
 
-    test Setup "Initialise test repository with radar enabled and on_sync" {
+    test Setup "Initialise test repository with radar and on_sync enabled" {
         given:
             Test can_start
         when:
             init_repo("${SYNC_REPO}", "${SYNC_BARE}")
-            write_radar_config("${SYNC_REPO}", "true")
-            # Create a base file
+            write_radar_config("true")
+            commit_config()
+            # Create a base file on main
             make_change("api.rs", "fn main() {}")
             commit("feat", "add api module")
         then:
             Terminal last_command succeeded
     }
 
-    test TeammateModifiesApi "A teammate pushes a branch modifying the same API file" {
+    test TeammateModifiesApi "A teammate creates a branch modifying the same API file" {
         given:
             Test has_succeeded Setup
         when:
-            simulate_teammate_branch("${SYNC_REPO}", "feat/api-refactor", "api.rs", "fn refactored() {}")
+            simulate_teammate_on_branch("feat", "api-refactor", "api.rs", "fn refactored() {}")
+            return_to_main_after_teammate()
         then:
             Terminal last_command succeeded
     }
@@ -316,4 +327,3 @@ scenario "Radar integrates with sync to show overlap warnings" {
         cleanup_repo("${SYNC_REPO}", "${SYNC_BARE}")
     }
 }
-
