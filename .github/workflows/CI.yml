@@ -57,6 +57,7 @@ jobs:
           choreo run --file tests/tbdflow_complete.chor
           choreo run --file tests/tbdflow_sync_status.chor
           choreo run --file tests/tbdflow_undo.chor
+          choreo run --file tests/tbdflow_radar.chor
 
   # Job 2: Creates the release on GitHub. Only runs on new tags.
   create_release:
