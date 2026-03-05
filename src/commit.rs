@@ -1,5 +1,5 @@
 use crate::config::{Config, DodConfig};
-use crate::{config, git, review};
+use crate::{config, git, radar, review};
 use anyhow::Result;
 use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect};
@@ -327,6 +327,12 @@ pub fn handle_commit(
 
         if !git::has_staged_changes(verbose, dry_run)? {
             println!("{}", "No changes added to commit.".yellow());
+            return Ok(());
+        }
+
+        // Radar: check for overlapping work before committing
+        if !radar::check_before_commit(config, verbose, dry_run)? {
+            println!("{}", "Commit aborted by user.".yellow());
             return Ok(());
         }
 

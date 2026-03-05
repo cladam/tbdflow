@@ -530,6 +530,173 @@ pub fn revert_commit(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<
     run_git_command("revert", &["--no-edit", commit_hash], verbose, dry_run)
 }
 
+// ── Radar helpers ──────────────────────────────────────────────────────────
+
+/// List remote branches that have NOT been merged into the main branch.
+/// Returns branch names without the `origin/` prefix.
+pub fn get_active_remote_branches(
+    main_branch: &str,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<Vec<String>> {
+    let main_ref = format!("origin/{}", main_branch);
+    let output = run_git_command(
+        "branch",
+        &["-r", "--no-merged", &main_ref],
+        verbose,
+        dry_run,
+    )?;
+    let branches = output
+        .lines()
+        .map(|l| l.trim())
+        .filter(|l| !l.contains("->")) // skip HEAD -> origin/main
+        .filter(|l| l.starts_with("origin/"))
+        .filter(|l| l.trim_start_matches("origin/") != main_branch)
+        .map(|l| l.trim_start_matches("origin/").to_string())
+        .collect();
+    Ok(branches)
+}
+
+/// Get the list of files changed between two refs using three-dot diff (merge-base).
+/// Useful for finding what a branch changed relative to its fork point from main.
+pub fn get_diff_files_between_refs(
+    base: &str,
+    head: &str,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<Vec<String>> {
+    let range = format!("{}...{}", base, head);
+    let output = run_git_command("diff", &["--name-only", &range], verbose, dry_run)?;
+    Ok(output
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(|s| s.to_string())
+        .collect())
+}
+
+/// A range of lines touched in a diff hunk.
+#[derive(Debug, Clone)]
+pub struct HunkRange {
+    pub start_line: u32,
+    pub line_count: u32,
+}
+
+impl HunkRange {
+    /// Check whether two hunk ranges overlap.
+    pub fn overlaps(&self, other: &HunkRange) -> bool {
+        let self_end = self.start_line + self.line_count.max(1) - 1;
+        let other_end = other.start_line + other.line_count.max(1) - 1;
+        self.start_line <= other_end && other.start_line <= self_end
+    }
+}
+
+/// Parse unified-diff `@@ -a,b +c,d @@` headers into `HunkRange` values.
+/// When `side` is `New`, returns the `+c,d` (new file) ranges.
+/// When `side` is `Old`, returns the `-a,b` (old file) ranges.
+#[derive(Debug, Clone, Copy)]
+pub enum DiffSide {
+    Old,
+    New,
+}
+
+fn parse_hunk_headers(diff_output: &str, side: DiffSide) -> Vec<HunkRange> {
+    diff_output
+        .lines()
+        .filter(|l| l.starts_with("@@"))
+        .filter_map(|line| {
+            // Format: @@ -a,b +c,d @@
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() < 4 {
+                return None;
+            }
+            let token = match side {
+                DiffSide::Old => parts[1].trim_start_matches('-'),
+                DiffSide::New => parts[2].trim_start_matches('+'),
+            };
+            let nums: Vec<&str> = token.split(',').collect();
+            let start: u32 = nums[0].parse().ok()?;
+            let count: u32 = if nums.len() > 1 {
+                nums[1].parse().ok()?
+            } else {
+                1
+            };
+            Some(HunkRange {
+                start_line: start,
+                line_count: count,
+            })
+        })
+        .collect()
+}
+
+/// Get line-level diff hunks between two refs for a specific file.
+/// Returns the NEW-side hunk ranges (lines added/modified in `head`).
+pub fn get_diff_hunks_between_refs(
+    base: &str,
+    head: &str,
+    file: &str,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<Vec<HunkRange>> {
+    let range = format!("{}...{}", base, head);
+    let output = run_git_command("diff", &["-U0", &range, "--", file], verbose, dry_run)?;
+    Ok(parse_hunk_headers(&output, DiffSide::New))
+}
+
+/// Get the author name of the most recent commit on a remote branch.
+pub fn get_branch_author(branch: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    let ref_name = format!("origin/{}", branch);
+    run_git_command("log", &["-1", "--format=%an", &ref_name], verbose, dry_run)
+}
+
+/// Get the number of commits a remote branch is ahead of origin/main.
+pub fn get_remote_branch_commit_count(
+    branch: &str,
+    main_branch: &str,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<u32> {
+    let range = format!("origin/{}..origin/{}", main_branch, branch);
+    let output = run_git_command("rev-list", &["--count", &range], verbose, dry_run)?;
+    Ok(output.trim().parse().unwrap_or(0))
+}
+
+/// Get all locally changed files (both staged and unstaged, plus untracked).
+pub fn get_local_changed_files(verbose: bool, dry_run: bool) -> Result<Vec<String>> {
+    let mut files = std::collections::HashSet::new();
+
+    // Unstaged modifications
+    let unstaged = run_git_command("diff", &["--name-only"], verbose, dry_run)?;
+    for f in unstaged.lines().filter(|l| !l.is_empty()) {
+        files.insert(f.to_string());
+    }
+
+    // Staged modifications
+    let staged = run_git_command("diff", &["--name-only", "--staged"], verbose, dry_run)?;
+    for f in staged.lines().filter(|l| !l.is_empty()) {
+        files.insert(f.to_string());
+    }
+
+    Ok(files.into_iter().collect())
+}
+
+/// Get line-level diff hunks for local (unstaged + staged) changes in a specific file.
+/// Returns NEW-side hunk ranges.
+pub fn get_local_diff_hunks(file: &str, verbose: bool, dry_run: bool) -> Result<Vec<HunkRange>> {
+    let mut hunks = Vec::new();
+
+    // Unstaged changes
+    let unstaged = run_git_command("diff", &["-U0", "--", file], verbose, dry_run)?;
+    hunks.extend(parse_hunk_headers(&unstaged, DiffSide::New));
+
+    // Staged changes
+    let staged = run_git_command("diff", &["-U0", "--staged", "--", file], verbose, dry_run)?;
+    hunks.extend(parse_hunk_headers(&staged, DiffSide::New));
+
+    Ok(hunks)
+}
+
+// ── End radar helpers ──────────────────────────────────────────────────────
+
 /// Check if a commit is an ancestor of the given branch (i.e. the commit exists on that branch).
 /// Resolves the commit hash and uses the fully-qualified branch ref to avoid ambiguity
 /// (e.g. when a tag has the same name as the branch).

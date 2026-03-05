@@ -122,6 +122,21 @@ pub enum Commands {
     },
     /// Syncs with the remote, shows recent history, and checks for stale branches.
     Sync,
+    /// Scans active remote branches for overlapping work that may cause merge conflicts.
+    #[command(
+        name = "radar",
+        after_help = "OVERLAP DETECTION FOR SOCIAL CODING:\n  \
+    In TBD, everyone integrates frequently. Radar makes the invisible visible\n  \
+    by showing who else is working on the same files — before you push.\n\n\
+    DETECTION LEVELS (configurable in .tbdflow.yml):\n  \
+    file:  Same files touched (fast, default)\n  \
+    line:  Overlapping line ranges (precise)\n\n\
+    EXAMPLES:\n  \
+    tbdflow radar                          # Scan for overlaps\n  \
+    tbdflow --verbose radar                # Scan with detailed git output\n  \
+    tbdflow --dry-run radar                # Preview what would be checked"
+    )]
+    Radar,
     /// Shows the current git status.
     Status,
     /// Shows the current git branch name.

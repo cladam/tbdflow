@@ -13,7 +13,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use tbdflow::cli::Commands;
 use tbdflow::git::get_current_branch;
-use tbdflow::{branch, changelog, cli, commit, config, git, misc, review, wizard};
+use tbdflow::{branch, changelog, cli, commit, config, git, misc, radar, review, wizard};
 
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
@@ -154,6 +154,9 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Sync => {
             misc::handle_sync(verbose, dry_run, &config)?;
+        }
+        Commands::Radar => {
+            radar::handle_radar(verbose, dry_run, &config)?;
         }
         Commands::Status => {
             println!("--- Checking status ---");

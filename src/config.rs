@@ -91,6 +91,73 @@ impl ReviewLabelsConfig {
     }
 }
 
+/// Detection level for the radar overlap scanner.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum RadarLevel {
+    /// Only check if the same files are touched (fast).
+    #[default]
+    File,
+    /// Check for overlapping line ranges within files (precise).
+    Line,
+}
+
+/// Behaviour of radar during `tbdflow commit`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum RadarOnCommit {
+    /// Do not run radar during commit.
+    #[default]
+    Off,
+    /// Show a warning but proceed.
+    Warn,
+    /// Show a warning and ask for confirmation.
+    Confirm,
+}
+
+/// Configuration for the overlap-detection radar.
+/// Scans active remote branches for potential merge conflicts with local changes.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RadarConfig {
+    /// Enable the radar system.
+    #[serde(default)]
+    pub enabled: bool,
+    /// Detection level: file or line.
+    #[serde(default)]
+    pub level: RadarLevel,
+    /// Show radar warnings during `tbdflow sync`.
+    #[serde(default = "RadarConfig::default_on_sync")]
+    pub on_sync: bool,
+    /// Behaviour during `tbdflow commit`: off, warn, or confirm.
+    #[serde(default)]
+    pub on_commit: RadarOnCommit,
+    /// File patterns to exclude from overlap detection (glob syntax).
+    #[serde(default)]
+    pub ignore_patterns: Vec<String>,
+}
+
+impl Default for RadarConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            level: RadarLevel::File,
+            on_sync: true,
+            on_commit: RadarOnCommit::Off,
+            ignore_patterns: vec![
+                "*.lock".to_string(),
+                "*-lock.*".to_string(),
+                "CHANGELOG.md".to_string(),
+            ],
+        }
+    }
+}
+
+impl RadarConfig {
+    fn default_on_sync() -> bool {
+        true
+    }
+}
+
 /// Configuration for non-blocking post-commit reviews.
 /// This enables TBD-style reviews where code is committed first and reviewed asynchronously.
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -222,6 +289,8 @@ pub struct Config {
     pub issue_handling: IssueHandling,
     #[serde(default)]
     pub review: ReviewConfig,
+    #[serde(default)]
+    pub radar: RadarConfig,
     pub branch_types: HashMap<String, String>,
     pub automatic_tags: AutomaticTags,
     pub lint: Option<LintConfig>,
@@ -254,6 +323,7 @@ impl Default for Config {
             monorepo: MonorepoConfig::default(),
             issue_handling: IssueHandling::default(),
             review: ReviewConfig::default(),
+            radar: RadarConfig::default(),
             branch_types,
             automatic_tags: AutomaticTags {
                 release_prefix: "v".to_string(),

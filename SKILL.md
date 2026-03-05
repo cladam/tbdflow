@@ -207,6 +207,61 @@ tbdflow status
 
 ---
 
+### 5. Radar — Overlap Detection
+
+**Intent**
+Proactively detect potential merge conflicts by scanning active remote branches for overlapping work with local changes.
+The social coding safety net for TBD.
+
+**Commands**
+
+```bash
+tbdflow radar
+```
+
+**Decision Rules**
+
+* Use `radar` to:
+
+    * Scan all active (unmerged) remote branches
+    * Compare their diffs against local uncommitted/staged changes
+    * Show who is working on overlapping files (and optionally overlapping lines)
+    * Provide actionable social coordination hints
+
+* Radar is also integrated into:
+
+    * `tbdflow sync` — shows a one-liner warning if overlap is detected
+    * `tbdflow commit` — optionally warns or prompts for confirmation
+
+**Detection Levels**
+
+| Level  | What it checks                        | Speed        |
+|--------|---------------------------------------|--------------|
+| `file` | Same files touched (default)          | ~5ms/branch  |
+| `line` | Overlapping line ranges in same files | ~50ms/branch |
+
+**Configuration (`.tbdflow.yml`)**
+
+```yaml
+radar:
+  enabled: true
+  level: file          # file | line
+  on_sync: true        # Show warnings during tbdflow sync
+  on_commit: warn      # off | warn | confirm
+  ignore_patterns: # Files to exclude from overlap detection
+    - "*.lock"
+    - "*-lock.*"
+    - "CHANGELOG.md"
+```
+
+**Use This When**
+
+* The user says "anyone else working on this?", "check for conflicts", or "radar"
+* Before pushing to avoid merge hell
+* When collaborating closely with teammates on trunk
+
+---
+
 ### Pre-Commit Workflow
 
 **Always run `tbdflow sync` before `tbdflow commit`.**

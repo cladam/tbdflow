@@ -207,6 +207,9 @@ If a merge conflict occurs:
 | "Commit changes"                   | Invoke `tbdflow sync`, then `tbdflow commit`   |
 | "What's the status?"               | Invoke `tbdflow sync` (includes status output) |
 | "Sync me up"                       | Invoke `tbdflow sync`                          |
+| "Anyone else working on this?"     | Invoke `tbdflow radar`                         |
+| "Check for conflicts"              | Invoke `tbdflow radar`                         |
+| "Is anyone touching auth?"         | Invoke `tbdflow radar`                         |
 | "Finish this up"                   | Invoke `tbdflow sync`, then `tbdflow complete` |
 | "Merge my work"                    | Invoke `tbdflow sync`, then `tbdflow complete` |
 | "Generate release notes"           | Invoke `tbdflow changelog`                     |

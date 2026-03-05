@@ -7,6 +7,8 @@ monorepo:
     - "plugins"
 issue_handling:
   strategy: branch-name
+radar:
+  enabled: true
 review:
   enabled: true
   strategy: github-issue

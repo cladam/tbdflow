@@ -1,4 +1,4 @@
-use crate::{config, git};
+use crate::{config, git, radar};
 use anyhow::Result;
 use clap::Command as Commands;
 use colored::*;
@@ -352,6 +352,11 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
     let log_output = git::log_graph(verbose, dry_run)?;
     println!("\n{}", "Recent activity:".bold());
     println!("{}", log_output.cyan());
+
+    // Radar: quick overlap scan
+    if let Ok(Some(radar_summary)) = radar::quick_scan_for_sync(config, verbose, dry_run) {
+        println!("\n{}", radar_summary.yellow());
+    }
 
     check_and_warn_for_stale_branches(verbose, dry_run, &current_branch, config)?;
     Ok(())

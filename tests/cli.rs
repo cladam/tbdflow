@@ -529,3 +529,147 @@ fn test_check_branches_command() {
         .stdout(contains("Warning: The following branches may be stale:"))
         .stdout(contains("feature_stale-feature"));
 }
+
+/// Tests that the radar command shows disabled message when radar is not enabled.
+#[test]
+#[serial]
+fn test_radar_disabled_by_default() {
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    let config_content = r#"
+main_branch_name: main
+stale_branch_threshold_days: 1
+branch_types:
+  feat: "feat/"
+automatic_tags:
+  release_prefix: "v"
+"#;
+    std::fs::write(repo_path.join(".tbdflow.yml"), config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("tbdflow").unwrap();
+    cmd.arg("radar");
+    cmd.assert().success().stdout(contains("Radar is disabled"));
+}
+
+/// Tests that the radar command runs successfully when enabled with no overlaps.
+#[test]
+#[serial]
+fn test_radar_no_overlaps() {
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    let config_content = r#"
+main_branch_name: main
+stale_branch_threshold_days: 1
+radar:
+  enabled: true
+  level: file
+branch_types:
+  feat: "feat/"
+automatic_tags:
+  release_prefix: "v"
+"#;
+    std::fs::write(repo_path.join(".tbdflow.yml"), config_content).unwrap();
+    // Commit the config so working directory is clean for radar
+    std::process::Command::new("git")
+        .args(&["add", ".tbdflow.yml"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["commit", "-m", "chore: add config"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["push"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+
+    // Modify an existing tracked file so radar has local changes to scan
+    std::fs::write(repo_path.join("README.md"), "modified locally").unwrap();
+
+    let mut cmd = Command::cargo_bin("tbdflow").unwrap();
+    cmd.arg("radar");
+    cmd.assert()
+        .success()
+        .stdout(contains("No overlaps detected"));
+}
+
+/// Tests that the radar command detects file-level overlaps with an active remote branch.
+#[test]
+#[serial]
+fn test_radar_detects_file_overlap() {
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    let config_content = r#"
+main_branch_name: main
+stale_branch_threshold_days: 1
+radar:
+  enabled: true
+  level: file
+branch_types:
+  feat: "feat/"
+automatic_tags:
+  release_prefix: "v"
+"#;
+    std::fs::write(repo_path.join(".tbdflow.yml"), config_content).unwrap();
+    // Commit the config so it's part of the repo
+    std::process::Command::new("git")
+        .args(&["add", ".tbdflow.yml"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["commit", "-m", "chore: add config"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["push"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+
+    // Create a feature branch, modify README.md, push it
+    std::process::Command::new("git")
+        .args(&["checkout", "-b", "feat/other-work"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    std::fs::write(repo_path.join("README.md"), "changed by teammate").unwrap();
+    std::process::Command::new("git")
+        .args(&["add", "."])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["commit", "-m", "feat: teammate changes"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    std::process::Command::new("git")
+        .args(&["push", "-u", "origin", "feat/other-work"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+
+    // Switch back to main and make a local change to the same file
+    std::process::Command::new("git")
+        .args(&["checkout", "main"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+    std::fs::write(repo_path.join("README.md"), "my local change").unwrap();
+
+    let mut cmd = Command::cargo_bin("tbdflow").unwrap();
+    cmd.arg("radar");
+    cmd.assert()
+        .success()
+        .stdout(contains("OVERLAP DETECTED"))
+        .stdout(contains("README.md"))
+        .stdout(contains("feat/other-work"));
+}

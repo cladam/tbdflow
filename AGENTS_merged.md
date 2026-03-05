@@ -204,11 +204,13 @@ Assume violations will be rejected.
 
 | User Says                       | You Do                                                |
 |---------------------------------|-------------------------------------------------------|
-| “I’m starting on ticket API-99” | `tbdflow branch -t feat -n api-update --issue API-99` |
-| “Check this in”                 | `tbdflow commit`                                      |
-| “What’s the status?”            | `tbdflow status`                                      |
-| “Finish this up”                | `tbdflow complete` (infer from current branch)        |
-| “Generate release notes”        | `tbdflow changelog --unreleased`                      |
+| "I'm starting on ticket API-99" | `tbdflow branch -t feat -n api-update --issue API-99` |
+| "Check this in"                 | `tbdflow commit`                                      |
+| "What's the status?"            | `tbdflow status`                                      |
+| "Anyone else working on this?"  | `tbdflow radar`                                       |
+| "Check for conflicts"           | `tbdflow radar`                                       |
+| "Finish this up"                | `tbdflow complete` (infer from current branch)        |
+| "Generate release notes"        | `tbdflow changelog --unreleased`                      |
 
 ---
 
