@@ -1,0 +1,319 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# tbdflow — Radar (Overlap Detection for Social Coding)
+# ═══════════════════════════════════════════════════════════════════════════════
+# User Story: As a developer working in a TBD team, I want to be warned when
+# my local changes overlap with work on active remote branches so that I can
+# coordinate with teammates before pushing and avoid merge hell.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+feature "tbdflow Radar — Overlap Detection"
+
+actors: Terminal
+
+settings {
+    timeout_seconds = 30
+    stop_on_failure = true
+    shell_path = "/bin/bash"
+}
+
+# Each scenario gets its own isolated repo pair
+var RADAR_REPO     = "/tmp/tbdflow_radar_test"
+var RADAR_BARE     = "/tmp/tbdflow_radar_bare.git"
+var DISABLED_REPO  = "/tmp/tbdflow_radar_disabled"
+var DISABLED_BARE  = "/tmp/tbdflow_radar_disabled_bare.git"
+var SYNC_REPO      = "/tmp/tbdflow_radar_sync"
+var SYNC_BARE      = "/tmp/tbdflow_radar_sync_bare.git"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER — Tasks hide the "how"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# --- Setup drivers ---
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task write_radar_config(repo, enabled) {
+    Terminal run "cat > ${repo}/.tbdflow.yml << 'EOF'\nmain_branch_name: main\nstale_branch_threshold_days: 1\nradar:\n  enabled: ${enabled}\n  level: file\n  on_sync: true\n  on_commit: off\nbranch_types:\n  feat: \"feat/\"\n  fix: \"fix/\"\nautomatic_tags:\n  release_prefix: \"v\"\nEOF"
+    Terminal run "git -C ${repo} add .tbdflow.yml"
+    Terminal run "git -C ${repo} commit -m 'chore: add tbdflow config'"
+    Terminal run "git -C ${repo} push"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+# --- Action drivers ---
+
+task make_change(filename, content) {
+    Terminal run "echo '${content}' > ${filename}"
+}
+
+task commit(type, message) {
+    Terminal run "tbdflow commit -t ${type} -m '${message}' --no-verify"
+}
+
+task create_branch(type, name) {
+    Terminal run "tbdflow branch -t ${type} -n ${name}"
+}
+
+task return_to_main() {
+    Terminal run "git checkout main"
+}
+
+task push_current_branch() {
+    Terminal run "git push -u origin HEAD"
+}
+
+task commit_raw(message) {
+    Terminal run "git add . && git commit -m '${message}'"
+}
+
+task radar() {
+    Terminal run "tbdflow radar"
+}
+
+task sync() {
+    Terminal run "tbdflow sync"
+}
+
+# Simulates a teammate by creating a branch, modifying a file, and pushing
+task simulate_teammate_branch(repo, branch_name, filename, content) {
+    Terminal run "git -C ${repo} checkout -b ${branch_name}"
+    Terminal run "echo '${content}' > ${repo}/${filename}"
+    Terminal run "git -C ${repo} add . && git -C ${repo} commit -m 'feat: teammate work'"
+    Terminal run "git -C ${repo} push -u origin ${branch_name}"
+    Terminal run "git -C ${repo} checkout main"
+}
+
+# --- Condition drivers ---
+
+task verify_radar_disabled() {
+    Terminal last_command succeeded
+    Terminal output_contains "Radar is disabled"
+}
+
+task verify_no_overlaps() {
+    Terminal last_command succeeded
+    Terminal output_contains "No overlaps detected"
+    Terminal output_not_contains "OVERLAP DETECTED"
+}
+
+task verify_no_local_changes() {
+    Terminal last_command succeeded
+    Terminal output_contains "No local changes detected"
+}
+
+task verify_overlap_detected() {
+    Terminal last_command succeeded
+    Terminal output_contains "OVERLAP DETECTED"
+}
+
+task verify_overlap_with_file(filename) {
+    Terminal last_command succeeded
+    Terminal output_contains "OVERLAP DETECTED"
+    Terminal output_contains "${filename}"
+}
+
+task verify_overlap_with_branch(branch_name) {
+    Terminal last_command succeeded
+    Terminal output_contains "${branch_name}"
+}
+
+task verify_radar_hint_in_sync() {
+    Terminal last_command succeeded
+    Terminal output_contains "Radar"
+    Terminal output_contains "tbdflow radar"
+}
+
+task verify_no_errors() {
+    Terminal last_command succeeded
+    Terminal output_not_contains "Error"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUSINESS SPECIFICATION LAYER — Scenarios describe the "what"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AC1: `tbdflow radar` must show a disabled message when radar is not enabled.
+# AC2: `tbdflow radar` must report no overlaps when no remote branches exist.
+# AC3: `tbdflow radar` must report no overlaps when branches touch different files.
+# AC4: `tbdflow radar` must detect file-level overlap with an active branch.
+# AC5: `tbdflow radar` must show the overlapping branch name and file.
+# AC6: `tbdflow sync` must show a radar warning when overlap is detected.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Radar reports disabled when not enabled in config" {
+
+    test Setup "Initialise test repository without radar enabled" {
+        given:
+            Test can_start
+        when:
+            init_repo("${DISABLED_REPO}", "${DISABLED_BARE}")
+            write_radar_config("${DISABLED_REPO}", "false")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test RadarDisabled "Radar shows a disabled message" {
+        given:
+            Test has_succeeded Setup
+        when:
+            radar()
+        then:
+            verify_radar_disabled()
+    }
+
+    after {
+        cleanup_repo("${DISABLED_REPO}", "${DISABLED_BARE}")
+    }
+}
+
+scenario "Radar reports clean when no overlapping work exists" {
+
+    test Setup "Initialise test repository with radar enabled" {
+        given:
+            Test can_start
+        when:
+            init_repo("${RADAR_REPO}", "${RADAR_BARE}")
+            write_radar_config("${RADAR_REPO}", "true")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test NoLocalChanges "Radar reports no local changes when working tree is clean" {
+        given:
+            Test has_succeeded Setup
+        when:
+            radar()
+        then:
+            verify_no_local_changes()
+    }
+
+    test NoOverlaps "Radar reports no overlaps with only local changes" {
+        given:
+            Test has_succeeded NoLocalChanges
+        when:
+            make_change("my_work.txt", "local changes")
+            radar()
+        then:
+            verify_no_overlaps()
+    }
+
+    test NoOverlapsDifferentFiles "Radar reports clean when a teammate touches different files" {
+        given:
+            Test has_succeeded NoOverlaps
+        when:
+            # Reset local changes
+            Terminal run "git checkout -- . 2>/dev/null; git clean -fd 2>/dev/null"
+            # Teammate works on a completely different file
+            simulate_teammate_branch("${RADAR_REPO}", "feat/other-feature", "their_work.txt", "teammate changes")
+            # I modify a different file
+            make_change("my_work.txt", "my changes")
+            radar()
+        then:
+            verify_no_overlaps()
+    }
+
+    after {
+        cleanup_repo("${RADAR_REPO}", "${RADAR_BARE}")
+    }
+}
+
+scenario "Radar detects file-level overlap with an active branch" {
+
+    test Setup "Initialise test repository with radar enabled" {
+        given:
+            Test can_start
+        when:
+            init_repo("${RADAR_REPO}", "${RADAR_BARE}")
+            write_radar_config("${RADAR_REPO}", "true")
+            # Create a base file on main that both sides will modify
+            make_change("shared.txt", "original content")
+            commit("chore", "add shared file")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test TeammateCreatesOverlappingBranch "A teammate pushes a branch that modifies a shared file" {
+        given:
+            Test has_succeeded Setup
+        when:
+            simulate_teammate_branch("${RADAR_REPO}", "feat/teammate-work", "shared.txt", "teammate modified this")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test RadarDetectsOverlap "Radar warns about the overlapping file" {
+        given:
+            Test has_succeeded TeammateCreatesOverlappingBranch
+        when:
+            make_change("shared.txt", "my local modification")
+            radar()
+        then:
+            verify_overlap_with_file("shared.txt")
+            verify_overlap_with_branch("feat/teammate-work")
+    }
+
+    after {
+        cleanup_repo("${RADAR_REPO}", "${RADAR_BARE}")
+    }
+}
+
+scenario "Radar integrates with sync to show overlap warnings" {
+
+    test Setup "Initialise test repository with radar enabled and on_sync" {
+        given:
+            Test can_start
+        when:
+            init_repo("${SYNC_REPO}", "${SYNC_BARE}")
+            write_radar_config("${SYNC_REPO}", "true")
+            # Create a base file
+            make_change("api.rs", "fn main() {}")
+            commit("feat", "add api module")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test TeammateModifiesApi "A teammate pushes a branch modifying the same API file" {
+        given:
+            Test has_succeeded Setup
+        when:
+            simulate_teammate_branch("${SYNC_REPO}", "feat/api-refactor", "api.rs", "fn refactored() {}")
+        then:
+            Terminal last_command succeeded
+    }
+
+    test SyncShowsRadarWarning "Running sync surfaces the radar warning inline" {
+        given:
+            Test has_succeeded TeammateModifiesApi
+        when:
+            make_change("api.rs", "fn my_changes() {}")
+            sync()
+        then:
+            verify_radar_hint_in_sync()
+    }
+
+    test RadarGivesFullDetails "Running radar after sync shows the full overlap report" {
+        given:
+            Test has_succeeded SyncShowsRadarWarning
+        when:
+            radar()
+        then:
+            verify_overlap_with_file("api.rs")
+            verify_overlap_with_branch("feat/api-refactor")
+    }
+
+    after {
+        cleanup_repo("${SYNC_REPO}", "${SYNC_BARE}")
+    }
+}
+
