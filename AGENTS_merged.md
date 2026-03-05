@@ -210,6 +210,8 @@ Assume violations will be rejected.
 | "Anyone else working on this?"  | `tbdflow radar`                                       |
 | "Check for conflicts"           | `tbdflow radar`                                       |
 | "Finish this up"                | `tbdflow complete` (infer from current branch)        |
+| "Revert that commit"            | `tbdflow undo <sha>`                                  |
+| "Trunk is broken"               | `tbdflow undo <sha>`                                  |
 | "Generate release notes"        | `tbdflow changelog --unreleased`                      |
 
 ---

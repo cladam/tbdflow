@@ -212,6 +212,9 @@ If a merge conflict occurs:
 | "Is anyone touching auth?"         | Invoke `tbdflow radar`                         |
 | "Finish this up"                   | Invoke `tbdflow sync`, then `tbdflow complete` |
 | "Merge my work"                    | Invoke `tbdflow sync`, then `tbdflow complete` |
+| "Revert that commit"               | Invoke `tbdflow undo <sha>`                    |
+| "Trunk is broken"                  | Invoke `tbdflow undo <sha>`                    |
+| "Undo abc1234"                     | Invoke `tbdflow undo abc1234`                  |
 | "Generate release notes"           | Invoke `tbdflow changelog`                     |
 | "What's new?"                      | Invoke `tbdflow changelog --unreleased`        |
 | "What changed since last version?" | Invoke `tbdflow changelog --unreleased`        |

@@ -262,6 +262,43 @@ radar:
 
 ---
 
+### 6. Undo — The Panic Button
+
+**Intent**
+Immediately revert a broken commit on trunk, restoring it to a green state. In TBD, if trunk breaks, you fix it or
+revert it — there is no middle ground.
+
+**Command**
+
+```bash
+tbdflow undo <sha> [--no-push]
+```
+
+**Preconditions**
+
+* The working tree is clean (no uncommitted changes)
+* The commit SHA exists and is on the main branch
+
+**Decision Rules**
+
+* `undo` will:
+
+    * Sync with remote (fast-forward only) before reverting
+    * Verify the commit exists and is on trunk
+    * Create a revert commit using `git revert --no-edit`
+    * Push the revert to the remote (unless `--no-push`)
+* Use `--no-push` when the user wants to inspect the revert locally before pushing
+* The reverted changes remain in Git history and can be re-applied later
+* This command only works on commits that are on the main branch
+
+**Use This When**
+
+* The user says "revert this", "undo that commit", or "trunk is broken"
+* A commit on trunk caused a build failure, test regression, or production incident
+* The fastest path to green is reverting rather than fixing forward
+
+---
+
 ### Pre-Commit Workflow
 
 **Always run `tbdflow sync` before `tbdflow commit`.**
@@ -334,7 +371,7 @@ The agent should prefer generating valid inputs over relying on linter errors.
 
 ---
 
-### 5. Changelog Generation
+### 7. Changelog Generation
 
 **Intent**
 Summarise changes using structured commit history.
@@ -370,11 +407,13 @@ tbdflow changelog [--unreleased] [--from <ref>]
 
 | User Input                                    | Action                                                       |
 |-----------------------------------------------|--------------------------------------------------------------|
-| “Commit this as a bug fix for login.”         | `tbdflow commit -t fix -s login -m "resolve timeout issue"`  |
-| “Start working on API-456: Add user profile.” | `tbdflow branch -t feat -n add-user-profile --issue API-456` |
-| “Merge my current work back to main.”         | `tbdflow complete -t <current_type> -n <current_name>`       |
-| “Sync me up.”                                 | `tbdflow sync`                                               |
-| “What changed since the last version?”        | `tbdflow changelog --unreleased`                             |
+| "Commit this as a bug fix for login."         | `tbdflow commit -t fix -s login -m "resolve timeout issue"`  |
+| "Start working on API-456: Add user profile." | `tbdflow branch -t feat -n add-user-profile --issue API-456` |
+| "Merge my current work back to main."         | `tbdflow complete -t <current_type> -n <current_name>`       |
+| "Sync me up."                                 | `tbdflow sync`                                               |
+| "Anyone else working on this file?"           | `tbdflow radar`                                              |
+| "Revert commit abc1234, it broke the build."  | `tbdflow undo abc1234`                                       |
+| "What changed since the last version?"        | `tbdflow changelog --unreleased`                             |
 
 ---
 

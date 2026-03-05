@@ -8,7 +8,14 @@ monorepo:
 issue_handling:
   strategy: branch-name
 radar:
-  enabled: true
+  enabled: true          # Off by default, opt-in
+  level: file            # file | line
+  on_sync: true          # Show warnings during tbdflow sync
+  on_commit: off         # off | warn | confirm
+  ignore_patterns:
+    - "*.lock"
+    - "*-lock.*"
+    - "CHANGELOG.md"
 review:
   enabled: true
   strategy: github-issue
