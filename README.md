@@ -34,6 +34,8 @@ This tool is built around a specific philosophy of Trunk-Based Development:
   release) and deleting completed branches, helping keep your repo tidy.
 * **Conventional Commits encouraged.** Commit messages
   follow [Conventional Commits](https://www.conventionalcommits.org/) for clarity and consistency.
+* **Collaboration is visible.** The `radar` command shows who else is touching the same files, turning potential merge
+  conflicts into conversations before they become problems.
 
 ### Why not just use Git?
 
@@ -366,7 +368,7 @@ tbdflow changelog --unreleased
 ### 5. `review`
 
 Manages non-blocking post-commit reviews for trunk-based development. In TBD, code is committed to trunk first and
-reviewed asynchronously—this command facilitates that workflow by creating GitHub issues for review tracking.
+reviewed asynchronously, this command facilitates that workflow by creating GitHub issues for review tracking.
 
 **Philosophy:**
 
@@ -431,7 +433,7 @@ When you raise a concern with `--concern`:
 3. A checklist item is appended to the issue body: `- [ ] <concern>`
 4. (Optional) A commit status is set based on `concern_blocks_status` config
 
-This is **always non-blocking** - concerns are informational and encourage fix-forward patterns.
+This is **always non-blocking**, concerns are informational and encourage fix-forward patterns.
 
 **Configuration:**
 
@@ -544,7 +546,64 @@ review:
 
 3. Run `tbdflow review --trigger` — the workflow handles the rest
 
-### 6. Utility commands
+### 6. `radar`
+
+Scans active remote branches for overlapping work that may cause merge conflicts with your local changes. This is the
+**social coding safety net** for Trunk-Based Development, it makes the invisible visible by showing who else is
+touching the same files before you push.
+
+In TBD, everyone integrates frequently. The biggest fear is two people editing the same lines simultaneously. Standard
+Git won't warn you until you try to push. Radar warns you *before* you commit.
+
+**Usage:**
+
+```bash
+tbdflow radar
+```
+
+**Detection Levels** (configurable in `.tbdflow.yml`):
+
+| Level  | What it checks                        | Speed        |
+|--------|---------------------------------------|--------------|
+| `file` | Same files touched (default)          | ~5ms/branch  |
+| `line` | Overlapping line ranges in same files | ~50ms/branch |
+
+**Example output:**
+
+```
+⚠️  OVERLAP DETECTED with 1 active branch(es):
+
+  feat/API-42-user-auth (by @alice, 2 commits ahead)
+  ├── src/auth/handler.rs    ⚡ LINE OVERLAP
+  └── src/auth/middleware.rs  📁 SAME FILE
+
+  ✅ 3 other active branch(es) have no overlap with your changes.
+
+Hint: Coordinate with the overlapping author(s) before pushing.
+```
+
+**Integration:**
+
+Radar is also integrated into other commands:
+
+* **`tbdflow sync`** — Automatically shows a one-liner warning if overlap is detected.
+* **`tbdflow commit`** — Optionally warns or prompts for confirmation before committing (configurable).
+
+**Configuration:**
+
+```yaml
+radar:
+  enabled: true
+  level: file          # file | line
+  on_sync: true        # Show warnings during tbdflow sync
+  on_commit: warn      # off | warn | confirm
+  ignore_patterns: # Files to exclude from overlap detection
+    - "*.lock"
+    - "*-lock.*"
+    - "CHANGELOG.md"
+```
+
+### 7. Utility commands
 
 `tbdflow` has a couple of commands that can be beneficial to use but they are not part of the workflow, they are for
 inspecting the state of the repository.
@@ -602,7 +661,7 @@ tbdflow undo abc1234 --no-push
 tbdflow --dry-run undo abc1234
 ```
 
-### 7. Advanced Usage
+### 8. Advanced Usage
 
 #### Shell Completion
 
