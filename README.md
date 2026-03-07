@@ -12,15 +12,46 @@
 
 </div>
 
-## tbdflow, a Trunk-Based Development CLI
+## The problem
+
+Git is powerful, but team workflows often drift.
+
+Many teams say they practise Trunk-Based Development but in reality, things slowly start to slip:
+
+- **Commit messages become inconsistent.** Everyone formats them a little differently.
+- **Branches that were meant to live for hours** stick around for days.
+- **Merging back to main** turns into a manual sequence people half-remember.
+- **Two people change the same file** and nobody notices until a push fails.
+- **The Definition of Done exists,** but it lives in a document no one looks at during the work.
+
+None of this breaks the build immediately. But over time it adds friction, and integrating changes back to trunk becomes
+harder than it should be.
+
+## The solution
+
+`tbdflow` is a lightweight CLI that **codifies your team's Trunk-Based workflow** and makes the safe path the easiest
+path.
+
+```bash
+cargo install tbdflow
+```
 
 `tbdflow` is a lightweight command-line tool that helps you (and your team) stay in flow with Trunk-Based Development (
 TBD).
 
-This CLI supports both the default commit-to-main workflow and the structured handling of short-lived branches for
-features, releases, and hotfixes.
+![A terminal running the command tbdflow](docs/commit-demo.gif "A demo of tbdflow running commit-to-main commands")
 
-![A terminal running the command tbdflowlow](docs/commit-demo.gif "A demo of tbdflow running commit-to-main commands")
+## What it does
+
+| Pain point                     | How tbdflow helps                                                          |
+|--------------------------------|----------------------------------------------------------------------------|
+| Inconsistent commits           | `tbdflow commit` enforces Conventional Commits with built-in linting       |
+| Long-lived branches            | `tbdflow branch` + `tbdflow complete` with stale-branch warnings           |
+| "Did I pull before pushing?"   | `tbdflow sync` + auto-rebase before every commit to main                   |
+| Merge conflicts you didn't see | `tbdflow radar` shows who else is touching the same files, before you push |
+| Broken trunk, no panic button  | `tbdflow undo <sha>` reverts a bad commit and pushes in one command        |
+| DoD checklists nobody follows  | Interactive pre-commit checklist from `.dod.yml`                           |
+| Manual release notes           | `tbdflow changelog` generates Markdown from commit history                 |
 
 ## Philosophy
 
@@ -544,7 +575,7 @@ review:
     - teammate-username
 ```
 
-3. Run `tbdflow review --trigger` — the workflow handles the rest
+3. Run `tbdflow review --trigger` and the workflow handles the rest
 
 ### 6. `radar`
 
@@ -586,8 +617,8 @@ Hint: Coordinate with the overlapping author(s) before pushing.
 
 Radar is also integrated into other commands:
 
-* **`tbdflow sync`** — Automatically shows a one-liner warning if overlap is detected.
-* **`tbdflow commit`** — Optionally warns or prompts for confirmation before committing (configurable).
+* **`tbdflow sync`** automatically shows a one-liner warning if overlap is detected.
+* **`tbdflow commit`** optionally warns or prompts for confirmation before committing (configurable).
 
 **Configuration:**
 
@@ -633,7 +664,7 @@ tbdflow update
 #### `undo`
 
 In TBD, the rule is simple: if the trunk breaks, fix it or revert it immediately. `tbdflow undo` is a smart wrapper
-around `git revert` that syncs with the remote, verifies the commit is on the trunk, cleanly reverts it, and pushes —
+around `git revert` that syncs with the remote, verifies the commit is on the trunk, cleanly reverts it, and pushes,
 all in one command.
 
 **Usage:**
