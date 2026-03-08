@@ -12,29 +12,7 @@
 
 </div>
 
-## The problem
-
-Git is powerful, but team workflows often drift.
-
-Many teams say they practise Trunk-Based Development but in day2day reality things deviate:
-
-- **Commit messages become inconsistent.** Everyone formats them a little differently.
-- **Branches that were meant to live for hours** stick around for days.
-- **Merging back to main** turns into a manual sequence people half-remember.
-- **Two people change the same file** and nobody notices until a push fails.
-- **The Definition of Done exists,** but it lives in a document no one looks at during the work.
-
-None of this breaks the build immediately, but it makes integration harder than it needs to be, and the trunk stops
-feeling safe to work in.
-
-## The solution
-
-`tbdflow` is a lightweight CLI that **codifies your team's Trunk-Based workflow** and makes the safe path the easiest
-path.
-
-```bash
-cargo install tbdflow
-```
+## tbdflow, a Trunk-Based Development CLI
 
 `tbdflow` is a lightweight command-line tool that helps you (and your team) stay in flow with Trunk-Based Development (
 TBD).
@@ -49,22 +27,11 @@ TBD).
 | Long-lived branches            | `tbdflow branch` + `tbdflow complete` with stale-branch warnings           |
 | "Did I pull before pushing?"   | `tbdflow sync` + auto-rebase before every commit to main                   |
 | Merge conflicts you didn't see | `tbdflow radar` shows who else is touching the same files, before you push |
-| Broken trunk, no panic button  | `tbdflow undo <sha>` reverts a bad commit and pushes in one command        |
-| DoD checklists nobody follows  | Interactive pre-commit checklist from `.dod.yml`                           |
-| Manual release notes           | `tbdflow changelog` generates Markdown from commit history                 |
 
-## Philosophy
+This CLI supports both the default commit-to-main workflow and the structured handling of short-lived branches for
+features, releases, and hotfixes.
+![A terminal running the command tbdflowlow](docs/commit-demo.gif "A demo of tbdflow running commit-to-main commands")
 
-This tool is built around a specific philosophy of Trunk-Based Development:
-
-* **Main is the default.** The `commit` command is your everyday go-to. It automates pulling the latest changes,
-  committing, and pushing directly to `main`, promoting small, frequent integrations.
-* **Branches are the exception.** While branches are supported, they’re treated as short-lived exceptions and not the
-  norm.
-* **Cleanup is automatic.** The complete command enforces branch short-livedness by merging and automatically tagging (
-  release) and deleting completed branches, helping keep your repo tidy.
-* **Conventional Commits encouraged.** Commit messages
-  follow [Conventional Commits](https://www.conventionalcommits.org/) for clarity and consistency.
 * **Collaboration is visible.** The `radar` command shows who else is touching the same files, turning potential merge
   conflicts into conversations before they become problems.
 
@@ -627,11 +594,11 @@ radar:
   enabled: true
   level: file          # file | line
   on_sync: true        # Show warnings during tbdflow sync
-  on_commit: warn      # off | warn | confirm
-  ignore_patterns: # Files to exclude from overlap detection
-    - "*.lock"
-    - "*-lock.*"
-    - "CHANGELOG.md"
+  3. Run `tbdflow review --trigger` — the workflow handles the rest
+ignore_patterns: # Files to exclude from overlap detection
+  - "*.lock"
+  - "*-lock.*"
+  - "CHANGELOG.md"
 ```
 
 ### 7. Utility commands
@@ -675,21 +642,21 @@ tbdflow undo <sha> [options]
 
 **Options:**
 
-| Flag      | Description                                       | Required |
-|-----------|---------------------------------------------------|----------|
-| --no-push | Create the revert commit locally without pushing. | No       |
+| Flag | Description | Required |
+|------|-------------|----------|
 
-**Examples:**
-
-```bash
-# Revert a specific commit on the trunk
-tbdflow undo abc1234
+* **`tbdflow sync`** — Automatically shows a one-liner warning if overlap is detected.
+* **`tbdflow commit`** — Optionally warns or prompts for confirmation before committing (configurable).
+  tbdflow undo abc1234
 
 # Revert locally without pushing (e.g. to inspect the result first)
+
 tbdflow undo abc1234 --no-push
 
 # Preview what would happen without making changes
+
 tbdflow --dry-run undo abc1234
+
 ```
 
 ### 8. Advanced Usage
@@ -732,7 +699,7 @@ tbdflow generate-man-page > tbdflow.1 && man tbdflow.1
 - [IntelliJ](https://github.com/cladam/tbdflow/tree/main/plugins/intellij)
 - [VS Code](https://github.com/hekonsek/tbdflow-vscode-extension)
 
-Follow above links for more details regarding IDE plugins/extensions installation and usage.
+around `git revert` that syncs with the remote, verifies the commit is on the trunk, cleanly reverts it, and pushes —
 
 ## Contributing
 

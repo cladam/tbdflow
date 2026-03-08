@@ -739,6 +739,111 @@ pub fn commit_exists(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<
     }
 }
 
+// ── Pre-flight CI status check ─────────────────────────────────────────────
+
+/// The CI status of the latest commit on a branch.
+#[derive(Debug, PartialEq)]
+pub enum CiStatus {
+    /// All checks passed.
+    Green,
+    /// One or more checks failed.
+    Failed,
+    /// Checks are still running.
+    Pending,
+    /// Unable to determine status (gh CLI missing, no CI configured, etc.).
+    Unknown(String),
+}
+
+/// Check the CI status of the latest commit on the given branch using the `gh` CLI.
+///
+/// Uses `gh api` to query the combined commit status and check-runs for the
+/// branch tip. Falls back gracefully if `gh` is not installed or if the repo
+/// has no CI configured.
+pub fn check_ci_status(branch: &str, verbose: bool, dry_run: bool) -> CiStatus {
+    if dry_run {
+        if verbose {
+            println!("{}", "[DRY RUN] Would check CI status via gh CLI".yellow());
+        }
+        return CiStatus::Green;
+    }
+
+    // First, check if `gh` CLI is available
+    if Command::new("gh")
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_err()
+    {
+        return CiStatus::Unknown("gh CLI is not installed".to_string());
+    }
+
+    if verbose {
+        println!(
+            "{} Checking CI status for branch '{}'...",
+            "[PRE-FLIGHT]".cyan(),
+            branch
+        );
+    }
+
+    // Use `gh run list` to query the status of the latest workflow run on the branch.
+    // This gives us the overall conclusion of the most recent CI run.
+    let output = Command::new("gh")
+        .args([
+            "run",
+            "list",
+            "--branch",
+            branch,
+            "--limit",
+            "1",
+            "--json",
+            "status,conclusion",
+            "--jq",
+            ".[0] | .status + \"/\" + .conclusion",
+        ])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output();
+
+    let output = match output {
+        Ok(o) => o,
+        Err(e) => {
+            return CiStatus::Unknown(format!("Failed to run gh CLI: {}", e));
+        }
+    };
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        // If the command failed because there are no workflow runs, treat as unknown
+        return CiStatus::Unknown(format!("gh run list failed: {}", stderr));
+    }
+
+    let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    if verbose {
+        println!("{} gh run status: {}", "[PRE-FLIGHT]".cyan(), result);
+    }
+
+    if result.is_empty() || result == "/" || result == "null/null" {
+        return CiStatus::Unknown("No CI runs found for this branch".to_string());
+    }
+
+    // Parse the status/conclusion pair
+    let parts: Vec<&str> = result.splitn(2, '/').collect();
+    let status = parts.first().unwrap_or(&"");
+    let conclusion = parts.get(1).unwrap_or(&"");
+
+    match (*status, *conclusion) {
+        ("completed", "success") => CiStatus::Green,
+        ("completed", "failure") | ("completed", "timed_out") | ("completed", "cancelled") => {
+            CiStatus::Failed
+        }
+        ("in_progress", _) | ("queued", _) | ("waiting", _) | ("pending", _) => CiStatus::Pending,
+        ("completed", "skipped") | ("completed", "neutral") => CiStatus::Green,
+        _ => CiStatus::Unknown(format!("Unexpected CI state: {}/{}", status, conclusion)),
+    }
+}
+
 /// Unit tests for the Git module.
 /// These tests check if Git is installed, if the run_git_command function works correctly,
 /// and if the status function returns expected results.
@@ -788,5 +893,23 @@ mod tests {
             "Unexpected status output: {}",
             output
         );
+    }
+
+    /// Test that check_ci_status returns Green in dry-run mode
+    #[test]
+    fn test_ci_status_dry_run_returns_green() {
+        let result = check_ci_status("main", false, true);
+        assert_eq!(result, CiStatus::Green);
+    }
+
+    /// Test that CiStatus variants have the expected equality behavior
+    #[test]
+    fn test_ci_status_equality() {
+        assert_eq!(CiStatus::Green, CiStatus::Green);
+        assert_eq!(CiStatus::Failed, CiStatus::Failed);
+        assert_eq!(CiStatus::Pending, CiStatus::Pending);
+        assert_ne!(CiStatus::Green, CiStatus::Failed);
+        assert_ne!(CiStatus::Green, CiStatus::Pending);
+        assert_ne!(CiStatus::Failed, CiStatus::Pending);
     }
 }

@@ -21,6 +21,8 @@ review:
   strategy: github-issue
   default_reviewers:
     - cladam
+ci_check:
+  enabled: true   # default: false
 branch_types:
   feature: feature/
   hotfix: hotfix/

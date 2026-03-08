@@ -304,6 +304,55 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
     );
     let current_branch = git::get_current_branch(verbose, dry_run)?;
 
+    // ── Pre-flight CI check ────────────────────────────────────────────────
+    // Before pulling, check the CI status of the trunk to avoid pulling a
+    // broken build into the local environment.
+    if config.ci_check.enabled {
+        let ci_status = git::check_ci_status(&config.main_branch_name, verbose, dry_run);
+        match ci_status {
+            git::CiStatus::Green => {
+                println!("{}", "Pre-flight CI check: trunk is green ✓".green());
+            }
+            git::CiStatus::Failed => {
+                println!(
+                    "\n{}",
+                    "⚠ The trunk is currently failing CI. Pulling now might break your local build."
+                        .bold()
+                        .yellow()
+                );
+                let should_continue = Confirm::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Continue with sync?")
+                    .default(false)
+                    .interact()?;
+                if !should_continue {
+                    println!("{}", "Sync aborted.".yellow());
+                    return Ok(());
+                }
+            }
+            git::CiStatus::Pending => {
+                println!("\n{}", "⏳ Trunk CI is still running.".bold().yellow());
+                let should_continue = Confirm::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Pull anyway?")
+                    .default(false)
+                    .interact()?;
+                if !should_continue {
+                    println!("{}", "Sync aborted.".yellow());
+                    return Ok(());
+                }
+            }
+            git::CiStatus::Unknown(reason) => {
+                if verbose {
+                    println!(
+                        "{} {}",
+                        "Pre-flight CI check skipped:".dimmed(),
+                        reason.dimmed()
+                    );
+                }
+                // Proceed silently — no CI info available is not a blocker
+            }
+        }
+    }
+
     if current_branch == config.main_branch_name {
         println!("On main branch, pulling latest changes...");
         git::pull_latest_with_rebase(verbose, dry_run)?;

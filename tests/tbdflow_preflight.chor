@@ -1,0 +1,188 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# tbdflow — Pre-Flight CI Check (Sync Guardrail)
+# ═══════════════════════════════════════════════════════════════════════════════
+# User Story: As a developer working in a TBD team, I want tbdflow sync to
+# check the CI status of the trunk before pulling so that I don't blindly
+# pull a broken build into my local environment.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+feature "tbdflow Pre-Flight CI Check"
+
+actors: Terminal
+
+settings {
+    timeout_seconds = 30
+    stop_on_failure = true
+    shell_path = "/bin/bash"
+}
+
+# Each scenario gets its own isolated repo pair
+var PREFLIGHT_REPO       = "/tmp/tbdflow_preflight_test"
+var PREFLIGHT_BARE       = "/tmp/tbdflow_preflight_bare.git"
+var DISABLED_REPO        = "/tmp/tbdflow_preflight_disabled"
+var DISABLED_BARE        = "/tmp/tbdflow_preflight_disabled_bare.git"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPLEMENTATION LAYER — Tasks hide the "how"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# --- Setup drivers ---
+
+task init_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare} && mkdir -p ${repo}"
+    Terminal run "git init --bare ${bare}"
+    Terminal run "git -C ${repo} init && git -C ${repo} commit --allow-empty -m 'init'"
+    Terminal run "git -C ${repo} remote add origin ${bare}"
+    Terminal run "git -C ${repo} push -u origin main"
+    Terminal set_cwd "${repo}"
+}
+
+task write_config_with_ci_check(enabled) {
+    Terminal run "cat > .tbdflow.yml << 'EOF'\nmain_branch_name: main\nstale_branch_threshold_days: 1\nci_check:\n  enabled: ${enabled}\nbranch_types:\n  feat: \"feat/\"\n  fix: \"fix/\"\nautomatic_tags:\n  release_prefix: \"v\"\nEOF"
+}
+
+task commit_config() {
+    Terminal run "tbdflow commit -t chore -m 'add tbdflow config' --no-verify"
+}
+
+task cleanup_repo(repo, bare) {
+    Terminal run "rm -rf ${repo} ${bare}"
+}
+
+# --- Action drivers ---
+
+task sync() {
+    Terminal run "tbdflow sync"
+}
+
+task sync_verbose() {
+    Terminal run "tbdflow --verbose sync"
+}
+
+task sync_dry_run() {
+    Terminal run "tbdflow --dry-run sync"
+}
+
+# --- Condition drivers ---
+
+task verify_sync_succeeds() {
+    Terminal last_command succeeded
+    Terminal output_not_contains "Error"
+}
+
+task verify_no_ci_warning() {
+    Terminal last_command succeeded
+    Terminal output_not_contains "failing CI"
+    Terminal output_not_contains "CI is still running"
+    Terminal output_not_contains "Sync aborted"
+}
+
+task verify_no_errors() {
+    Terminal last_command succeeded
+    Terminal output_not_contains "Error"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUSINESS SPECIFICATION LAYER — Scenarios describe the "what"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AC1: When ci_check is disabled (default), sync must proceed without any
+#      CI status check — no prompts, no warnings.
+# AC2: When ci_check is enabled and the trunk CI is green, sync must proceed
+#      silently (no prompt).
+# AC3: When ci_check is enabled and the trunk CI is red/failed, sync must
+#      warn the user and prompt before pulling.
+# AC4: When ci_check is enabled and the trunk CI is pending, sync must
+#      inform the user and prompt before pulling.
+# AC5: When ci_check is enabled but `gh` CLI is unavailable, sync must
+#      proceed gracefully without blocking.
+# AC6: Dry-run mode must skip the actual CI check and proceed.
+# ─────────────────────────────────────────────────────────────────────────────
+
+scenario "Sync proceeds normally when CI check is disabled" {
+
+    test Setup "Initialise test repository without CI check" {
+        given:
+            Test can_start
+        when:
+            init_repo("${DISABLED_REPO}", "${DISABLED_BARE}")
+            write_config_with_ci_check("false")
+            commit_config()
+        then:
+            Terminal last_command succeeded
+    }
+
+    test SyncNoCiCheck "Sync completes without CI warnings" {
+        given:
+            Test has_succeeded Setup
+        when:
+            sync()
+        then:
+            verify_sync_succeeds()
+            verify_no_ci_warning()
+    }
+
+    after {
+        cleanup_repo("${DISABLED_REPO}", "${DISABLED_BARE}")
+    }
+}
+
+scenario "Sync proceeds gracefully when CI check is enabled on a local-only repo" {
+
+    test Setup "Initialise test repository with CI check enabled" {
+        given:
+            Test can_start
+        when:
+            init_repo("${PREFLIGHT_REPO}", "${PREFLIGHT_BARE}")
+            write_config_with_ci_check("true")
+            commit_config()
+        then:
+            Terminal last_command succeeded
+    }
+
+    # On a local bare repo without GitHub, `gh` will fail gracefully.
+    # The sync must not block — it should skip the CI check and proceed.
+    test SyncGracefulFallback "Sync proceeds when gh CLI cannot reach a remote" {
+        given:
+            Test has_succeeded Setup
+        when:
+            sync()
+        then:
+            verify_sync_succeeds()
+            verify_no_ci_warning()
+    }
+
+    after {
+        cleanup_repo("${PREFLIGHT_REPO}", "${PREFLIGHT_BARE}")
+    }
+}
+
+scenario "Dry-run sync skips CI check" {
+
+    test Setup "Initialise test repository with CI check enabled" {
+        given:
+            Test can_start
+        when:
+            init_repo("${PREFLIGHT_REPO}", "${PREFLIGHT_BARE}")
+            write_config_with_ci_check("true")
+            commit_config()
+        then:
+            Terminal last_command succeeded
+    }
+
+    test DryRunSkipsCi "Sync in dry-run mode does not block on CI" {
+        given:
+            Test has_succeeded Setup
+        when:
+            sync_dry_run()
+        then:
+            verify_no_errors()
+            verify_no_ci_warning()
+    }
+
+    after {
+        cleanup_repo("${PREFLIGHT_REPO}", "${PREFLIGHT_BARE}")
+    }
+}
+

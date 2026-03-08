@@ -158,6 +158,22 @@ impl RadarConfig {
     }
 }
 
+/// Configuration for pre-flight CI status checks during `tbdflow sync`.
+/// Uses the `gh` CLI to check the CI status of the latest commit on the trunk
+/// before pulling, acting as a firewall against broken builds.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CiCheckConfig {
+    /// Enable the pre-flight CI check during sync.
+    #[serde(default)]
+    pub enabled: bool,
+}
+
+impl Default for CiCheckConfig {
+    fn default() -> Self {
+        Self { enabled: false }
+    }
+}
+
 /// Configuration for non-blocking post-commit reviews.
 /// This enables TBD-style reviews where code is committed first and reviewed asynchronously.
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -291,6 +307,8 @@ pub struct Config {
     pub review: ReviewConfig,
     #[serde(default)]
     pub radar: RadarConfig,
+    #[serde(default)]
+    pub ci_check: CiCheckConfig,
     pub branch_types: HashMap<String, String>,
     pub automatic_tags: AutomaticTags,
     pub lint: Option<LintConfig>,
@@ -324,6 +342,7 @@ impl Default for Config {
             issue_handling: IssueHandling::default(),
             review: ReviewConfig::default(),
             radar: RadarConfig::default(),
+            ci_check: CiCheckConfig::default(),
             branch_types,
             automatic_tags: AutomaticTags {
                 release_prefix: "v".to_string(),
