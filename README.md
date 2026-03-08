@@ -14,9 +14,7 @@
 
 ## The problem
 
-Git is powerful, but team workflows often drift.
-
-Many teams say they practise Trunk-Based Development but in reality, things slowly start to slip:
+Many teams say they practise Trunk-Based Development but in day2day reality things deviate:
 
 - **Commit messages become inconsistent.** Everyone formats them a little differently.
 - **Branches that were meant to live for hours** stick around for days.
@@ -24,8 +22,8 @@ Many teams say they practise Trunk-Based Development but in reality, things slow
 - **Two people change the same file** and nobody notices until a push fails.
 - **The Definition of Done exists,** but it lives in a document no one looks at during the work.
 
-None of this breaks the build immediately. But over time it adds friction, and integrating changes back to trunk becomes
-harder than it should be.
+None of this breaks the build immediately, but it makes integration harder than it needs to be, and the trunk stops
+feeling safe to work in.
 
 ## The solution
 
