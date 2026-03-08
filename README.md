@@ -26,6 +26,7 @@ TBD).
 | Inconsistent commits           | `tbdflow commit` enforces Conventional Commits with built-in linting       |
 | Long-lived branches            | `tbdflow branch` + `tbdflow complete` with stale-branch warnings           |
 | "Did I pull before pushing?"   | `tbdflow sync` + auto-rebase before every commit to main                   |
+| Pulling a broken trunk         | `tbdflow sync` pre-flight CI check warns before pulling a red build        |
 | Merge conflicts you didn't see | `tbdflow radar` shows who else is touching the same files, before you push |
 
 This CLI supports both the default commit-to-main workflow and the structured handling of short-lived branches for
@@ -594,14 +595,37 @@ radar:
   enabled: true
   level: file          # file | line
   on_sync: true        # Show warnings during tbdflow sync
-  3. Run `tbdflow review --trigger` — the workflow handles the rest
-ignore_patterns: # Files to exclude from overlap detection
-  - "*.lock"
-  - "*-lock.*"
-  - "CHANGELOG.md"
+  on_commit: warn      # off | warn | confirm
+  ignore_patterns: # Files to exclude from overlap detection
+    - "*.lock"
+    - "*-lock.*"
+    - "CHANGELOG.md"
 ```
 
-### 7. Utility commands
+### 7. Pre-flight CI check
+
+When enabled, `tbdflow sync` checks the CI status of the trunk (via the `gh` CLI) **before** pulling.
+If the trunk is red or pending, you get a prompt instead of blindly pulling a broken build.
+
+**Configuration:**
+
+```yaml
+ci_check:
+  enabled: true   # default: false
+```
+
+**Behaviour:**
+
+| Trunk CI status | What happens                                            |
+|-----------------|---------------------------------------------------------|
+| Green           | Silent proceed — prints a brief "✓" confirmation        |
+| Failed          | Warns and prompts: "Continue with sync? (y/N)"          |
+| Pending         | Informs and prompts: "Pull anyway? (y/N)"               |
+| Unknown         | Proceeds silently (e.g. `gh` not installed, no CI runs) |
+
+> Requires the [GitHub CLI](https://cli.github.com/) (`gh`) to be installed and authenticated.
+
+### 8. Utility commands
 
 `tbdflow` has a couple of commands that can be beneficial to use but they are not part of the workflow, they are for
 inspecting the state of the repository.
@@ -610,6 +634,7 @@ inspecting the state of the repository.
 
 ```bash
 # Does a pull, shows latest changes to main branch, and warns about stale branches.
+# If ci_check is enabled, checks trunk CI status first.
 tbdflow sync
 
 # Inspect your current configuration

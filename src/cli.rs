@@ -121,6 +121,7 @@ pub enum Commands {
         name: Option<String>,
     },
     /// Syncs with the remote, shows recent history, and checks for stale branches.
+    /// When ci_check is enabled, checks trunk CI status before pulling.
     Sync,
     /// Scans active remote branches for overlapping work that may cause merge conflicts.
     #[command(
