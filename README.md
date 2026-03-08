@@ -12,7 +12,29 @@
 
 </div>
 
-## tbdflow, a Trunk-Based Development CLI
+## The problem
+
+Git is powerful, but team workflows often drift.
+
+Many teams say they practise Trunk-Based Development but in reality, things slowly start to slip:
+
+- **Commit messages become inconsistent.** Everyone formats them a little differently.
+- **Branches that were meant to live for hours** stick around for days.
+- **Merging back to main** turns into a manual sequence people half-remember.
+- **Two people change the same file** and nobody notices until a push fails.
+- **The Definition of Done exists,** but it lives in a document no one looks at during the work.
+
+None of this breaks the build immediately. But over time it adds friction, and integrating changes back to trunk becomes
+harder than it should be.
+
+## The solution
+
+`tbdflow` is a lightweight CLI that **codifies your team's Trunk-Based workflow** and makes the safe path the easiest
+path.
+
+```bash
+cargo install tbdflow
+```
 
 `tbdflow` is a lightweight command-line tool that helps you (and your team) stay in flow with Trunk-Based Development (
 TBD).
@@ -29,10 +51,18 @@ TBD).
 | Pulling a broken trunk         | `tbdflow sync` pre-flight CI check warns before pulling a red build        |
 | Merge conflicts you didn't see | `tbdflow radar` shows who else is touching the same files, before you push |
 
-This CLI supports both the default commit-to-main workflow and the structured handling of short-lived branches for
-features, releases, and hotfixes.
-![A terminal running the command tbdflowlow](docs/commit-demo.gif "A demo of tbdflow running commit-to-main commands")
+## Philosophy
 
+This tool is built around a specific philosophy of Trunk-Based Development:
+
+* **Main is the default.** The `commit` command is your everyday go-to. It automates pulling the latest changes,
+  committing, and pushing directly to `main`, promoting small, frequent integrations.
+* **Branches are the exception.** While branches are supported, they’re treated as short-lived exceptions and not the
+  norm.
+* **Cleanup is automatic.** The complete command enforces branch short-livedness by merging and automatically tagging (
+  release) and deleting completed branches, helping keep your repo tidy.
+* **Conventional Commits encouraged.** Commit messages
+  follow [Conventional Commits](https://www.conventionalcommits.org/) for clarity and consistency.
 * **Collaboration is visible.** The `radar` command shows who else is touching the same files, turning potential merge
   conflicts into conversations before they become problems.
 
