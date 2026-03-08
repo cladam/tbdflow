@@ -264,6 +264,7 @@ fn main() -> anyhow::Result<()> {
             misc::handle_undo(&sha, no_push, verbose, dry_run, &config)?;
         }
         Commands::Review {
+            sha,
             trigger,
             digest,
             approve,
@@ -287,8 +288,18 @@ fn main() -> anyhow::Result<()> {
                 review::handle_review_dismiss(&config, &commit_hash, &msg, verbose, dry_run)?;
             } else if digest {
                 review::handle_review_digest(&config, &since, verbose, dry_run)?;
+            } else if let Some(commit_sha) = sha {
+                // Positional arg: `tbdflow review abc1234`
+                review::handle_review_trigger(
+                    &config,
+                    reviewers,
+                    Some(commit_sha.as_str()),
+                    verbose,
+                    dry_run,
+                )?;
             } else if trigger {
-                review::handle_review_trigger(&config, reviewers, verbose, dry_run)?;
+                // Flag only: `tbdflow review --trigger` (HEAD)
+                review::handle_review_trigger(&config, reviewers, None, verbose, dry_run)?;
             } else {
                 // Default: show digest if no specific action
                 review::handle_review_digest(&config, &since, verbose, dry_run)?;

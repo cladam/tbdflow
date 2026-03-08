@@ -210,6 +210,7 @@ pub enum Commands {
     #[command(
         name = "review",
         after_help = "EXAMPLES:\n  \
+        tbdflow review abc1234                      # Create review for a specific commit\n  \
         tbdflow review --trigger                    # Create review for HEAD commit\n  \
         tbdflow review --digest                     # Show commits since yesterday\n  \
         tbdflow review --digest --since \"3 days ago\"\n  \
@@ -225,6 +226,9 @@ pub enum Commands {
         6. Use --dismiss to close without fixing"
     )]
     Review {
+        /// Commit SHA to trigger a review for. If given without flags, triggers a review.
+        #[arg(conflicts_with_all = ["digest", "approve", "concern", "dismiss"])]
+        sha: Option<String>,
         /// Trigger a review request for the current HEAD commit.
         #[arg(long, conflicts_with_all = ["digest", "approve", "concern", "dismiss"])]
         trigger: bool,

@@ -739,6 +739,12 @@ pub fn commit_exists(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<
     }
 }
 
+/// Resolve a (possibly short) commit SHA to its full hash.
+pub fn resolve_commit_hash(short_sha: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("rev-parse", &["--verify", short_sha], verbose, dry_run)
+        .with_context(|| format!("Could not resolve commit '{}'", short_sha))
+}
+
 // ── Pre-flight CI status check ─────────────────────────────────────────────
 
 /// The CI status of the latest commit on a branch.

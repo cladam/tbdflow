@@ -480,6 +480,7 @@ fn is_gh_cli_available() -> bool {
 pub fn handle_review_trigger(
     config: &Config,
     reviewers_override: Option<Vec<String>>,
+    commit_sha: Option<&str>,
     verbose: bool,
     dry_run: bool,
 ) -> Result<()> {
@@ -496,7 +497,21 @@ pub fn handle_review_trigger(
         return Ok(());
     }
 
-    let commit_hash = git::get_head_commit_hash(verbose, dry_run)?;
+    let commit_hash = match commit_sha {
+        Some(sha) if !sha.is_empty() => {
+            // Resolve the provided SHA to a full hash
+            let full = git::resolve_commit_hash(sha, verbose, dry_run)?;
+            if verbose {
+                println!(
+                    "{} Triggering review for commit {}",
+                    "[REVIEW]".magenta(),
+                    short_hash(&full)
+                );
+            }
+            full
+        }
+        _ => git::get_head_commit_hash(verbose, dry_run)?,
+    };
     let message = git::get_commit_message(&commit_hash, verbose, dry_run)?;
     let author = git::get_user_name(verbose, dry_run)?;
 

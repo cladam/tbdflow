@@ -377,13 +377,14 @@ Code is already in trunk; reviewers focus on Intent, Impact, and Insight.
 **Usage:**
 
 ```bash
-tbdflow review [options]
+tbdflow review [sha] [options]
 ```
 
 **Options:**
 
 | Option                | Description                                                            |
 |-----------------------|------------------------------------------------------------------------|
+| \<sha\>               | Trigger a review for a specific commit (positional argument).          |
 | --trigger             | Create a review request for the current HEAD commit.                   |
 | --digest              | Generate a digest of commits needing review.                           |
 | --approve \<hash\>    | Mark a commit as approved (closes issue with `review-accepted`).       |
@@ -396,7 +397,10 @@ tbdflow review [options]
 **Examples:**
 
 ```bash
-# Create a review issue for the latest commit
+# Create a review issue for a specific commit
+tbdflow review abc1234
+
+# Create a review issue for the latest commit (HEAD)
 tbdflow review --trigger
 
 # See commits from the last 3 days that may need review
