@@ -44,8 +44,8 @@ fn main() -> anyhow::Result<()> {
         Commands::Init => {
             misc::handle_init_command(verbose, dry_run)?;
         }
-        Commands::Info => {
-            misc::handle_info(verbose, dry_run)?;
+        Commands::Info { edit } => {
+            misc::handle_info(verbose, dry_run, edit)?;
         }
         Commands::Config { get_dod } => {
             if get_dod {

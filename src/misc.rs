@@ -3,6 +3,7 @@ use anyhow::Result;
 use clap::Command as Commands;
 use colored::*;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
+use std::env;
 use std::fs;
 use std::path::PathBuf;
 
@@ -178,11 +179,20 @@ pub fn handle_info_command(verbose: bool, dry_run: bool, config: &config::Config
 }
 
 /// Handle the info command for tbdflow
-pub fn handle_info(dry_run: bool, verbose: bool) -> Result<()> {
-    println!("{}", "--- tbdflow Configuration ---".blue());
-
+pub fn handle_info(dry_run: bool, verbose: bool, edit: bool) -> Result<()> {
     let git_root = git::get_git_root(false, false)?;
     let root_config_path = PathBuf::from(&git_root).join(".tbdflow.yml");
+
+    if edit {
+        let editor = env::var("EDITOR").unwrap_or_else(|_| "vim".to_string());
+        std::process::Command::new(&editor)
+            .arg(&root_config_path)
+            .status()
+            .map_err(|e| anyhow::anyhow!("Failed to open editor: {}", e))?;
+        return Ok(());
+    }
+
+    println!("{}", "--- tbdflow Configuration ---".blue());
 
     // Load root config or default
     let root_config: config::Config = if root_config_path.exists() {
@@ -275,6 +285,76 @@ pub fn handle_info(dry_run: bool, verbose: bool) -> Result<()> {
         "Disabled".red()
     };
     println!("Commit Linting: {}", lint_status);
+
+    // ── Review ───────────────────────────────────────────────────────────────
+    println!("\n{}", "--- Review ---".bold());
+    if final_config.review.enabled {
+        println!("Review: {}", "Enabled".green());
+        println!(
+            "Strategy: {}",
+            format!("{:?}", final_config.review.strategy).cyan()
+        );
+        if !final_config.review.default_reviewers.is_empty() {
+            println!(
+                "Default Reviewers: {}",
+                final_config.review.default_reviewers.join(", ").cyan()
+            );
+        }
+        if let Some(ref workflow) = final_config.review.workflow {
+            println!("Workflow: {}", workflow.cyan());
+        }
+        if !final_config.review.rules.is_empty() {
+            println!("Targeted Rules: {}", format!("{}", final_config.review.rules.len()).cyan());
+        }
+        println!(
+            "Concern Blocks Status: {}",
+            if final_config.review.concern_blocks_status {
+                "Yes".yellow()
+            } else {
+                "No".dimmed()
+            }
+        );
+    } else {
+        println!("Review: {}", "Disabled".red());
+    }
+
+    // ── Radar ────────────────────────────────────────────────────────────────
+    println!("\n{}", "--- Radar ---".bold());
+    if final_config.radar.enabled {
+        println!("Radar: {}", "Enabled".green());
+        println!(
+            "Detection Level: {}",
+            format!("{:?}", final_config.radar.level).cyan()
+        );
+        println!(
+            "On Sync: {}",
+            if final_config.radar.on_sync {
+                "Yes".green()
+            } else {
+                "No".dimmed()
+            }
+        );
+        println!(
+            "On Commit: {}",
+            format!("{:?}", final_config.radar.on_commit).cyan()
+        );
+        if !final_config.radar.ignore_patterns.is_empty() {
+            println!(
+                "Ignore Patterns: {}",
+                final_config.radar.ignore_patterns.join(", ").dimmed()
+            );
+        }
+    } else {
+        println!("Radar: {}", "Disabled".red());
+    }
+
+    // ── CI Check ─────────────────────────────────────────────────────────────
+    println!("\n{}", "--- CI Check ---".bold());
+    if final_config.ci_check.enabled {
+        println!("CI Check on Sync: {}", "Enabled".green());
+    } else {
+        println!("CI Check on Sync: {}", "Disabled".red());
+    }
 
     println!("\n{}", "--- Git Info ---".bold());
     if let Ok(remote_url) = git::get_remote_url(verbose, dry_run) {
