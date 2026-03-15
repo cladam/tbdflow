@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Pre-commit hook: enforce cargo fmt on staged Rust files.
+# Install with:  cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# Or run:        git config core.hooksPath hooks
+
+set -e
+
+# Only check if there are staged .rs files
+STAGED_RS=$(git diff --cached --name-only --diff-filter=ACM -- '*.rs' || true)
+if [ -z "$STAGED_RS" ]; then
+    exit 0
+fi
+
+if ! command -v cargo >/dev/null 2>&1; then
+    echo "cargo not found — skipping fmt check"
+    exit 0
+fi
+
+# Run cargo fmt in check mode
+if ! cargo fmt -- --check >/dev/null 2>&1; then
+    echo ""
+    echo "╭──────────────────────────────────────────╮"
+    echo "│  cargo fmt check failed.                 │"
+    echo "│  Run 'cargo fmt' and stage the changes.  │"
+    echo "╰──────────────────────────────────────────╯"
+    echo ""
+    cargo fmt -- --check 2>&1 | head -20
+    exit 1
+fi
+
