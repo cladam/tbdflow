@@ -699,12 +699,15 @@ tbdflow undo <sha> [options]
 
 **Options:**
 
-| Flag | Description | Required |
-|------|-------------|----------|
+| Flag      | Description                                       | Required |
+|-----------|---------------------------------------------------|----------|
+| --no-push | Create the revert commit locally without pushing. | No       |
 
-* **`tbdflow sync`** — Automatically shows a one-liner warning if overlap is detected.
-* **`tbdflow commit`** — Optionally warns or prompts for confirmation before committing (configurable).
-  tbdflow undo abc1234
+**Examples:**
+
+```bash
+# Revert a specific commit on the trunk
+tbdflow undo abc1234
 
 # Revert locally without pushing (e.g. to inspect the result first)
 
@@ -713,7 +716,12 @@ tbdflow undo abc1234 --no-push
 # Preview what would happen without making changes
 
 tbdflow --dry-run undo abc1234
+```
 
+#### Preview what would happen without making changes
+
+```bash
+tbdflow --dry-run undo abc1234
 ```
 
 ### 8. Advanced Usage
