@@ -304,7 +304,10 @@ pub fn handle_info(dry_run: bool, verbose: bool, edit: bool) -> Result<()> {
             println!("Workflow: {}", workflow.cyan());
         }
         if !final_config.review.rules.is_empty() {
-            println!("Targeted Rules: {}", format!("{}", final_config.review.rules.len()).cyan());
+            println!(
+                "Targeted Rules: {}",
+                format!("{}", final_config.review.rules.len()).cyan()
+            );
         }
         println!(
             "Concern Blocks Status: {}",
