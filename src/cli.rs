@@ -36,7 +36,11 @@ pub enum Commands {
     Init,
     /// Shows the current tbdflow configuration.
     #[command(alias = "show")]
-    Info,
+    Info {
+        /// Open the config file in $EDITOR instead of displaying it.
+        #[arg(long, default_value_t = false)]
+        edit: bool,
+    },
     /// Checks for a new version of tbdflow and updates it if available.
     Update,
     /// Commits changes to the current branch or 'main' if no branch is checked out.
