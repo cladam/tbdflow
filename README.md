@@ -764,9 +764,8 @@ tbdflow generate-man-page > tbdflow.1 && man tbdflow.1
 - [IntelliJ](https://github.com/cladam/tbdflow/tree/main/plugins/intellij)
 - [VS Code](https://github.com/hekonsek/tbdflow-vscode-extension)
 
-around `git revert` that syncs with the remote, verifies the commit is on the trunk, cleanly reverts it, and pushes —
-
 ## Contributing
 
 First off, thank you for considering contributing to `tbdflow`! ❤️
+
 Please feel free to open an issue or submit a pull request.
