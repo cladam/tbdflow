@@ -108,21 +108,23 @@ pub fn is_valid_commit_type(commit_type: &str, config: &config::Config) -> bool 
 }
 
 /// Check if the issue key in the commit message is valid.
-pub fn is_valid_issue_key(issue_key: &Option<String>, config: &config::Config) -> bool {
+pub fn is_valid_issue_key(issue_key: &Option<String>, config: &config::Config) -> Result<bool> {
     if let Some(lint_config) = &config.lint {
         if let Some(issue_key_config) = &lint_config.issue_key_missing {
             if let Some(enabled) = issue_key_config.enabled {
                 if !enabled {
-                    return true; // If linting is disabled, any issue key is valid
+                    return Ok(true); // If linting is disabled, any issue key is valid
                 }
             }
             if let Some(issue_key_pattern) = &issue_key_config.pattern {
-                let re = regex::Regex::new(issue_key_pattern).unwrap();
-                return re.is_match(&issue_key.as_ref().unwrap_or(&"".to_string()));
+                let re = regex::Regex::new(issue_key_pattern).map_err(|e| {
+                    anyhow::anyhow!("Invalid issue_key pattern '{}': {}", issue_key_pattern, e)
+                })?;
+                return Ok(re.is_match(&issue_key.as_ref().unwrap_or(&"".to_string())));
             }
         }
     }
-    true
+    Ok(true)
 }
 
 pub fn is_valid_scope(scope: &Option<String>, config: &config::Config) -> bool {
@@ -240,7 +242,7 @@ pub fn handle_commit(
         return Err(anyhow::anyhow!("Aborted: Invalid commit type."));
     }
 
-    if !is_valid_issue_key(&params.issue, config) {
+    if !is_valid_issue_key(&params.issue, config)? {
         println!(
             "{}",
             "Issue reference is required by your .tbdflow.yml config.".red()
