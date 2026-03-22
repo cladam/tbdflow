@@ -6,6 +6,7 @@ use crate::git;
 use anyhow::{Context, Result};
 use colored::Colorize;
 use glob::Pattern;
+use serde_json::Value;
 use std::process::Command;
 
 /// Returns the first 7 characters of a commit hash for display purposes.
@@ -864,36 +865,8 @@ fn append_concern_checklist_item(
 
 /// Extracts body content from GitHub CLI JSON output.
 fn extract_body_from_json(json: &str) -> Option<String> {
-    // Looking for "body":"..." pattern
-    if let Some(start) = json.find("\"body\":\"") {
-        let rest = &json[start + 8..];
-        // Find the closing quote, handling escaped quotes
-        let mut end = 0;
-        let mut escaped = false;
-        for (i, c) in rest.chars().enumerate() {
-            if escaped {
-                escaped = false;
-                continue;
-            }
-            if c == '\\' {
-                escaped = true;
-                continue;
-            }
-            if c == '"' {
-                end = i;
-                break;
-            }
-        }
-        let body = &rest[..end];
-        // Unescape the string
-        Some(
-            body.replace("\\n", "\n")
-                .replace("\\\"", "\"")
-                .replace("\\\\", "\\"),
-        )
-    } else {
-        None
-    }
+    let parsed: Value = serde_json::from_str(json).ok()?;
+    parsed["body"].as_str().map(|s| s.to_string())
 }
 
 /// Sets commit status based on concern_blocks_status config.
@@ -962,17 +935,9 @@ fn set_commit_status(
 
 /// Extracts owner and name from GitHub CLI repo JSON output.
 fn extract_repo_from_json(json: &str) -> Option<(String, String)> {
-    // Simple extraction for {"owner":{"login":"..."},"name":"..."}
-    let owner_start = json.find("\"login\":\"")?;
-    let owner_rest = &json[owner_start + 9..];
-    let owner_end = owner_rest.find('"')?;
-    let owner = owner_rest[..owner_end].to_string();
-
-    let name_start = json.find("\"name\":\"")?;
-    let name_rest = &json[name_start + 8..];
-    let name_end = name_rest.find('"')?;
-    let name = name_rest[..name_end].to_string();
-
+    let parsed: Value = serde_json::from_str(json).ok()?;
+    let owner = parsed["owner"]["login"].as_str()?.to_string();
+    let name = parsed["name"].as_str()?.to_string();
     Some((owner, name))
 }
 
@@ -1234,16 +1199,8 @@ fn close_github_review_issue(
 
 /// Extracts issue number from GitHub CLI JSON output.
 fn extract_issue_number(json: &str) -> Option<i64> {
-    // Simple extraction without full JSON parsing
-    // Looking for pattern like: [{"number":123}]
-    if json.contains("\"number\":") {
-        let start = json.find("\"number\":")?;
-        let rest = &json[start + 9..];
-        let end = rest.find(|c: char| !c.is_ascii_digit())?;
-        rest[..end].parse().ok()
-    } else {
-        None
-    }
+    let parsed: Value = serde_json::from_str(json).ok()?;
+    parsed.as_array()?.first()?["number"].as_i64()
 }
 
 #[cfg(test)]
@@ -1297,8 +1254,6 @@ mod tests {
     #[test]
     fn extract_issue_number_handles_whitespace() {
         let json = r#"[{"number": 42}]"#;
-        // Note: current impl doesn't handle space after colon
-        // This documents the limitation
-        assert_eq!(extract_issue_number(json), None);
+        assert_eq!(extract_issue_number(json), Some(42));
     }
 }
