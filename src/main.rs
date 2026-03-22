@@ -14,7 +14,7 @@ use std::path::PathBuf;
 use tbdflow::cli::Commands;
 use tbdflow::commit::CommitParams;
 use tbdflow::git::get_current_branch;
-use tbdflow::{branch, changelog, cli, commit, config, git, misc, radar, review, wizard};
+use tbdflow::{branch, changelog, cli, commands, commit, config, git, radar, review, wizard};
 
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
@@ -43,10 +43,10 @@ fn main() -> anyhow::Result<()> {
     // Match the commands and execute the functionality.
     match cli.command {
         Commands::Init => {
-            misc::handle_init_command(verbose, dry_run)?;
+            commands::handle_init_command(verbose, dry_run)?;
         }
         Commands::Info { edit } => {
-            misc::handle_info(verbose, dry_run, edit)?;
+            commands::handle_info(verbose, dry_run, edit)?;
         }
         Commands::Config { get_dod } => {
             if get_dod {
@@ -66,7 +66,7 @@ fn main() -> anyhow::Result<()> {
             println!("{}", &sha[..std::cmp::min(7, sha.len())]);
         }
         Commands::Update => {
-            misc::handle_update_command()?;
+            commands::handle_update_command()?;
         }
         Commands::Commit {
             r#type,
@@ -149,7 +149,7 @@ fn main() -> anyhow::Result<()> {
             }
         }
         Commands::Sync => {
-            misc::handle_sync(verbose, dry_run, &config)?;
+            commands::handle_sync(verbose, dry_run, &config)?;
         }
         Commands::Radar => {
             radar::handle_radar(verbose, dry_run, &config)?;
@@ -195,7 +195,7 @@ fn main() -> anyhow::Result<()> {
             println!("{}", format!("Current branch is: {}", branch_name).green());
         }
         Commands::CheckBranches => {
-            misc::handle_check_branches(verbose, dry_run, &config)?;
+            commands::handle_check_branches(verbose, dry_run, &config)?;
         }
         Commands::GenerateManPage => {
             println!("{}", "--- Generating a man page ---".to_string().blue());
@@ -208,7 +208,7 @@ fn main() -> anyhow::Result<()> {
 
             // Manually render each subcommand's details into the same buffer
             for sub in cmd.get_subcommands_mut() {
-                misc::render_manpage_section(sub, &mut buffer)?;
+                commands::render_manpage_section(sub, &mut buffer)?;
             }
             std::io::stdout().write_all(&buffer)?;
         }
@@ -257,7 +257,7 @@ fn main() -> anyhow::Result<()> {
             }
         }
         Commands::Undo { sha, no_push } => {
-            misc::handle_undo(&sha, no_push, verbose, dry_run, &config)?;
+            commands::handle_undo(&sha, no_push, verbose, dry_run, &config)?;
         }
         Commands::Review {
             sha,

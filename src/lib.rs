@@ -1,10 +1,10 @@
 pub mod branch;
 pub mod changelog;
 pub mod cli;
+pub mod commands;
 pub mod commit;
 pub mod config;
 pub mod git;
-pub mod misc;
 pub mod radar;
 pub mod review;
 pub mod wizard;

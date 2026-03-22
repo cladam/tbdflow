@@ -153,31 +153,6 @@ checklist:
     Ok(())
 }
 
-pub fn handle_info_command(verbose: bool, dry_run: bool, config: &config::Config) -> Result<()> {
-    println!("--- Current tbdflow configuration ---");
-    println!("{}", serde_yaml::to_string(config)?);
-
-    let git_root = git::get_git_root(verbose, dry_run)?;
-    println!("\nGit repository root: {}", git_root);
-
-    if let Ok(remote_url) = git::get_remote_url(verbose, dry_run) {
-        println!("Remote 'origin' URL: {}", remote_url);
-    } else {
-        println!("No remote 'origin' URL configured.");
-    }
-
-    let current_branch = git::get_current_branch(verbose, dry_run)?;
-    println!("Current branch: {}", current_branch);
-
-    if let Ok(latest_tag) = git::get_latest_tag(verbose, dry_run) {
-        println!("Latest tag: {}", latest_tag);
-    } else {
-        println!("No tags found in the repository.");
-    }
-
-    Ok(())
-}
-
 /// Handle the info command for tbdflow
 pub fn handle_info(verbose: bool, dry_run: bool, edit: bool) -> Result<()> {
     let git_root = git::get_git_root(false, false)?;

@@ -1,7 +1,7 @@
 // This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
 
+use crate::commands;
 use crate::config::Config;
-use crate::misc;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
@@ -236,7 +236,7 @@ pub fn find_branch(
     verbose: bool,
     dry_run: bool,
 ) -> Result<String> {
-    let prefix = misc::get_branch_prefix_or_error(&config.branch_types, &r#type)?;
+    let prefix = commands::get_branch_prefix_or_error(&config.branch_types, &r#type)?;
 
     let all_branches = run_git_command("branch", &["--list"], verbose, dry_run)?;
     let mut found_branches: Vec<String> = Vec::new();

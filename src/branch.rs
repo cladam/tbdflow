@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::git::GitError;
-use crate::{config, git, misc};
+use crate::{commands, config, git};
 use anyhow::Result;
 use colored::Colorize;
 
@@ -24,7 +24,7 @@ pub fn handle_branch(
 
     // Lookup the default branch name.
     let main_branch_name = get_default_branch_name(config);
-    let prefix = misc::get_branch_prefix_or_error(&config.branch_types, &r#type.unwrap())?;
+    let prefix = commands::get_branch_prefix_or_error(&config.branch_types, &r#type.unwrap())?;
 
     // Construct the branch name based on the configured strategy
     let branch_name = match config.issue_handling.strategy {
