@@ -179,7 +179,7 @@ pub fn handle_info_command(verbose: bool, dry_run: bool, config: &config::Config
 }
 
 /// Handle the info command for tbdflow
-pub fn handle_info(dry_run: bool, verbose: bool, edit: bool) -> Result<()> {
+pub fn handle_info(verbose: bool, dry_run: bool, edit: bool) -> Result<()> {
     let git_root = git::get_git_root(false, false)?;
     let root_config_path = PathBuf::from(&git_root).join(".tbdflow.yml");
 

@@ -37,8 +37,7 @@ pub enum Commands {
     /// Shows the current tbdflow configuration.
     #[command(alias = "show")]
     Info {
-        /// Open the config file in $EDITOR instead of displaying it.
-        #[arg(long, default_value_t = false)]
+        #[arg(short, long, default_value_t = false)]
         edit: bool,
     },
     /// Checks for a new version of tbdflow and updates it if available.
