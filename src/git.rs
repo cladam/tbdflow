@@ -402,6 +402,70 @@ pub fn status_excluding_projects(
     run_git_command("status", &args, verbose, dry_run)
 }
 
+/// Returns the monorepo-aware git status for the current working directory.
+/// Handles three cases:
+/// 1. Inside a sub-project → scoped to the project root
+/// 2. At the monorepo root → excludes project directories
+/// 3. Standalone repo → full status
+pub fn get_scoped_status(config: &Config, verbose: bool, dry_run: bool) -> Result<String> {
+    let git_root = std::path::PathBuf::from(get_git_root(verbose, dry_run)?);
+    let current_dir = std::env::current_dir()?;
+    let project_root = crate::config::find_project_root()?;
+
+    if let Some(proj_root) = project_root {
+        if current_dir == proj_root {
+            status_for_path(".", verbose, dry_run)
+        } else {
+            let relative_path = proj_root.strip_prefix(&git_root).unwrap_or(&proj_root);
+            status_for_path(relative_path.to_str().unwrap(), verbose, dry_run)
+        }
+    } else if crate::config::is_monorepo_root(config, &current_dir, &git_root) {
+        println!(
+            "{}",
+            "Monorepo root detected. Showing status for root-level files only.".yellow()
+        );
+        status_excluding_projects(&config.monorepo.project_dirs, verbose, dry_run)
+    } else {
+        status(verbose, dry_run)
+    }
+}
+
+/// Stages changes in a monorepo-aware way before committing.
+/// At the monorepo root, excludes project directories unless `include_projects` is set.
+/// Everywhere else, stages all changes.
+pub fn stage_scoped_changes(
+    config: &Config,
+    include_projects: bool,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<()> {
+    let git_root = std::path::PathBuf::from(get_git_root(verbose, dry_run)?);
+    let current_dir = std::env::current_dir()?;
+
+    if current_dir == git_root
+        && config.monorepo.enabled
+        && !config.monorepo.project_dirs.is_empty()
+    {
+        if include_projects {
+            println!(
+                "{}",
+                "Including all project directories in commit.".yellow()
+            );
+            add_all(verbose, dry_run)?;
+        } else {
+            println!(
+                "{}",
+                "Monorepo root detected. Staging root-level files only.".yellow()
+            );
+            add_excluding_projects(&config.monorepo.project_dirs, verbose, dry_run)?;
+        }
+    } else {
+        add_all(verbose, dry_run)?;
+    }
+
+    Ok(())
+}
+
 /// Show recent commits in the repository, 15 by default.
 pub fn log_graph(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command(

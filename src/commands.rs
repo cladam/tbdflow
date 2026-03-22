@@ -425,30 +425,7 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
 
     println!("\n{}", "Current status:".bold());
 
-    let git_root = PathBuf::from(git::get_git_root(verbose, dry_run)?);
-    let current_dir = std::env::current_dir()?;
-    let project_root = config::find_project_root()?;
-
-    let status_output = if let Some(proj_root) = project_root {
-        // We are in a sub-project, so scope the status to its root.
-        // if the relative path is same as current dir we send in "."
-        if current_dir == proj_root {
-            git::status_for_path(".", verbose, dry_run)?
-        } else {
-            let relative_path = proj_root.strip_prefix(&git_root).unwrap_or(&proj_root);
-            git::status_for_path(relative_path.to_str().unwrap(), verbose, dry_run)?
-        }
-    } else {
-        if config::is_monorepo_root(config, &current_dir, &git_root) {
-            println!(
-                "{}",
-                "Monorepo root detected. Showing status for root-level files only.".yellow()
-            );
-            git::status_excluding_projects(&config.monorepo.project_dirs, verbose, dry_run)?
-        } else {
-            git::status(verbose, dry_run)?
-        }
-    };
+    let status_output = git::get_scoped_status(config, verbose, dry_run)?;
 
     if status_output.is_empty() {
         println!("{}", "Working directory is clean.".green());

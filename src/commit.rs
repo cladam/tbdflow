@@ -306,33 +306,13 @@ pub fn handle_commit(
         );
 
         let git_root = PathBuf::from(git::get_git_root(verbose, dry_run)?);
-        let current_dir = std::env::current_dir()?;
-        // debug print
         if verbose {
+            let current_dir = std::env::current_dir()?;
             println!("Git root: {:?}", git_root);
             println!("Current dir: {:?}", current_dir);
             println!("monorepo: {:?}", config.monorepo);
         }
-        if current_dir == git_root
-            && config.monorepo.enabled
-            && !config.monorepo.project_dirs.is_empty()
-        {
-            if params.include_projects {
-                println!(
-                    "{}",
-                    "Including all project directories in commit.".yellow()
-                );
-                git::add_all(verbose, dry_run)?;
-            } else {
-                println!(
-                    "{}",
-                    "Monorepo root detected. Staging root-level files only.".yellow()
-                );
-                git::add_excluding_projects(&config.monorepo.project_dirs, verbose, dry_run)?;
-            }
-        } else {
-            git::add_all(verbose, dry_run)?;
-        }
+        git::stage_scoped_changes(config, params.include_projects, verbose, dry_run)?;
 
         if !git::has_staged_changes(verbose, dry_run)? {
             println!("{}", "No changes added to commit.".yellow());
