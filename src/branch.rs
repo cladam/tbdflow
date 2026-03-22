@@ -111,7 +111,6 @@ pub fn handle_complete(
         git::push_tags(verbose, dry_run)?;
     }
 
-    git::push(verbose, dry_run)?;
     git::delete_local_branch(&branch_name, verbose, dry_run)?;
     git::delete_remote_branch(&branch_name, verbose, dry_run)?;
     println!(
