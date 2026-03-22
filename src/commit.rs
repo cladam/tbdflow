@@ -5,6 +5,19 @@ use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect};
 use std::path::PathBuf;
 
+pub struct CommitParams {
+    pub r#type: String,
+    pub scope: Option<String>,
+    pub message: String,
+    pub body: Option<String>,
+    pub breaking: bool,
+    pub breaking_description: Option<String>,
+    pub tag: Option<String>,
+    pub issue: Option<String>,
+    pub include_projects: bool,
+    pub no_verify: bool,
+}
+
 /// Runs the checklist interactively, allowing the user to confirm each item before committing.
 pub fn run_checklist_interactive(checklist: &[String]) -> anyhow::Result<Vec<usize>> {
     let selections = MultiSelect::with_theme(&ColorfulTheme::default())
@@ -193,22 +206,13 @@ pub fn handle_commit(
     verbose: bool,
     dry_run: bool,
     config: &Config,
-    r#type: String,
-    scope: Option<String>,
-    message: String,
-    body: Option<String>,
-    breaking: bool,
-    breaking_description: Option<String>,
-    tag: Option<String>,
-    no_verify: bool,
-    issue: Option<String>,
-    include_projects: bool,
+    params: CommitParams,
 ) -> Result<()> {
     println!("{}", "--- Committing changes ---".blue());
 
     // Check for conflicting flags based on issue handling strategy
     if config.issue_handling.strategy == config::IssueHandlingStrategy::CommitScope {
-        if scope.is_some() && issue.is_some() {
+        if params.scope.is_some() && params.issue.is_some() {
             println!(
                 "{}",
                 "Error: Cannot use both --scope and --issue when the 'commit-scope' strategy is active.".red()
@@ -224,19 +228,19 @@ pub fn handle_commit(
     }
 
     // Linting based on the provided configuration
-    if !is_valid_commit_type(&r#type, config) {
+    if !is_valid_commit_type(&params.r#type, config) {
         println!(
             "{}",
             format!(
                 "Error: '{}' is not a valid Conventional Commit type.",
-                r#type
+                params.r#type
             )
             .red()
         );
         return Err(anyhow::anyhow!("Aborted: Invalid commit type."));
     }
 
-    if !is_valid_issue_key(&issue, config) {
+    if !is_valid_issue_key(&params.issue, config) {
         println!(
             "{}",
             "Issue reference is required by your .tbdflow.yml config.".red()
@@ -244,12 +248,12 @@ pub fn handle_commit(
         return Err(anyhow::anyhow!("Aborted: Issue reference required."));
     }
 
-    if let Err(e) = is_valid_subject_line(&message, config) {
+    if let Err(e) = is_valid_subject_line(&params.message, config) {
         println!("{}", format!("Commit message subject error: {}", e).red());
         return Err(anyhow::anyhow!("Aborted: Invalid commit message subject."));
     }
 
-    if let Some(body_text) = &body {
+    if let Some(body_text) = &params.body {
         if !is_valid_body_lines(body_text, config) {
             println!(
                 "{}",
@@ -259,19 +263,22 @@ pub fn handle_commit(
         }
     }
 
-    if let Some(s) = &scope {
+    if let Some(s) = &params.scope {
         if !is_valid_scope(&Some(s.clone()), config) {
             println!("{}", "Scope must be lowercase.".red());
             return Err(anyhow::anyhow!("Aborted: Invalid commit scope."));
         }
     }
 
-    let scope_part = scope.map_or("".to_string(), |s| format!("({})", s));
-    let breaking_part = if breaking { "!" } else { "" };
-    let header = format!("{}{}{}: {}", r#type, scope_part, breaking_part, message);
+    let scope_part = params.scope.map_or("".to_string(), |s| format!("({})", s));
+    let breaking_part = if params.breaking { "!" } else { "" };
+    let header = format!(
+        "{}{}{}: {}",
+        params.r#type, scope_part, breaking_part, params.message
+    );
 
     let dod_config = config::load_dod_config().unwrap_or_default();
-    let todo_footer_result = if no_verify || dod_config.checklist.is_empty() {
+    let todo_footer_result = if params.no_verify || dod_config.checklist.is_empty() {
         Ok(Some(String::new()))
     } else {
         handle_interactive_dod(&dod_config)
@@ -279,14 +286,14 @@ pub fn handle_commit(
 
     if let Some(todo_footer) = todo_footer_result? {
         let mut commit_message = header;
-        if let Some(body_text) = body {
+        if let Some(body_text) = params.body {
             commit_message.push_str("\n\n");
             commit_message.push_str(&body_text);
         }
-        if let Some(desc) = breaking_description {
+        if let Some(desc) = params.breaking_description {
             commit_message.push_str(&format!("\n\nBREAKING CHANGE: {}", desc));
         }
-        if let Some(issue_ref) = &issue {
+        if let Some(issue_ref) = &params.issue {
             commit_message.push_str(&format!("\n\nRefs: {}", issue_ref));
         }
         commit_message.push_str(&todo_footer);
@@ -308,7 +315,7 @@ pub fn handle_commit(
             && config.monorepo.enabled
             && !config.monorepo.project_dirs.is_empty()
         {
-            if include_projects {
+            if params.include_projects {
                 println!(
                     "{}",
                     "Including all project directories in commit.".yellow()
@@ -371,7 +378,7 @@ pub fn handle_commit(
             );
         }
 
-        if let Some(tag_name) = tag {
+        if let Some(tag_name) = params.tag {
             let commit_hash = git::get_head_commit_hash(verbose, dry_run)?;
             git::create_tag(&tag_name, &commit_message, &commit_hash, verbose, dry_run)?;
             git::push_tags(verbose, dry_run)?;

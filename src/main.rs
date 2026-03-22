@@ -12,6 +12,7 @@ use std::io;
 use std::io::Write;
 use std::path::PathBuf;
 use tbdflow::cli::Commands;
+use tbdflow::commit::CommitParams;
 use tbdflow::git::get_current_branch;
 use tbdflow::{branch, changelog, cli, commit, config, git, misc, radar, review, wizard};
 
@@ -79,41 +80,36 @@ fn main() -> anyhow::Result<()> {
             issue,
             include_projects,
         } => {
-            if r#type.is_none() || message.is_none() {
-                // Enter interactive wizard mode
-                let wizard_result = wizard::run_commit_wizard(&config)?;
-                commit::handle_commit(
-                    verbose,
-                    dry_run,
-                    &config,
-                    wizard_result.r#type,
-                    wizard_result.scope,
-                    wizard_result.message,
-                    wizard_result.body,
-                    wizard_result.breaking,
-                    wizard_result.breaking_description,
-                    wizard_result.tag,
-                    no_verify, // Still respect no_verify from flags
-                    wizard_result.issue,
+            let params = if r#type.is_none() || message.is_none() {
+                let w = wizard::run_commit_wizard(&config)?;
+                CommitParams {
+                    r#type: w.r#type,
+                    scope: w.scope,
+                    message: w.message,
+                    body: w.body,
+                    breaking: w.breaking,
+                    breaking_description: w.breaking_description,
+                    tag: w.tag,
+                    issue: w.issue,
                     include_projects,
-                )?;
+                    no_verify,
+                }
             } else {
-                commit::handle_commit(
-                    verbose,
-                    dry_run,
-                    &config,
-                    r#type.unwrap(),
+                CommitParams {
+                    r#type: r#type.unwrap(),
                     scope,
-                    message.unwrap(),
+                    message: message.unwrap(),
                     body,
                     breaking,
                     breaking_description,
                     tag,
-                    no_verify,
                     issue,
                     include_projects,
-                )?;
-            }
+                    no_verify,
+                }
+            };
+
+            commit::handle_commit(verbose, dry_run, &config, params)?;
         }
         Commands::Branch {
             r#type,
