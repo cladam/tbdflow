@@ -161,17 +161,11 @@ impl RadarConfig {
 /// Configuration for pre-flight CI status checks during `tbdflow sync`.
 /// Uses the `gh` CLI to check the CI status of the latest commit on the trunk
 /// before pulling, acting as a firewall against broken builds.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct CiCheckConfig {
     /// Enable the pre-flight CI check during sync.
     #[serde(default)]
     pub enabled: bool,
-}
-
-impl Default for CiCheckConfig {
-    fn default() -> Self {
-        Self { enabled: false }
-    }
 }
 
 /// Configuration for non-blocking post-commit reviews.

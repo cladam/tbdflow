@@ -155,7 +155,7 @@ pub fn remote_branch_exists(branch_name: &str, verbose: bool, dry_run: bool) -> 
     );
     match output {
         Ok(_) => Ok(()),
-        Err(e) => Err(e.into()),
+        Err(e) => Err(e),
     }
 }
 
@@ -236,7 +236,7 @@ pub fn find_branch(
     verbose: bool,
     dry_run: bool,
 ) -> Result<String> {
-    let prefix = commands::get_branch_prefix_or_error(&config.branch_types, &r#type)?;
+    let prefix = commands::get_branch_prefix_or_error(&config.branch_types, r#type)?;
 
     let all_branches = run_git_command("branch", &["--list"], verbose, dry_run)?;
     let mut found_branches: Vec<String> = Vec::new();
@@ -262,8 +262,7 @@ pub fn find_branch(
             r#type,
             name,
             found_branches.join("\n")
-        )
-        .into()),
+        )),
     }
 }
 

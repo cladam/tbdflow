@@ -56,7 +56,7 @@ pub fn run_commit_wizard(config: &Config) -> Result<CommitWizardResult> {
         .as_ref()
         .and_then(|l| l.conventional_commit_type.as_ref())
         .and_then(|cct| cct.allowed_types.as_ref())
-        .map(|types| types.clone())
+        .cloned()
         .unwrap_or_else(|| {
             vec![
                 "feat".to_string(),

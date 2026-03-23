@@ -33,7 +33,7 @@ pub fn build_todo_footer(checklist: &[String], checked_indices: &[usize]) -> Str
     let unchecked_items: Vec<String> = checklist
         .iter()
         .enumerate()
-        .filter(|(i, _)| !checked_indices.contains(&i))
+        .filter(|(i, _)| !checked_indices.contains(i))
         .map(|(_, item)| format!("- [ ] {}", item))
         .collect();
     if unchecked_items.is_empty() {
@@ -120,7 +120,7 @@ pub fn is_valid_issue_key(issue_key: &Option<String>, config: &config::Config) -
                 let re = regex::Regex::new(issue_key_pattern).map_err(|e| {
                     anyhow::anyhow!("Invalid issue_key pattern '{}': {}", issue_key_pattern, e)
                 })?;
-                return Ok(re.is_match(&issue_key.as_ref().unwrap_or(&"".to_string())));
+                return Ok(re.is_match(issue_key.as_ref().unwrap_or(&"".to_string())));
             }
         }
     }
@@ -213,20 +213,22 @@ pub fn handle_commit(
     println!("{}", "--- Committing changes ---".blue());
 
     // Check for conflicting flags based on issue handling strategy
-    if config.issue_handling.strategy == config::IssueHandlingStrategy::CommitScope {
-        if params.scope.is_some() && params.issue.is_some() {
-            println!(
+    if config.issue_handling.strategy == config::IssueHandlingStrategy::CommitScope
+        && params.scope.is_some()
+        && params.issue.is_some()
+    {
+        println!(
                 "{}",
                 "Error: Cannot use both --scope and --issue when the 'commit-scope' strategy is active.".red()
             );
-            println!(
-                "{}",
-                "Hint: To associate this commit with the issue, please provide only the --issue flag.".yellow()
-            );
-            return Err(anyhow::anyhow!(
-                "Aborted: Conflicting flags for commit-scope strategy."
-            ));
-        }
+        println!(
+            "{}",
+            "Hint: To associate this commit with the issue, please provide only the --issue flag."
+                .yellow()
+        );
+        return Err(anyhow::anyhow!(
+            "Aborted: Conflicting flags for commit-scope strategy."
+        ));
     }
 
     // Linting based on the provided configuration

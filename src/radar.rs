@@ -370,9 +370,8 @@ pub fn quick_scan_for_sync(
 /// Radar check for the commit workflow.
 /// Returns true if the user should proceed, false if they chose to abort.
 pub fn check_before_commit(config: &Config, verbose: bool, dry_run: bool) -> Result<bool> {
-    match config.radar.on_commit {
-        RadarOnCommit::Off => return Ok(true),
-        _ => {}
+    if config.radar.on_commit == RadarOnCommit::Off {
+        return Ok(true);
     }
 
     if !config.radar.enabled {

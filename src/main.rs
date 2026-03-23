@@ -25,16 +25,15 @@ fn main() -> anyhow::Result<()> {
     if !matches!(
         cli.command,
         Commands::Init | Commands::Update | Commands::Completion { .. }
-    ) {
-        if git::is_git_repository(verbose, dry_run).is_err() {
-            println!(
-                "{}",
-                "Error: Not a git repository (or any of the parent directories).".red()
-            );
-            println!("Hint: Run 'tbdflow init' to initialise a new repository here.");
-            // Exit gracefully without a scary error stack trace.
-            std::process::exit(1);
-        }
+    ) && git::is_git_repository(verbose, dry_run).is_err()
+    {
+        println!(
+            "{}",
+            "Error: Not a git repository (or any of the parent directories).".red()
+        );
+        println!("Hint: Run 'tbdflow init' to initialise a new repository here.");
+        // Exit gracefully without a scary error stack trace.
+        std::process::exit(1);
     }
 
     let config = config::load_tbdflow_config()?;
@@ -79,25 +78,11 @@ fn main() -> anyhow::Result<()> {
             issue,
             include_projects,
         } => {
-            let params = if r#type.is_none() || message.is_none() {
-                let w = wizard::run_commit_wizard(&config)?;
-                CommitParams {
-                    r#type: w.r#type,
-                    scope: w.scope,
-                    message: w.message,
-                    body: w.body,
-                    breaking: w.breaking,
-                    breaking_description: w.breaking_description,
-                    tag: w.tag,
-                    issue: w.issue,
-                    include_projects,
-                    no_verify,
-                }
-            } else {
-                CommitParams {
-                    r#type: r#type.unwrap(),
+            let params = match (r#type, message) {
+                (Some(t), Some(m)) => CommitParams {
+                    r#type: t,
                     scope,
-                    message: message.unwrap(),
+                    message: m,
                     body,
                     breaking,
                     breaking_description,
@@ -105,6 +90,21 @@ fn main() -> anyhow::Result<()> {
                     issue,
                     include_projects,
                     no_verify,
+                },
+                _ => {
+                    let w = wizard::run_commit_wizard(&config)?;
+                    CommitParams {
+                        r#type: w.r#type,
+                        scope: w.scope,
+                        message: w.message,
+                        body: w.body,
+                        breaking: w.breaking,
+                        breaking_description: w.breaking_description,
+                        tag: w.tag,
+                        issue: w.issue,
+                        include_projects,
+                        no_verify,
+                    }
                 }
             };
 
@@ -132,9 +132,11 @@ fn main() -> anyhow::Result<()> {
                 branch::handle_branch(r#type, &config, name, issue, from_commit, dry_run, verbose)?;
             }
         }
-        Commands::Complete { r#type, name } => {
-            if r#type.is_none() || name.is_none() {
-                // Enter interactive wizard mode
+        Commands::Complete { r#type, name } => match (r#type, name) {
+            (Some(t), Some(n)) => {
+                branch::handle_complete(t, n, &config, dry_run, verbose)?;
+            }
+            _ => {
                 let wizard_result = wizard::run_complete_wizard(&config)?;
                 branch::handle_complete(
                     wizard_result.branch_type,
@@ -143,10 +145,8 @@ fn main() -> anyhow::Result<()> {
                     dry_run,
                     verbose,
                 )?;
-            } else {
-                branch::handle_complete(r#type.unwrap(), name.unwrap(), &config, dry_run, verbose)?;
             }
-        }
+        },
         Commands::Sync => {
             commands::handle_sync(verbose, dry_run, &config)?;
         }

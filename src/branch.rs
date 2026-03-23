@@ -70,7 +70,7 @@ pub fn handle_complete(
         return Err(GitError::CannotCompleteMainBranch.into());
     }
 
-    let branch_name = git::find_branch(&name, &r#type, &config, verbose, dry_run)?;
+    let branch_name = git::find_branch(&name, &r#type, config, verbose, dry_run)?;
     println!("{}", format!("Branch to complete: {}", branch_name).blue());
 
     // pre-flight check the branch name

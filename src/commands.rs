@@ -55,7 +55,7 @@ pub fn handle_init_command(verbose: bool, dry_run: bool) -> Result<()> {
     let mut files_created = false;
 
     // Check if we are in a subdirectory of the git repo
-    if current_dir != PathBuf::from(&git_root) {
+    if current_dir.as_path() != std::path::Path::new(&git_root) {
         // We are in a subdirectory, create a project-specific config.
         let project_config_path = current_dir.join(".tbdflow.yml");
         if !project_config_path.exists() {
@@ -240,7 +240,7 @@ pub fn handle_info(verbose: bool, dry_run: bool, edit: bool) -> Result<()> {
         println!("\n{}", "--- Settings ---".bold());
         println!(
             "Main Branch: {}",
-            format!("{}", root_config.main_branch_name).cyan()
+            root_config.main_branch_name.to_string().cyan()
         );
         println!(
             "Issue Handling Strategy: {}",
@@ -336,16 +336,16 @@ pub fn handle_info(verbose: bool, dry_run: bool, edit: bool) -> Result<()> {
 
     println!("\n{}", "--- Git Info ---".bold());
     if let Ok(remote_url) = git::get_remote_url(verbose, dry_run) {
-        println!("Remote 'origin' URL: {}", format!("{}", remote_url).cyan());
+        println!("Remote 'origin' URL: {}", remote_url.to_string().cyan());
     } else {
         println!("Remote 'origin' URL: Not found.");
     }
 
     let current_branch = git::get_current_branch(verbose, dry_run)?;
-    println!("Current branch: {}", format!("{}", current_branch).cyan());
+    println!("Current branch: {}", current_branch.to_string().cyan());
 
     if let Ok(latest_tag) = git::get_latest_tag(verbose, dry_run) {
-        println!("Latest tag: {}", format!("{}", latest_tag).cyan());
+        println!("Latest tag: {}", latest_tag.to_string().cyan());
     } else {
         println!("Latest tag: Not found.");
     }

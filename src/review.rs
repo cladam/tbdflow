@@ -1045,7 +1045,7 @@ fn dismiss_github_review_issue(
             } else {
                 println!(
                     "{}",
-                    format!("Review dismissed (issue close failed)").yellow()
+                    "Review dismissed (issue close failed)".to_string().yellow()
                 );
             }
         } else {
