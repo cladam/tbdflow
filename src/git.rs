@@ -487,8 +487,13 @@ pub fn get_commit_count_ahead(
 }
 
 /// Get the log for a specific branch.
-pub fn get_branch_log(branch: &str, verbose: bool, dry_run: bool) -> Result<String> {
-    let range = format!("origin/main..{}", branch);
+pub fn get_branch_log(
+    branch: &str,
+    main_branch: &str,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<String> {
+    let range = format!("origin/{}..{}", main_branch, branch);
     run_git_command("log", &["--oneline", "-n", "10", &range], verbose, dry_run)
 }
 

@@ -374,3 +374,288 @@ pub fn handle_commit(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::*;
+
+    /// Helper to build a Config with default lint rules enabled.
+    fn config_with_defaults() -> Config {
+        Config::default()
+    }
+
+    /// Helper to build a Config with linting completely disabled (lint: None).
+    fn config_without_lint() -> Config {
+        Config {
+            lint: None,
+            ..Default::default()
+        }
+    }
+
+    /// Helper to build a Config with a specific set of allowed commit types.
+    fn config_with_allowed_types(types: Vec<&str>) -> Config {
+        Config {
+            lint: Some(LintConfig {
+                conventional_commit_type: Some(ConventionalCommitTypeConfig {
+                    enabled: Some(true),
+                    allowed_types: Some(types.iter().map(|s| s.to_string()).collect()),
+                }),
+                ..config_with_defaults().lint.unwrap()
+            }),
+            ..Default::default()
+        }
+    }
+
+    // ── is_valid_commit_type ───────────────────────────────────────────────
+
+    #[test]
+    fn commit_type_accepts_allowed_type() {
+        let config = config_with_defaults();
+        assert!(is_valid_commit_type("feat", &config));
+        assert!(is_valid_commit_type("fix", &config));
+        assert!(is_valid_commit_type("chore", &config));
+    }
+
+    #[test]
+    fn commit_type_rejects_unknown_type() {
+        let config = config_with_defaults();
+        assert!(!is_valid_commit_type("yolo", &config));
+        assert!(!is_valid_commit_type("", &config));
+    }
+
+    #[test]
+    fn commit_type_accepts_anything_when_lint_disabled() {
+        let config = config_without_lint();
+        assert!(is_valid_commit_type("anything", &config));
+    }
+
+    #[test]
+    fn commit_type_accepts_anything_when_rule_disabled() {
+        let config = Config {
+            lint: Some(LintConfig {
+                conventional_commit_type: Some(ConventionalCommitTypeConfig {
+                    enabled: Some(false),
+                    allowed_types: Some(vec!["feat".to_string()]),
+                }),
+                ..config_with_defaults().lint.unwrap()
+            }),
+            ..Default::default()
+        };
+        assert!(is_valid_commit_type("yolo", &config));
+    }
+
+    #[test]
+    fn commit_type_respects_custom_allowed_list() {
+        let config = config_with_allowed_types(vec!["feat", "hotfix"]);
+        assert!(is_valid_commit_type("feat", &config));
+        assert!(is_valid_commit_type("hotfix", &config));
+        assert!(!is_valid_commit_type("fix", &config));
+    }
+
+    // ── is_valid_scope ─────────────────────────────────────────────────────
+
+    #[test]
+    fn scope_accepts_lowercase() {
+        let config = config_with_defaults();
+        assert!(is_valid_scope(&Some("api".to_string()), &config));
+    }
+
+    #[test]
+    fn scope_rejects_uppercase_when_enforced() {
+        let config = config_with_defaults();
+        assert!(!is_valid_scope(&Some("API".to_string()), &config));
+        assert!(!is_valid_scope(&Some("Api".to_string()), &config));
+    }
+
+    #[test]
+    fn scope_accepts_none() {
+        let config = config_with_defaults();
+        assert!(is_valid_scope(&None, &config));
+    }
+
+    #[test]
+    fn scope_accepts_anything_when_lint_disabled() {
+        let config = config_without_lint();
+        assert!(is_valid_scope(&Some("UPPER".to_string()), &config));
+    }
+
+    // ── is_valid_subject_line ──────────────────────────────────────────────
+
+    #[test]
+    fn subject_accepts_valid_message() {
+        let config = config_with_defaults();
+        assert!(is_valid_subject_line("add user endpoint", &config).is_ok());
+    }
+
+    #[test]
+    fn subject_rejects_too_long() {
+        let config = config_with_defaults();
+        let long_subject = "a".repeat(73);
+        assert!(is_valid_subject_line(&long_subject, &config).is_err());
+    }
+
+    #[test]
+    fn subject_accepts_exactly_max_length() {
+        let config = config_with_defaults();
+        let exact = "a".repeat(72);
+        assert!(is_valid_subject_line(&exact, &config).is_ok());
+    }
+
+    #[test]
+    fn subject_rejects_uppercase_start() {
+        let config = config_with_defaults();
+        assert!(is_valid_subject_line("Add user endpoint", &config).is_err());
+    }
+
+    #[test]
+    fn subject_rejects_trailing_period() {
+        let config = config_with_defaults();
+        assert!(is_valid_subject_line("add user endpoint.", &config).is_err());
+    }
+
+    #[test]
+    fn subject_accepts_anything_when_lint_disabled() {
+        let config = config_without_lint();
+        assert!(is_valid_subject_line("Whatever. YOLO.", &config).is_ok());
+    }
+
+    // ── is_valid_body_lines ────────────────────────────────────────────────
+
+    #[test]
+    fn body_accepts_short_lines() {
+        let config = config_with_defaults();
+        assert!(is_valid_body_lines(
+            "short line\nanother short line",
+            &config
+        ));
+    }
+
+    #[test]
+    fn body_rejects_line_exceeding_max_length() {
+        let config = config_with_defaults();
+        let long_line = "x".repeat(81);
+        assert!(!is_valid_body_lines(&long_line, &config));
+    }
+
+    #[test]
+    fn body_accepts_exactly_max_length() {
+        let config = config_with_defaults();
+        let exact = "x".repeat(80);
+        assert!(is_valid_body_lines(&exact, &config));
+    }
+
+    #[test]
+    fn body_rejects_if_any_line_too_long() {
+        let config = config_with_defaults();
+        let body = format!("short\n{}\nshort", "x".repeat(81));
+        assert!(!is_valid_body_lines(&body, &config));
+    }
+
+    #[test]
+    fn body_accepts_anything_when_lint_disabled() {
+        let config = config_without_lint();
+        let long = "x".repeat(200);
+        assert!(is_valid_body_lines(&long, &config));
+    }
+
+    // ── is_valid_issue_key ─────────────────────────────────────────────────
+
+    #[test]
+    fn issue_key_accepts_valid_key() {
+        let config = Config {
+            lint: Some(LintConfig {
+                issue_key_missing: Some(IssueKeyConfig {
+                    enabled: Some(true),
+                    pattern: Some(r"^[A-Z]+-\d+$".to_string()),
+                }),
+                ..config_with_defaults().lint.unwrap()
+            }),
+            ..Default::default()
+        };
+        assert!(is_valid_issue_key(&Some("PROJ-123".to_string()), &config).unwrap());
+    }
+
+    #[test]
+    fn issue_key_rejects_invalid_key() {
+        let config = Config {
+            lint: Some(LintConfig {
+                issue_key_missing: Some(IssueKeyConfig {
+                    enabled: Some(true),
+                    pattern: Some(r"^[A-Z]+-\d+$".to_string()),
+                }),
+                ..config_with_defaults().lint.unwrap()
+            }),
+            ..Default::default()
+        };
+        assert!(!is_valid_issue_key(&Some("bad".to_string()), &config).unwrap());
+    }
+
+    #[test]
+    fn issue_key_rejects_none_when_required() {
+        let config = Config {
+            lint: Some(LintConfig {
+                issue_key_missing: Some(IssueKeyConfig {
+                    enabled: Some(true),
+                    pattern: Some(r"^[A-Z]+-\d+$".to_string()),
+                }),
+                ..config_with_defaults().lint.unwrap()
+            }),
+            ..Default::default()
+        };
+        assert!(!is_valid_issue_key(&None, &config).unwrap());
+    }
+
+    #[test]
+    fn issue_key_accepts_anything_when_disabled() {
+        // Default config has issue_key enabled: false
+        let config = config_with_defaults();
+        assert!(is_valid_issue_key(&None, &config).unwrap());
+        assert!(is_valid_issue_key(&Some("whatever".to_string()), &config).unwrap());
+    }
+
+    #[test]
+    fn issue_key_returns_error_on_invalid_regex() {
+        let config = Config {
+            lint: Some(LintConfig {
+                issue_key_missing: Some(IssueKeyConfig {
+                    enabled: Some(true),
+                    pattern: Some(r"[unclosed".to_string()),
+                }),
+                ..config_with_defaults().lint.unwrap()
+            }),
+            ..Default::default()
+        };
+        assert!(is_valid_issue_key(&Some("PROJ-1".to_string()), &config).is_err());
+    }
+
+    // ── build_todo_footer ──────────────────────────────────────────────────
+
+    #[test]
+    fn todo_footer_empty_when_all_checked() {
+        let checklist = vec!["item1".to_string(), "item2".to_string()];
+        assert_eq!(build_todo_footer(&checklist, &[0, 1]), "");
+    }
+
+    #[test]
+    fn todo_footer_lists_unchecked_items() {
+        let checklist = vec![
+            "first".to_string(),
+            "second".to_string(),
+            "third".to_string(),
+        ];
+        let footer = build_todo_footer(&checklist, &[1]);
+        assert!(footer.contains("- [ ] first"));
+        assert!(!footer.contains("- [ ] second"));
+        assert!(footer.contains("- [ ] third"));
+    }
+
+    #[test]
+    fn todo_footer_lists_all_when_none_checked() {
+        let checklist = vec!["a".to_string(), "b".to_string()];
+        let footer = build_todo_footer(&checklist, &[]);
+        assert!(footer.contains("- [ ] a"));
+        assert!(footer.contains("- [ ] b"));
+        assert!(footer.starts_with("\n\nTODO:\n"));
+    }
+}
