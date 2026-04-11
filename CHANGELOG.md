@@ -1,3 +1,279 @@
+# [0.26.1](https://github.com/cladam/tbdflow/releases/tag/v0.26.1) (2026-04-11)
+
+### ✨ Features
+- add actual append to .gitignore for the intent log [`679ed88`](https://github.com/cladam/tbdflow/commit/679ed88afe147ea2987ef074f5ac9ca5e8de4772)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`b3fa7b6`](https://github.com/cladam/tbdflow/commit/b3fa7b639fec81eae3cfedd34e065f502ddd4bb9)
+- add tbdflow-agent to this repo and cleaning up [`d0af7ba`](https://github.com/cladam/tbdflow/commit/d0af7ba9c15fbad99552a41cd514cf8d1ba7af53)
+- update SKILL.md in this repo [`0ec5f32`](https://github.com/cladam/tbdflow/commit/0ec5f325544e5b50f3f9e53ee0152c92e1dd8dd8)
+- wording [`a1d3648`](https://github.com/cladam/tbdflow/commit/a1d36489b7558f1f73d0d03500f2ad1497f6476e)
+- update tbdflow SKILL and AGENTS files, for the Genie [`02132f1`](https://github.com/cladam/tbdflow/commit/02132f1f3833386a6b795e8ea95721920faea90b)
+- restructure README so it flows better and not so spec-ish [`1c1fc14`](https://github.com/cladam/tbdflow/commit/1c1fc146e4121cde68e697d8d0e38654e7369480)
+
+
+# [0.26.0](https://github.com/cladam/tbdflow/releases/tag/v0.26.0) (2026-04-11)
+
+### ✨ Features
+- **(intent):** add intent log for capturing pre-work context [`db21c67`](https://github.com/cladam/tbdflow/commit/db21c6799daf1daa9fbedf3dd08e043098447afb)
+
+### 🐛 Bug Fixes
+- remove unessecary comments, redundant in most cases [`d84cefe`](https://github.com/cladam/tbdflow/commit/d84cefe17b5e43e8d1f8b9da5ca1af3e16b1c55c)
+- remove all emojis except in the changelog feature [`2f9d96a`](https://github.com/cladam/tbdflow/commit/2f9d96a08b6a16781a5dc3440e90d6e8d50579b4)
+- changed yaml crate and did a review [`9a8d019`](https://github.com/cladam/tbdflow/commit/9a8d0196e786679cc598edc091997c13b6414d89)
+
+### 🔨 Code Refactoring
+- add linting tests to commit.rs [`ed2896e`](https://github.com/cladam/tbdflow/commit/ed2896e66d5f1acc671360f5c5c34d5900af5fb0)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`8055e67`](https://github.com/cladam/tbdflow/commit/8055e677284d41ad6ee3c52efe6d9aee594f006d)
+
+
+# [0.25.3](https://github.com/cladam/tbdflow/releases/tag/v0.25.3) (2026-04-11)
+
+### 🐛 Bug Fixes
+- bug in swapped parameters [`721b4d9`](https://github.com/cladam/tbdflow/commit/721b4d9c01013e22634b75f3aed38a3aa153c9a7)
+
+### 🔨 Code Refactoring
+- implement clippy warnings [`6f138fe`](https://github.com/cladam/tbdflow/commit/6f138fed1e874188fdcb351b371a790a63db0a7c)
+- remove duplicate code and added two helpers [`e855337`](https://github.com/cladam/tbdflow/commit/e85533763fa57aecea87ec167817ca25b6a797a7)
+- remove dead code and renamed misc.rs to commands.rs for clarity [`36329b0`](https://github.com/cladam/tbdflow/commit/36329b0e2652599e13195743b0c0f12f4206aa42)
+- remove a redundant statement [`12abe26`](https://github.com/cladam/tbdflow/commit/12abe26a719e9f456867472e35f01a01225932f7)
+- remove unwrap in a regex matching snippet [`6c96070`](https://github.com/cladam/tbdflow/commit/6c960708f567be310960eea5a91947f3559498a7)
+- add serde_json as dep and remove handrolled parser [`7f60e2b`](https://github.com/cladam/tbdflow/commit/7f60e2b6dea153ee82b92411c4a808365fec9b4a)
+- moved parameters into a struct for cleanliness [`268d644`](https://github.com/cladam/tbdflow/commit/268d6447a98793ea53f0070d5c65b6e02f31a347)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`4433ebf`](https://github.com/cladam/tbdflow/commit/4433ebff636c76669572b1f7e02643e859518a3b)
+
+
+# [0.25.2](https://github.com/cladam/tbdflow/releases/tag/v0.25.2) (2026-04-11)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`e1c8110`](https://github.com/cladam/tbdflow/commit/e1c811023e5db3fc5901a9d80702216dde4c78b0)
+- fix small formatting error [`4344321`](https://github.com/cladam/tbdflow/commit/4344321868d48894651cab337e1e81d249bd9c87)
+- update formatting in README [`49e1153`](https://github.com/cladam/tbdflow/commit/49e1153375c307f8fc8e65665bcd9baab0714825)
+- add pre-commit hook to enforce cargo fmt [`057195d`](https://github.com/cladam/tbdflow/commit/057195d96022ca103ccfc6b12fa20f0d6b67dbeb)
+
+
+# [0.25.1](https://github.com/cladam/tbdflow/releases/tag/v0.25.1) (2026-04-11)
+
+### ✨ Features
+- **(info):** add --edit flag and review, radar, ci-check sections to info command [`2830c21`](https://github.com/cladam/tbdflow/commit/2830c219ea3d39cbfa11a9dc5b8a1bbe240fd9e9)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`3805b61`](https://github.com/cladam/tbdflow/commit/3805b616caa71edd81c625db247e338771e32812)
+- **(release):** bump version and publish to GH Releases and crates.io [`6597d56`](https://github.com/cladam/tbdflow/commit/6597d5640fe4fdf2f9438509f54a30fffcf1b5b5)
+- fix wording [`25a0298`](https://github.com/cladam/tbdflow/commit/25a02986ab3fb9e3279a269b989cacdd4f5349cf)
+- update README with philosophy [`87ed94d`](https://github.com/cladam/tbdflow/commit/87ed94d60230b76de7ef07ce8f9f56d1024f1d6a)
+
+
+# [0.24.1](https://github.com/cladam/tbdflow/releases/tag/v0.24.1) (2026-04-11)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`7eccc3c`](https://github.com/cladam/tbdflow/commit/7eccc3c516a8543d459d8314ef7a2554cd5f371e)
+- update README with review positional SHA and pre-flight CI check [`381197e`](https://github.com/cladam/tbdflow/commit/381197e0a7838814537a64ce5a59fc55d74e675f)
+
+
+# [0.24.0](https://github.com/cladam/tbdflow/releases/tag/v0.24.0) (2026-04-11)
+
+### ✨ Features
+- **(sync):** add pre-flight CI status check to sync command [`6524fe8`](https://github.com/cladam/tbdflow/commit/6524fe83582892050bd07983cfaf751bf08d07c3)
+
+### 🐛 Bug Fixes
+- fix wording [`3bbfc35`](https://github.com/cladam/tbdflow/commit/3bbfc35c90a0e62611f17668baa43e63351d6919)
+- **(radar):** fix choreo test parsing and tracked file detection [`94a593f`](https://github.com/cladam/tbdflow/commit/94a593f5d73e15339d6d44e449870e98b1f80f03)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`1adcd91`](https://github.com/cladam/tbdflow/commit/1adcd91fbdc5ccaf36d12c4d8da47aced09b05f4)
+- update README with pre-flight CI check [`90581f7`](https://github.com/cladam/tbdflow/commit/90581f7f74d273d40ad090c66f677e4e89fbed5e)
+- update README with a problem statement [`87d5497`](https://github.com/cladam/tbdflow/commit/87d549795d4aea398c4cbd4f726eedad683397df)
+- add BDD radar test using choreo [`fb5305d`](https://github.com/cladam/tbdflow/commit/fb5305d37e33602d17fc1992393e174304f227c8)
+- add installation pre-flight check to agent and skill [`5b48952`](https://github.com/cladam/tbdflow/commit/5b48952f7f441ba5e82e8b93ab6e695fe3dbe45e)
+
+
+# [0.23.0](https://github.com/cladam/tbdflow/releases/tag/v0.23.0) (2026-04-11)
+
+### ✨ Features
+- **(radar):** add overlap detection radar for social coding [`97111bb`](https://github.com/cladam/tbdflow/commit/97111bb41fdfc4b338a78b61de514f9d2a764189)
+
+### 🐛 Bug Fixes
+- **(radar):** use tbdflow commands in radar choreo test [`01d4304`](https://github.com/cladam/tbdflow/commit/01d430467345d186502f58eee6d9fe278be80ce5)
+
+### 🔨 Code Refactoring
+- **(tests):** use head-sha instead of git rev-parse or grepping output [`3dce239`](https://github.com/cladam/tbdflow/commit/3dce2398578b14a93f6186a383a6c71aa0904652)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`22c4cf9`](https://github.com/cladam/tbdflow/commit/22c4cf91800af51bb22e3326c862ccbd25636411)
+- **(radar):** add BDD choreo test for radar overlap detection [`431c919`](https://github.com/cladam/tbdflow/commit/431c919b4ed2a0a69d2bcc40b8ba6a1449532201)
+- add radar command to README [`101bec4`](https://github.com/cladam/tbdflow/commit/101bec4dc417b2036455464bcc0d3f82c5e5b42b)
+- add undo and radar to skill and agent docs [`2ffbb4d`](https://github.com/cladam/tbdflow/commit/2ffbb4db17c7d3b5b2c9bb2e4894cca2949c731a)
+
+
+# [0.22.2](https://github.com/cladam/tbdflow/releases/tag/v0.22.2) (2026-04-11)
+
+### ✨ Features
+- add small command for getting head sha [`c9d653f`](https://github.com/cladam/tbdflow/commit/c9d653f05be0b7d0541aa5ce2ce7727bf5b64cca)
+
+### 🔨 Code Refactoring
+- **(tests):** removed git log command from chor file [`7532fbf`](https://github.com/cladam/tbdflow/commit/7532fbf15ef4b942b6213455d65b91e6a7086213)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`1c8d086`](https://github.com/cladam/tbdflow/commit/1c8d086bb684fa150e6f6ebc0a549d505f32ded4)
+- update README again after undo [`2bc310a`](https://github.com/cladam/tbdflow/commit/2bc310a35c13cbd341356615cf286067bca1be3a)
+
+
+# [0.22.1](https://github.com/cladam/tbdflow/releases/tag/v0.22.1) (2026-04-11)
+
+### ⚠️ BREAKING CHANGES
+- **(api):** remove legacy endpoint [`6364a52`](https://github.com/cladam/tbdflow/commit/6364a5216898f401033eb4ddfad98145565676b1)
+- **(api):** remove legacy endpoint [`84b3ed0`](https://github.com/cladam/tbdflow/commit/84b3ed05e86c168424cb410ecb3b1e91cf72e189)
+
+### ✨ Features
+- **(undo):** add undo command [`18893a6`](https://github.com/cladam/tbdflow/commit/18893a6ca6c09ec7851e4c96cdee9f9de1a3e45b)
+- **(feedback):** add persona feedback report generator [`5b37d78`](https://github.com/cladam/tbdflow/commit/5b37d788ebdd0148f1c2dd5b46e70cda35235b41)
+- validate feat type [`d11ff97`](https://github.com/cladam/tbdflow/commit/d11ff97ec3c79893ef658cf02a3ade90903e843c)
+- validate feat type [`c01c664`](https://github.com/cladam/tbdflow/commit/c01c66429038eae1a9a6a747aa32192d0e6c51a0)
+- validate feat type [`3d7ac28`](https://github.com/cladam/tbdflow/commit/3d7ac288b2c265c38744cb2a632e9ce558d9a90b)
+- validate feat type [`308ee80`](https://github.com/cladam/tbdflow/commit/308ee808bd04d15d3364422cfb632f4ee710bca5)
+- validate feat type [`a85a485`](https://github.com/cladam/tbdflow/commit/a85a485b7ad0bcf81625e4457e41ce62736fc38c)
+- validate feat type [`a32b340`](https://github.com/cladam/tbdflow/commit/a32b34034d131ed31341c1ca2a9a19793f1a5df4)
+- validate feat type [`899b93f`](https://github.com/cladam/tbdflow/commit/899b93f9495eb6a656ba01ba08120acefd4fc0a6)
+- add feature a [`f2b7280`](https://github.com/cladam/tbdflow/commit/f2b7280708b725cb5e7660b9329259b144aa1476)
+- validate feat type [`ea7a526`](https://github.com/cladam/tbdflow/commit/ea7a5267cf621382a5e7e5f4e925c2dbb05d0c93)
+- **(api):** remove legacy endpoint [`6364a52`](https://github.com/cladam/tbdflow/commit/6364a5216898f401033eb4ddfad98145565676b1)
+- add user greeting [`7921b85`](https://github.com/cladam/tbdflow/commit/7921b855dfdfd76e7ebdb1ef9a62fe2c7de128b4)
+- validate feat type [`2dc2246`](https://github.com/cladam/tbdflow/commit/2dc22463e7782b78f2bf233d5e763f70fec2ab0e)
+- add feature a [`edfa43b`](https://github.com/cladam/tbdflow/commit/edfa43be9df606561f271a0e748302e8d6308225)
+- validate feat type [`5072e33`](https://github.com/cladam/tbdflow/commit/5072e33d07a7c1f3de98190b0a2dff59415e4be9)
+- add user greeting [`a677dc6`](https://github.com/cladam/tbdflow/commit/a677dc6e135f61caba0790048b4e1afe10bd44ca)
+- **(api):** remove legacy endpoint [`84b3ed0`](https://github.com/cladam/tbdflow/commit/84b3ed05e86c168424cb410ecb3b1e91cf72e189)
+- add user greeting [`9c7adb1`](https://github.com/cladam/tbdflow/commit/9c7adb16b0442046309164558e29d25d73a296cf)
+
+### 🐛 Bug Fixes
+- add undo chor file to the CI suite [`bca002a`](https://github.com/cladam/tbdflow/commit/bca002a17c2921b94088d3916fe27ed4ef57eb79)
+- is_ancestor_of now uses refs/heads/main instead of bare main [`93dc655`](https://github.com/cladam/tbdflow/commit/93dc6553a2408f2c36d9a5c78c3cc235ee303f2a)
+- fix so undo only do pull --ff-only to preserve existing commit sha [`8426c5c`](https://github.com/cladam/tbdflow/commit/8426c5c22b02936272a106b9f817621def7e0363)
+- fix so undo uses full hash in the bckground [`c264cb9`](https://github.com/cladam/tbdflow/commit/c264cb9b5b9d920b9d74c8bbe4b4a2e64fbc3ab7)
+- validate fix type [`3326749`](https://github.com/cladam/tbdflow/commit/3326749b561bcfc39ffb99a5cdc1d5e22af36984)
+- validate fix type [`265e986`](https://github.com/cladam/tbdflow/commit/265e98663b8f9d077d5113823593e9a4d44e8fe1)
+- validate fix type [`d1b02e8`](https://github.com/cladam/tbdflow/commit/d1b02e8f869f2dde038231fb1ce0106282eecb17)
+- validate fix type [`2f27b8b`](https://github.com/cladam/tbdflow/commit/2f27b8b9cc2671650752b9c9e7dfec62eeca0205)
+- **(core):** resolve crash on startup [`992c677`](https://github.com/cladam/tbdflow/commit/992c6771d2114973b22eea0ef553c570c570d392)
+- validate fix type [`f806d9e`](https://github.com/cladam/tbdflow/commit/f806d9e992b14472d2f110462995c765bb6a2a97)
+- **(auth):** resolve token expiry [`d899ee0`](https://github.com/cladam/tbdflow/commit/d899ee00e5d6cf4302dd2f7e7e00646039c182b2)
+- **(core):** resolve crash on startup [`7face46`](https://github.com/cladam/tbdflow/commit/7face46f94a2dea6a4719b162a5f2bbac6aab7e5)
+- validate fix type [`d1dbf58`](https://github.com/cladam/tbdflow/commit/d1dbf5851894f48ed9cfb6466f1f33ed513f0924)
+- **(auth):** resolve token expiry [`40d46a8`](https://github.com/cladam/tbdflow/commit/40d46a8693f78f62141d8ce75c0417771f3d0cdb)
+
+### 🚀 Performance Improvements
+- validate perf type [`477b901`](https://github.com/cladam/tbdflow/commit/477b9013f37438ecf1df4d65f239748128070724)
+- validate perf type [`4fe6ae9`](https://github.com/cladam/tbdflow/commit/4fe6ae9cb68db34393d6ce7f204a2ebaba266067)
+- validate perf type [`38be9f2`](https://github.com/cladam/tbdflow/commit/38be9f27a469cf75e387d57b057d425723fe9010)
+- validate perf type [`5bf0673`](https://github.com/cladam/tbdflow/commit/5bf0673f1765165215fc382d504503383db1221d)
+- validate perf type [`423db4a`](https://github.com/cladam/tbdflow/commit/423db4a2fc627dc89a33b8b9d4b36dbca1a06179)
+- validate perf type [`42c8a6a`](https://github.com/cladam/tbdflow/commit/42c8a6a5a0addbde7bf71b392da9ada9f44b36ca)
+
+### 🔨 Code Refactoring
+- validate refactor type [`806cdaf`](https://github.com/cladam/tbdflow/commit/806cdaf3981e4f5d877d3f72c603b2d74d7b1997)
+- validate refactor type [`37dfb75`](https://github.com/cladam/tbdflow/commit/37dfb75db1d99601382517ae99c4eec0917f045a)
+- validate refactor type [`fa3e93b`](https://github.com/cladam/tbdflow/commit/fa3e93b02b355a4877fb735aaead3f0309e40124)
+- validate refactor type [`328944e`](https://github.com/cladam/tbdflow/commit/328944ec0ceb56b603e7fea26486bf3bd34b6348)
+- validate refactor type [`c69dacb`](https://github.com/cladam/tbdflow/commit/c69dacbfc35b0984116db44011c1e50d2a006554)
+- validate refactor type [`f9a6561`](https://github.com/cladam/tbdflow/commit/f9a6561b113c1424481cf4d8fc782e73d031c526)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`b94d167`](https://github.com/cladam/tbdflow/commit/b94d167ed983651a2cc000ec4906b1b698710ff7)
+- **(release):** bump version and publish to GH Releases and crates.io [`1bf0384`](https://github.com/cladam/tbdflow/commit/1bf03845a6a3cdec3ddef2e7ed4bc21e4fb8543d)
+- update README [`b11a19a`](https://github.com/cladam/tbdflow/commit/b11a19a6dd86308f02d1a5f92872a6838ab778b8)
+- update README with latest undo command [`c50403d`](https://github.com/cladam/tbdflow/commit/c50403df3506d2c2c397942c3a76d227972d7956)
+- **(explorations):** add persona-driven exploratory UX agents [`c12372b`](https://github.com/cladam/tbdflow/commit/c12372b94dce7448e534e727815697157c44cc06)
+- **(personas):** add persona-driven UX feedback test suite Implements 'User Feedback as Code' using choreo persona simulations against the tbdflow CLI. Four personas, 37 tests total: - Nervous Newbie (13): help, dry-run, clear errors - TBD Purist (7): rapid commits, no prompts - Git-Flow Refugee (10): branch-commit-complete cycle - Monorepo Architect (7): scoped commits, changelog UX findings surfaced during development: - feature is valid branch type but not commit type - Default feature prefix is underscore not slash - tbdflow commit without flags fails gracefully w/o TTY Also adds reports/ to .gitignore. [`220505c`](https://github.com/cladam/tbdflow/commit/220505c3c136af34370ed9122a623a55c04fd0aa)
+- install tbdflow and configure git for choreo BDD tests [`70ee5b6`](https://github.com/cladam/tbdflow/commit/70ee5b67fb86f6ec17d25e53df69e00af69b7152)
+- **(choreo):** refactor BDD suite with four-layer model and task composition [`29c9925`](https://github.com/cladam/tbdflow/commit/29c992535403b8e51f6995d26803e41064dcb94e)
+- validate style type [`dcabead`](https://github.com/cladam/tbdflow/commit/dcabead962d31ef590a372f23832a781674b6fca)
+- validate ci type [`16c7e3e`](https://github.com/cladam/tbdflow/commit/16c7e3e8acd38cf24557f49eaff1ca1e1b59565c)
+- validate build type [`0e9765d`](https://github.com/cladam/tbdflow/commit/0e9765d1b6aadf3a6b5f6b122674a480bd953821)
+- validate test type [`23072a3`](https://github.com/cladam/tbdflow/commit/23072a3edddaf03c44e91ae0eb0f446c9649b7f5)
+- validate docs type [`2c98b4e`](https://github.com/cladam/tbdflow/commit/2c98b4e9bc931031033912a39fe035bfcd72e952)
+- validate chore type [`1797f96`](https://github.com/cladam/tbdflow/commit/1797f963b1e183a16c68bc324d0d7d9411ae3539)
+- validate style type [`5308785`](https://github.com/cladam/tbdflow/commit/53087850801a041ea19524736af3a2802945cf1a)
+- validate ci type [`388c107`](https://github.com/cladam/tbdflow/commit/388c10782cef1a8820344f43e656d9bdb82c6e1e)
+- validate build type [`5f9359c`](https://github.com/cladam/tbdflow/commit/5f9359c89b814ece425028e75829584768e39070)
+- validate test type [`e14a7d7`](https://github.com/cladam/tbdflow/commit/e14a7d7dfe6297e5748f5ddad1273b2516d0accd)
+- validate docs type [`17af810`](https://github.com/cladam/tbdflow/commit/17af8104af6568906e613717066bc594e463dbca)
+- validate chore type [`b8dd5b6`](https://github.com/cladam/tbdflow/commit/b8dd5b68fe3f608a4cb99945ca792bfbbc93de27)
+- validate style type [`38a49bf`](https://github.com/cladam/tbdflow/commit/38a49bf7918b9874fca3f44fb066a79d17901417)
+- validate ci type [`c8a12d7`](https://github.com/cladam/tbdflow/commit/c8a12d7daeb2fe5d5528cbb80388814f7aa80de3)
+- validate build type [`f7a7243`](https://github.com/cladam/tbdflow/commit/f7a7243d8f7628868c71a671e5a3804591018522)
+- validate test type [`5732b63`](https://github.com/cladam/tbdflow/commit/5732b63c649b0572ddf68442bcdd0e719944ea67)
+- validate docs type [`8205389`](https://github.com/cladam/tbdflow/commit/8205389c701fb991f76ff8b66f8daa1a610fecc9)
+- validate chore type [`621175d`](https://github.com/cladam/tbdflow/commit/621175d14108e8d1152a4e6386646705ec8e8126)
+- validate style type [`a179e3c`](https://github.com/cladam/tbdflow/commit/a179e3ca511c5cd4b62dc9a6c4f40e1ba16823d0)
+- validate ci type [`1265f46`](https://github.com/cladam/tbdflow/commit/1265f46d16f072775b728138b0907f2b8f23e051)
+- validate build type [`fb2f4c5`](https://github.com/cladam/tbdflow/commit/fb2f4c5f18a087e5e7085357c565a0bb0a853124)
+- validate test type [`03a8c01`](https://github.com/cladam/tbdflow/commit/03a8c01457504cccec9a5b311b1a376ea5c39a97)
+- validate docs type [`960fb03`](https://github.com/cladam/tbdflow/commit/960fb03c33effa35d43b5a1cb8a81f8a05a01fbd)
+- validate chore type [`202b265`](https://github.com/cladam/tbdflow/commit/202b265e21b4ff1d6c2dad06b9d580e7ba163851)
+- update readme [`e315ccc`](https://github.com/cladam/tbdflow/commit/e315ccc87f7bc1f0901be546e983d378d29b099d)
+- validate style type [`60e4f56`](https://github.com/cladam/tbdflow/commit/60e4f56cde5ee835786c5bc6c3e49c10f972d04a)
+- validate ci type [`6aa7653`](https://github.com/cladam/tbdflow/commit/6aa7653758142f6ce60c47a0dc0787aa573916fb)
+- validate build type [`306cc4a`](https://github.com/cladam/tbdflow/commit/306cc4aea1ed55eec6c2e7a2b6e6f70a209abfb0)
+- validate test type [`d626c7e`](https://github.com/cladam/tbdflow/commit/d626c7e2d8580ab3c2ecdb182b83e8874ac008f7)
+- validate docs type [`468b92a`](https://github.com/cladam/tbdflow/commit/468b92a2c4b4762cd30e83c8fe0943a2dc3828ca)
+- validate chore type [`552d8dc`](https://github.com/cladam/tbdflow/commit/552d8dc0e40742c3a817c4f72ebe2ef29e5c48a2)
+- update dependencies [`53f9e00`](https://github.com/cladam/tbdflow/commit/53f9e00ab3ae7fb9d09ca3d862d17c82bc6d6891)
+- update readme [`3082fb9`](https://github.com/cladam/tbdflow/commit/3082fb9717eb45be7f7748354c107ebc2b23dad7)
+- validate style type [`56ce533`](https://github.com/cladam/tbdflow/commit/56ce53312d1754c46dbd68e155ebfe70f5940130)
+- validate ci type [`b4f8e80`](https://github.com/cladam/tbdflow/commit/b4f8e80fa35cc8f627641f3293e83f8cca89e214)
+- validate build type [`d39bd9b`](https://github.com/cladam/tbdflow/commit/d39bd9bdb32c62f8f5fb2f674df7a12fe8595f3d)
+- validate test type [`c70ef8c`](https://github.com/cladam/tbdflow/commit/c70ef8c9bcfbf1240f8b6e4be98328c80c576a8e)
+- validate docs type [`e86dd5b`](https://github.com/cladam/tbdflow/commit/e86dd5ba067fb79733355e59a029fec0cc87991b)
+- validate chore type [`a599f87`](https://github.com/cladam/tbdflow/commit/a599f87ee3274e30ea34998a91c17772374a63df)
+- update dependencies [`c5d4ee8`](https://github.com/cladam/tbdflow/commit/c5d4ee83c4be9b2f7c7f2740b04559f164f42509)
+
+### Miscellaneous
+- validate revert type [`fd4760a`](https://github.com/cladam/tbdflow/commit/fd4760aa31989921f758bffacb5f75acbfa6070f)
+- validate revert type [`6970a92`](https://github.com/cladam/tbdflow/commit/6970a9242df94956ebc091599dabe40c7ac509e4)
+- validate revert type [`617dedf`](https://github.com/cladam/tbdflow/commit/617dedf9add3f7dc32d0036d3a8b7a606b8fcaf1)
+- validate revert type [`96276ae`](https://github.com/cladam/tbdflow/commit/96276ae7da982d743bb7f897e8e6d5410691adb1)
+- validate revert type [`fda7bf1`](https://github.com/cladam/tbdflow/commit/fda7bf1300352c58f5532b15e295486ec41dea7d)
+- validate revert type [`8fef72b`](https://github.com/cladam/tbdflow/commit/8fef72b6e82ee2c4675405e52671d177a92fe9be)
+
+
+# [0.21.0](https://github.com/cladam/tbdflow/releases/tag/v0.21.0) (2026-04-11)
+
+### ✨ Features
+- **(review):** add nuanced review labels and concern workflow [`ca14d97`](https://github.com/cladam/tbdflow/commit/ca14d970eb783525c987fd9e8d660754a9176e22)
+
+### 🐛 Bug Fixes
+- **(review):** remove CC @author from concern comments [`2e5fd46`](https://github.com/cladam/tbdflow/commit/2e5fd468095f1dc47c8f5c6500f8d235582e8be9)
+- **(review):** use email local-part for GitHub username in concern mentions [`863a4ae`](https://github.com/cladam/tbdflow/commit/863a4aed243a21f42675c9e1de03f469fc8df169)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`b5ba1f5`](https://github.com/cladam/tbdflow/commit/b5ba1f5f9be31e6cbdfb39eedfed9ab64ac5d3ae)
+
+
+# [0.20.0](https://github.com/cladam/tbdflow/releases/tag/v0.20.0) (2026-04-11)
+
+### ✨ Features
+- **(review):** auto-trigger reviews when commit matches rule patterns [`fa887a6`](https://github.com/cladam/tbdflow/commit/fa887a6405a83c06e4324516b6564569a4c65fec)
+- **(review):** add targeted review rules with file pattern matching [`308f7a1`](https://github.com/cladam/tbdflow/commit/308f7a11c115ed7555edda4c2dd1b57426b592e1)
+- **(review):** add github-workflow strategy with server-side NBR support [`a473f48`](https://github.com/cladam/tbdflow/commit/a473f486ea8b7327507913d816cffb551f22d770)
+
+### 🐛 Bug Fixes
+- **(docs):** fix formatting [`5fd40ff`](https://github.com/cladam/tbdflow/commit/5fd40ff3af835b538ec866881bd1d3c514f20eef)
+- remove old doc [`82d2c33`](https://github.com/cladam/tbdflow/commit/82d2c339aedf14e9ae45bd445c91670059eeab3b)
+- remove old examples [`d4456d4`](https://github.com/cladam/tbdflow/commit/d4456d4d935728aea386b08508acda8588400c00)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`bae7156`](https://github.com/cladam/tbdflow/commit/bae7156d50546f8c5a520d74f4c5632a00ac89f5)
+- **(review):** add targeted review rules documentation to README [`25a0842`](https://github.com/cladam/tbdflow/commit/25a0842da66dd519b4eda99658bfdeed9873f882)
+- add a section about CI in no_PRs document [`3744c82`](https://github.com/cladam/tbdflow/commit/3744c82aeb99fdf309d5258f5649ce289663daba)
+- add tbdflow stance on PRs [`7282390`](https://github.com/cladam/tbdflow/commit/728239036d51737ba1cd2e21950bf9f50f67f633)
+- **(changelog):** update CHANGELOG.md with latest releases [`e15edd8`](https://github.com/cladam/tbdflow/commit/e15edd81162207d15d8ddb961179c8ce0094efe0)
+
+
 # [0.19.0](https://github.com/cladam/tbdflow/releases/tag/v0.19.0) (2026-02-17)
 
 ### ✨ Features
