@@ -1,8 +1,9 @@
 use crate::config::Config;
 use crate::git::GitError;
-use crate::{commands, config, git};
+use crate::{commands, config, git, intent};
 use anyhow::Result;
 use colored::Colorize;
+use std::path::PathBuf;
 
 pub fn get_default_branch_name(config: &Config) -> &str {
     config.main_branch_name.as_str()
@@ -113,6 +114,14 @@ pub fn handle_complete(
 
     git::delete_local_branch(&branch_name, verbose, dry_run)?;
     git::delete_remote_branch(&branch_name, verbose, dry_run)?;
+
+    // Cleanup the intent log after merging back to trunk
+    let git_root = PathBuf::from(git::get_git_root(verbose, dry_run)?);
+    if intent::load_intent_log(&git_root)?.is_some() {
+        intent::cleanup_intent_log(&git_root)?;
+        println!("{}", "Intent log cleared after branch completion.".dimmed());
+    }
+
     println!(
         "\n{}",
         format!(

@@ -5,6 +5,7 @@ pub mod commands;
 pub mod commit;
 pub mod config;
 pub mod git;
+pub mod intent;
 pub mod radar;
 pub mod review;
 pub mod wizard;

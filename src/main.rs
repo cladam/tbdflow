@@ -11,9 +11,12 @@ use colored::Colorize;
 use std::io;
 use std::io::Write;
 use tbdflow::cli::Commands;
+use tbdflow::cli::TaskAction;
 use tbdflow::commit::CommitParams;
 use tbdflow::git::get_current_branch;
-use tbdflow::{branch, changelog, cli, commands, commit, config, git, radar, review, wizard};
+use tbdflow::{
+    branch, changelog, cli, commands, commit, config, git, intent, radar, review, wizard,
+};
 
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
@@ -232,6 +235,44 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Undo { sha, no_push } => {
             commands::handle_undo(&sha, no_push, verbose, dry_run, &config)?;
+        }
+        Commands::Note { message, show } => {
+            let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
+            let current_branch = git::get_current_branch(verbose, dry_run)?;
+            if show {
+                intent::show_intent_log(&git_root, Some(&current_branch))?;
+            } else if let Some(msg) = message {
+                intent::add_note(&git_root, &msg, &current_branch)?;
+                println!("{}", format!("📝 Note recorded: \"{}\"", msg).green());
+            } else {
+                // No message and no --show: show the log by default
+                intent::show_intent_log(&git_root, Some(&current_branch))?;
+            }
+        }
+        Commands::Task(action) => {
+            let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
+            let current_branch = git::get_current_branch(verbose, dry_run)?;
+            match action {
+                TaskAction::Start { description } => {
+                    intent::start_task(&git_root, &description, &current_branch)?;
+                    println!(
+                        "{}",
+                        format!("🎯 Task started: \"{}\"", description).green()
+                    );
+                    println!(
+                        "{}",
+                        "Use 'tbdflow +' or 'tbdflow note' to log your thoughts as you work."
+                            .dimmed()
+                    );
+                }
+                TaskAction::Show => {
+                    intent::show_intent_log(&git_root, Some(&current_branch))?;
+                }
+                TaskAction::Clear => {
+                    intent::cleanup_intent_log(&git_root)?;
+                    println!("{}", "Intent log cleared.".green());
+                }
+            }
         }
         Commands::Review {
             sha,

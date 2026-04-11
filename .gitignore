@@ -15,3 +15,7 @@
 # Rust
 target/
 reports/
+
+# tbdflow intent log (local-only, never committed)
+.tbdflow-intent.json
+

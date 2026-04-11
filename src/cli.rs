@@ -209,6 +209,44 @@ pub enum Commands {
         #[arg(long, default_value_t = false)]
         no_push: bool,
     },
+    /// Logs an intent note (breadcrumb) during development.
+    /// Notes are captured in a local .tbdflow-intent.json and included
+    /// in the next commit message as an Intent Log.
+    #[command(
+        name = "note",
+        aliases = ["n", "+"],
+        after_help = "INTENT LOG — CAPTURE THE \"WHY\" BEFORE IT'S LOST:\n  \
+    Use this command to leave breadcrumbs while you work.\n  \
+    Notes are appended to .tbdflow-intent.json (never committed)\n  \
+    and automatically included in your next commit message.\n\n\
+    SHORTCUTS:\n  \
+    tbdflow n     Short alias\n  \
+    tbdflow +     Append alias\n\n\
+    EXAMPLES:\n  \
+    tbdflow + \"trying factory pattern\"\n  \
+    tbdflow n \"factory too complex, switching to trait\"\n  \
+    tbdflow note --show"
+    )]
+    Note {
+        /// The note message to record.
+        message: Option<String>,
+        /// Show the current intent log instead of adding a note.
+        #[arg(long, default_value_t = false)]
+        show: bool,
+    },
+    /// Manages the current task context for the intent log.
+    #[command(
+        name = "task",
+        subcommand,
+        after_help = "TASK CONTEXT — NAME YOUR WORK:\n  \
+    Start a task to give your intent notes a heading.\n  \
+    The task name appears in the Intent Log section of your commit.\n\n\
+    EXAMPLES:\n  \
+    tbdflow task start \"Refactor auth logic\"\n  \
+    tbdflow task show\n  \
+    tbdflow task clear"
+    )]
+    Task(TaskAction),
     /// Manages non-blocking post-commit reviews for trunk-based development.
     #[command(
         name = "review",
@@ -257,4 +295,18 @@ pub enum Commands {
         #[arg(long, value_delimiter = ',')]
         reviewers: Option<Vec<String>>,
     },
+}
+
+/// Sub-actions for the `tbdflow task` command.
+#[derive(Subcommand, Debug)]
+pub enum TaskAction {
+    /// Start a new task context for the intent log.
+    Start {
+        /// A short description of the task (e.g. "Refactor auth logic").
+        description: String,
+    },
+    /// Show the current task and intent log.
+    Show,
+    /// Clear the current intent log (removes .tbdflow-intent.json).
+    Clear,
 }

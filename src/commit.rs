@@ -1,5 +1,5 @@
 use crate::config::{Config, DodConfig};
-use crate::{config, git, radar, review};
+use crate::{config, git, intent, radar, review};
 use anyhow::Result;
 use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect};
@@ -289,10 +289,23 @@ pub fn handle_commit(
     };
 
     if let Some(todo_footer) = todo_footer_result? {
+        let git_root = PathBuf::from(git::get_git_root(verbose, dry_run)?);
+
+        // Read the intent log (if any) for inclusion in the commit body.
+        let intent_log = intent::load_intent_log(&git_root)?;
+        let intent_section = intent_log
+            .as_ref()
+            .and_then(|log| intent::format_for_commit(log));
+
         let mut commit_message = header;
         if let Some(body_text) = params.body {
             commit_message.push_str("\n\n");
             commit_message.push_str(&body_text);
+        }
+        // Append the Intent Log section (before breaking change / refs / TODO)
+        if let Some(intent_text) = &intent_section {
+            commit_message.push_str("\n\n");
+            commit_message.push_str(intent_text);
         }
         if let Some(desc) = params.breaking_description {
             commit_message.push_str(&format!("\n\nBREAKING CHANGE: {}", desc));
@@ -307,7 +320,6 @@ pub fn handle_commit(
             format!("Commit message will be:\n---\n{}\n---", commit_message).blue()
         );
 
-        let git_root = PathBuf::from(git::get_git_root(verbose, dry_run)?);
         if verbose {
             let current_dir = std::env::current_dir()?;
             println!("Git root: {:?}", git_root);
@@ -337,6 +349,12 @@ pub fn handle_commit(
                 "\n{}",
                 "Successfully committed and pushed changes to main.".green()
             );
+
+            // Cleanup the intent log after successful push to trunk
+            if intent_section.is_some() {
+                intent::cleanup_intent_log(&git_root)?;
+                println!("{}", "Intent log consumed and cleared.".dimmed());
+            }
 
             // Auto-trigger review if rules match the changed files
             let commit_hash = git::get_head_commit_hash(verbose, dry_run)?;
