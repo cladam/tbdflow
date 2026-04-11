@@ -72,7 +72,7 @@ Think of it as a **workflow assistant** that wraps the repeatable parts of your 
    You don't need to remember `pull --rebase` then commit then push then tag then delete branch. The CLI does.
 
 3. **The TBD path is the easy path.**
-   For 80% of your day, `tbdflow` keeps you in the groove. For the other 20%, Git is right there.
+   For 80% of your day, `tbdflow` keeps you in the flow. For the other 20%, Git is right there.
 
 ### Installation
 
@@ -630,8 +630,8 @@ tbdflow n <message>                # Shorthand alias
 
 **Options (`note`):**
 
-| Flag   | Description                                         | Required |
-|--------|-----------------------------------------------------|----------|
+| Flag   | Description                                          | Required |
+|--------|------------------------------------------------------|----------|
 | --show | Show the current intent log instead of adding a note | No       |
 
 **Examples:**
@@ -726,7 +726,7 @@ ci_check:
 
 | Trunk CI status | What happens                                            |
 |-----------------|---------------------------------------------------------|
-| Green           | Silent proceed, prints a brief confirmation            |
+| Green           | Silent proceed, prints a brief confirmation             |
 | Failed          | Warns and prompts: "Continue with sync? (y/N)"          |
 | Pending         | Informs and prompts: "Pull anyway? (y/N)"               |
 | Unknown         | Proceeds silently (e.g. `gh` not installed, no CI runs) |
