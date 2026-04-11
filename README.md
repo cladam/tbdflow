@@ -14,7 +14,7 @@
 
 ## The problem
 
-Many teams say they practise Trunk-Based Development but in day2day reality things deviate:
+Many teams say they practise Trunk-Based Development but in day-to-day reality things deviate:
 
 - **Commit messages become inconsistent.** Everyone formats them a little differently.
 - **Branches that were meant to live for hours** stick around for days.
@@ -22,20 +22,17 @@ Many teams say they practise Trunk-Based Development but in day2day reality thin
 - **Two people change the same file** and nobody notices until a push fails.
 - **The Definition of Done exists,** but it lives in a document no one looks at during the work.
 
-None of this breaks the build immediately, but it makes integration harder than it needs to be, and the trunk stops
-feeling safe to work in.
+None of this breaks the build immediately. But over time, the trunk stops feeling safe to work in.
 
 ## The solution
 
-`tbdflow` is a lightweight CLI that **codifies your team's Trunk-Based workflow** and makes the safe path the easiest
-path.
+`tbdflow` is a small CLI that **codifies your team's Trunk-Based workflow** so the safe path is always the easiest path.
 
 ```bash
 cargo install tbdflow
 ```
 
-`tbdflow` is a lightweight command-line tool that helps you (and your team) stay in flow with Trunk-Based Development (
-TBD).
+It handles the ceremony (pulling, rebasing, linting, pushing) so you can stay focused on the work.
 
 ![A terminal running the command tbdflow](docs/commit-demo.gif "A demo of tbdflow running commit-to-main commands")
 
@@ -48,43 +45,34 @@ TBD).
 | "Did I pull before pushing?"   | `tbdflow sync` + auto-rebase before every commit to main                   |
 | Pulling a broken trunk         | `tbdflow sync` pre-flight CI check warns before pulling a red build        |
 | Merge conflicts you didn't see | `tbdflow radar` shows who else is touching the same files, before you push |
+| "Why was this done?"           | `tbdflow task` + `tbdflow note` captures intent before it's lost           |
 
 ## Philosophy
 
-This tool is built around a specific philosophy of Trunk-Based Development:
-
-* **Main is the default.** The `commit` command is your everyday go-to. It automates pulling the latest changes,
-  committing, and pushing directly to `main`, promoting small, frequent integrations.
-* **Branches are the exception.** While branches are supported, they’re treated as short-lived exceptions and not the
-  norm.
-* **Cleanup is automatic.** The complete command enforces branch short-livedness by merging and automatically tagging (
-  release) and deleting completed branches, helping keep your repo tidy.
-* **Conventional Commits encouraged.** Commit messages
-  follow [Conventional Commits](https://www.conventionalcommits.org/) for clarity and consistency.
-* **Collaboration is visible.** The `radar` command shows who else is touching the same files, turning potential merge
-  conflicts into conversations before they become problems.
+* **Main is where the work happens.** `tbdflow commit` is your daily driver: pull, commit, push, done. Small and
+  frequent beats large and delayed.
+* **Branches are short-lived guests.** They're supported, but they should check out quickly.
+* **Cleanup shouldn't be your job.** Completed branches get merged, tagged (for releases), and deleted automatically.
+* **Commit messages should tell a story.** [Conventional Commits](https://www.conventionalcommits.org/) keep the
+  history readable for humans and machines alike.
+* **Collaboration should be visible.** `tbdflow radar` shows who else is touching the same files, turning silent
+  conflicts into early conversations.
 
 ### Why not just use Git?
 
-This CLI isn’t a replacement for Git. You’ll still reach for raw `git` when doing advanced work like rebasing,
-cherry-picking, or running `git bisect`.
+You absolutely should. `tbdflow` isn't a replacement. You'll still reach for raw `git` when rebasing, cherry-picking,
+or bisecting.
 
-This tool is as a **workflow assistant**, `tbdflow` encapsulates a repeatable, opinionated process to support your
-day-to-day development.
+Think of it as a **workflow assistant** that wraps the repeatable parts of your day:
 
-It offers three main benefits:
+1. **Everyone does it the same way.**
+   Commits, branches, and releases follow the same steps every time. No more "how did you format that commit again?"
 
-1. **Consistency across the team**
-   Everyone follows the same steps for common tasks. Commits, branches, and releases are handled the same way every
-   time, keeping your Git history clean and predictable.
+2. **Less to keep in your head.**
+   You don't need to remember `pull --rebase` then commit then push then tag then delete branch. The CLI does.
 
-2. **Less to remember**
-   No need to recall the exact flags or sequences (like `pull --rebase`, `merge --no-ff`, or commit message formats).
-   The CLI handles that, so you can stay focused on writing code.
-
-3. **It supports "the TBD way"**
-   This tool makes the preferred approach easy by providing a smooth, safe, and efficient path for 80% of everyday
-   tasks. For the other 20%, you can always use Git directly.
+3. **The TBD path is the easy path.**
+   For 80% of your day, `tbdflow` keeps you in the groove. For the other 20%, Git is right there.
 
 ### Installation
 
@@ -92,14 +80,11 @@ You need [Rust and Cargo](https://www.rust-lang.org/tools/install) installed.
 
 #### Installing from crates.io
 
-The easiest way to install `tbdflow` is to download it from [crates.io](https://crates.io/crates/tbdflow). You can do it
-using the following command:
-
 ```bash
 cargo install tbdflow
 ```
 
-If you want to update `tbdflow` to the latest version, execute the following command:
+To update to the latest version:
 
 ```bash
 tbdflow update
@@ -107,7 +92,7 @@ tbdflow update
 
 #### Building from source
 
-Alternatively you can build `tbdflow` from source using Cargo:
+Or build it yourself:
 
 ```bash
 git clone https://github.com/cladam/tbdflow.git
@@ -117,13 +102,11 @@ sudo cargo install --path . --root /usr/local
 
 ### Monorepo Support
 
-`tbdflow` is "monorepo-aware." It understands that in a monorepo, you often want commands to be scoped to a specific
-project or subdirectory.
+If you work in a monorepo, `tbdflow` understands that not every commit should touch every directory.
 
-When you run `tbdflow commit`, `tbdflow sync` or `tbdflow status` from the root of a configured monorepo, the tool will
-intelligently ignore project subdirectories, making sure you only commit changes to root-level files (like `README.md`,
-`LICENSE`, or `CI configuration`). When run from within a project subdirectory, the commands are automatically scoped to
-just that directory (**N.B.** you need to run `tbdflow init` from within the subdirectory for this to work).
+When you run `tbdflow commit`, `tbdflow sync` or `tbdflow status` from the repo root, only root-level files are
+affected. Project subdirectories are left alone. Run the same commands from inside a project directory and they
+automatically scope to that directory. (Run `tbdflow init` in each subdirectory to set this up.)
 
 This is configured in your root `.tbdflow.yml` file:
 
@@ -186,10 +169,10 @@ This file controls the interactive Definition of Done checklist for the commit c
 
 #### The Definition of Done (DoD) Check
 
-To move beyond just automating process, `tbdflow` integrates an _optional_ pre-commit quality check. If a `.dod.yml`
-file
-is present in your repository, the commit command will present an interactive checklist to ensure your work meets the
-team's agreed-upon standards.
+Most teams have a Definition of Done. Most of the time, it lives in a wiki nobody opens mid-task.
+
+If you add a `.dod.yml` to your repo, `tbdflow commit` will surface the checklist right when it matters, before you
+push. It's optional, non-blocking, and stays out of your way when you don't need it.
 
 **Example** `.dod.yml`:
 
@@ -202,14 +185,13 @@ checklist:
   - "Relevant documentation (code comments, READMEs) is updated."
 ```
 
-If you try to proceed without checking all items, the tool will offer to add a TODO list to your commit message footer,
-ensuring the incomplete work is tracked directly in your Git history.
+If you skip items, `tbdflow` offers to add a TODO list to the commit footer so the incomplete work is tracked in
+Git history, not lost in a chat thread.
 
 #### Commit Message Linting
 
-If a `.tbdflow.yml` file is present and contains a lint section, the commit command will automatically validate your
-commit message against the configured rules before the DoD check. This provides immediate feedback on stylistic and
-structural conventions.
+Your `.tbdflow.yml` can include linting rules that catch issues before the commit happens: subject too long, wrong
+type, missing scope. Quick feedback, no surprises in the log later.
 
 **Default linting rules:**
 
@@ -243,6 +225,58 @@ lint:
     max_line_length: 80
     leading_blank: true
 ```
+
+#### Intent Log
+
+You tried three approaches before settling on the final one. By the time you commit, the first two are gone. From
+your memory and from the diff. A week later, a reviewer suggests one of the approaches you already rejected.
+
+The Intent Log fixes this. While you work, you drop one-line breadcrumbs. At commit time, they're woven into the
+message body automatically. Zero context-switching, full context for whoever reads the commit next.
+
+**Start a task (optional):**
+
+```bash
+tbdflow task start "Refactor auth logic"
+```
+
+**Leave notes as you work:**
+
+```bash
+tbdflow note "tried factory pattern, felt too verbose"
+tbdflow + "switching to a simple trait implementation"
+tbdflow n "trait approach is cleaner, keeping it"
+```
+
+The `note` command has two shorthand aliases: `+` and `n`.
+
+**Notes are consumed at commit time:**
+
+When you run `tbdflow commit`, the notes are appended to the commit body automatically:
+
+```
+feat(auth): implement trait-based auth logic
+
+Intent Log:
+- tried factory pattern, felt too verbose
+- switching to a simple trait implementation
+- trait approach is cleaner, keeping it
+```
+
+**Other task commands:**
+
+```bash
+tbdflow task show    # Show the current task and notes
+tbdflow task clear   # Discard the current intent log
+```
+
+**Branch awareness:**
+
+The intent log tracks which branch it belongs to. If you switch branches, tbdflow warns you about the stale log so
+notes from one task don't leak into another commit.
+
+**File:** Notes are stored locally in `.tbdflow-intent.json` (git-ignored, never committed). The file is deleted
+automatically after a successful push to trunk or after `tbdflow complete`.
 
 ---
 
@@ -577,7 +611,49 @@ review:
 
 3. Run `tbdflow review --trigger` and the workflow handles the rest
 
-### 6. `radar`
+### 6. `task` and `note`
+
+Think of these as your development scratch pad. Start a task, jot down what you're trying and why, and let the
+commit pick it all up when you're ready.
+
+**Usage:**
+
+```bash
+tbdflow task start <description>   # Start a named task
+tbdflow task show                  # Show current task and notes
+tbdflow task clear                 # Discard the intent log
+
+tbdflow note <message>             # Log a note
+tbdflow + <message>                # Shorthand alias
+tbdflow n <message>                # Shorthand alias
+```
+
+**Options (`note`):**
+
+| Flag   | Description                                         | Required |
+|--------|-----------------------------------------------------|----------|
+| --show | Show the current intent log instead of adding a note | No       |
+
+**Examples:**
+
+```bash
+# Start a task and leave breadcrumbs
+tbdflow task start "Refactor auth module"
+tbdflow + "tried decorator pattern, too much boilerplate"
+tbdflow + "simple middleware chain works better"
+
+# View what you've captured
+tbdflow task show
+
+# Notes are automatically included when you commit
+tbdflow commit -t refactor -s auth -m "simplify auth middleware"
+# The commit body will contain:
+#   Intent Log:
+#   - tried decorator pattern, felt too verbose
+#   - simple middleware chain works better
+```
+
+### 7. `radar`
 
 Scans active remote branches for overlapping work that may cause merge conflicts with your local changes. This is the
 **social coding safety net** for Trunk-Based Development, it makes the invisible visible by showing who else is
@@ -602,13 +678,13 @@ tbdflow radar
 **Example output:**
 
 ```
-⚠️  OVERLAP DETECTED with 1 active branch(es):
+OVERLAP DETECTED with 1 active branch(es):
 
   feat/API-42-user-auth (by @alice, 2 commits ahead)
-  ├── src/auth/handler.rs    ⚡ LINE OVERLAP
-  └── src/auth/middleware.rs  📁 SAME FILE
+  ├── src/auth/handler.rs    LINE OVERLAP
+  └── src/auth/middleware.rs  SAME FILE
 
-  ✅ 3 other active branch(es) have no overlap with your changes.
+  3 other active branch(es) have no overlap with your changes.
 
 Hint: Coordinate with the overlapping author(s) before pushing.
 ```
@@ -634,7 +710,7 @@ radar:
     - "CHANGELOG.md"
 ```
 
-### 7. Pre-flight CI check
+### 8. Pre-flight CI check
 
 When enabled, `tbdflow sync` checks the CI status of the trunk (via the `gh` CLI) **before** pulling.
 If the trunk is red or pending, you get a prompt instead of blindly pulling a broken build.
@@ -650,17 +726,16 @@ ci_check:
 
 | Trunk CI status | What happens                                            |
 |-----------------|---------------------------------------------------------|
-| Green           | Silent proceed — prints a brief "✓" confirmation        |
+| Green           | Silent proceed, prints a brief confirmation            |
 | Failed          | Warns and prompts: "Continue with sync? (y/N)"          |
 | Pending         | Informs and prompts: "Pull anyway? (y/N)"               |
 | Unknown         | Proceeds silently (e.g. `gh` not installed, no CI runs) |
 
 > Requires the [GitHub CLI](https://cli.github.com/) (`gh`) to be installed and authenticated.
 
-### 8. Utility commands
+### 9. Utility commands
 
-`tbdflow` has a couple of commands that can be beneficial to use but they are not part of the workflow, they are for
-inspecting the state of the repository.
+Not part of the core workflow, but handy for checking on things:
 
 **Examples:**
 
@@ -710,26 +785,17 @@ tbdflow undo <sha> [options]
 tbdflow undo abc1234
 
 # Revert locally without pushing (e.g. to inspect the result first)
-
 tbdflow undo abc1234 --no-push
 
 # Preview what would happen without making changes
-
 tbdflow --dry-run undo abc1234
 ```
 
-#### Preview what would happen without making changes
-
-```bash
-tbdflow --dry-run undo abc1234
-```
-
-### 8. Advanced Usage
+### 10. Advanced Usage
 
 #### Shell Completion
 
-To make `tbdflow` even faster to use, you can enable shell completion. Add one of the following lines to your shell's
-configuration file.
+Add tab-completion to your shell:
 
 For Zsh (`~/.zshrc`):
 
@@ -749,9 +815,7 @@ For Fish (`~/.config/fish/config.fish`):
 tbdflow generate-completion fish | source
 ```
 
-#### Man Page Generation
-
-You can generate a man page for `tbdflow` by running the following command:
+#### Man Page
 
 ```bash
 tbdflow generate-man-page > tbdflow.1 && man tbdflow.1
