@@ -36,14 +36,16 @@ Use this skill when the user wants to:
 - Sync with trunk or check repository status
 - Merge completed work back to `main`
 - See what has changed since the last release
+- Log a design decision, failed attempt, or reasoning pivot
 
 Typical trigger phrases include:
 
-- “Start working on…”
-- “Commit this”
-- “Merge my work”
-- “Sync me up”
-- “What’s new?”
+- "Start working on…"
+- "Commit this"
+- "Merge my work"
+- "Sync me up"
+- "What's new?"
+- "Note that…" / "Log this decision"
 
 ---
 
@@ -434,7 +436,67 @@ The agent should prefer generating valid inputs over relying on linter errors.
 
 ---
 
-### 7. Changelog Generation
+### 7. Breadcrumbs — Low-Friction Intent Logging
+
+**Intent**
+Capture architectural decisions, failed attempts, or logic pivots during the development process before the final commit.
+
+Breadcrumbs provide a lightweight way to document the *why* behind code changes — the reasoning that would otherwise be lost between keystrokes.
+
+**Command**
+
+```bash
+tbdflow + "<breadcrumb_message>"
+```
+
+**Decision Rules**
+
+* Use this whenever you pivot your approach (e.g. switching from a Factory to a Trait)
+* Use this to document a failed attempt that explains why the final code looks the way it does
+* Use this to explain complex logic, patterns, or non-obvious trade-offs
+* Do **not** use this for trivial changes (typos, formatting)
+* These notes are automatically appended to the next `tbdflow commit` body
+* Multiple breadcrumbs accumulate and are included in order
+
+**Decision Rules: The Intent Log**
+
+Breadcrumbs are not optional decoration — they are the agent's **audit trail**.
+
+* **Log your struggle**: if you try an approach and it fails or feels wrong, log it with `tbdflow +`.
+  This gives the human auditor context on what you *didn't* do and why.
+* **Vibe-coding transparency**: do not just push a final "perfect" diff.
+  Use breadcrumbs to show the evolution of the logic — the dead ends, the trade-offs, the pivots.
+* **Minimum expectation**: before committing a complex refactor or non-trivial feature, there should be
+  at least 1–2 breadcrumbs explaining the major structural decisions.
+* **Observability over perfection**: a clean diff with zero context is harder to review than a
+  slightly messier one with a clear reasoning trail.
+
+> *"Velocity is nothing without observability. The trunk is live, the struggle is logged, the audit is parallel."*
+
+**Agent Behaviour**
+
+* **Think out loud**: use `tbdflow +` to document your chain of thought during development
+* Prefer clarification over assumptions for destructive actions
+* Default to the safest operation that preserves trunk integrity
+* Treat breadcrumbs as a first-class part of the workflow, not an afterthought
+
+**Examples**
+
+| Scenario                           | Command                                                                                                |
+|------------------------------------|--------------------------------------------------------------------------------------------------------|
+| Switching architectural pattern    | `tbdflow + "switched from Factory to Trait: Factory felt over-engineered for this scope"`              |
+| Documenting a rejected edge-case   | `tbdflow + "decided against async here: the overhead outweighs the benefits for this sync task"`       |
+| Explaining complex regex/logic     | `tbdflow + "using lookahead in regex to handle nested brackets without recursion"`                     |
+
+**Use This When**
+
+* The agent or user makes a non-trivial design decision mid-flight
+* A failed approach informs the final implementation
+* The commit message alone would not explain the reasoning
+
+---
+
+### 8. Changelog Generation
 
 **Intent**
 Summarise changes using structured commit history.
@@ -447,7 +509,7 @@ tbdflow changelog [--unreleased] [--from <ref>]
 
 **Decision Rules**
 
-* Use `--unreleased` when the user asks “What’s new?”
+* Use `--unreleased` when the user asks "What's new?"
 * Use `--from <ref>` when comparing against a specific tag or version
 
 **Use This When**
@@ -468,15 +530,16 @@ tbdflow changelog [--unreleased] [--from <ref>]
 
 ## Examples
 
-| User Input                                    | Action                                                       |
-|-----------------------------------------------|--------------------------------------------------------------|
-| "Commit this as a bug fix for login."         | `tbdflow commit -t fix -s login -m "resolve timeout issue"`  |
-| "Start working on API-456: Add user profile." | `tbdflow branch -t feat -n add-user-profile --issue API-456` |
-| "Merge my current work back to main."         | `tbdflow complete -t <current_type> -n <current_name>`       |
-| "Sync me up."                                 | `tbdflow sync`                                               |
-| "Anyone else working on this file?"           | `tbdflow radar`                                              |
-| "Revert commit abc1234, it broke the build."  | `tbdflow undo abc1234`                                       |
-| "What changed since the last version?"        | `tbdflow changelog --unreleased`                             |
+| User Input                                    | Action                                                                                              |
+|-----------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| "Commit this as a bug fix for login."         | `tbdflow commit -t fix -s login -m "resolve timeout issue"`                                        |
+| "Start working on API-456: Add user profile." | `tbdflow branch -t feat -n add-user-profile --issue API-456`                                       |
+| "Merge my current work back to main."         | `tbdflow complete -t <current_type> -n <current_name>`                                             |
+| "Sync me up."                                 | `tbdflow sync`                                                                                     |
+| "Anyone else working on this file?"           | `tbdflow radar`                                                                                    |
+| "Revert commit abc1234, it broke the build."  | `tbdflow undo abc1234`                                                                             |
+| "I switched from Factory to Trait."           | `tbdflow + "switched from Factory to Trait: Factory felt over-engineered for this scope"`           |
+| "What changed since the last version?"        | `tbdflow changelog --unreleased`                                                                   |
 
 ---
 

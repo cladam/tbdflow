@@ -98,6 +98,7 @@ You MUST:
 * Treat `tbdflow` as the source of truth
 * Prefer prevention over recovery
 * Surface constraints before executing risky actions
+* Log reasoning with `tbdflow +` — observability is not optional
 
 ---
 
@@ -146,7 +147,17 @@ When a user wants to start a task:
 3. **Work**
    Files are modified by the user or agent.
 
-4. **Commit**
+4. **Breadcrumb** *(as needed during step 3)*
+   Log design decisions, failed attempts, or pivots as they happen:
+   ```bash
+   tbdflow + "<reasoning>"
+   ```
+
+    * Drop breadcrumbs whenever you change approach or reject an alternative
+    * Before a complex commit, there should be at least 1–2 breadcrumbs explaining major decisions
+    * Do not wait until commit time — log as you go
+
+5. **Commit**
    First sync, then commit:
    ```bash
    tbdflow sync
@@ -157,8 +168,9 @@ When a user wants to start a task:
     * Staging is handled automatically by the skill
     * No manual staging steps are required
     * When using `--body`, keep under 80 chars per line; avoid literal newlines
+    * Accumulated breadcrumbs are automatically appended to the commit body
 
-5. **Complete**
+6. **Complete**
    Invoke the `tbdflow` skill to merge back to trunk and clean up the branch.
 
 ---
@@ -226,6 +238,9 @@ If a merge conflict occurs:
 | "Revert that commit"               | Invoke `tbdflow undo <sha>`                    |
 | "Trunk is broken"                  | Invoke `tbdflow undo <sha>`                    |
 | "Undo abc1234"                     | Invoke `tbdflow undo abc1234`                  |
+| "Note: switched to Trait pattern"  | Invoke `tbdflow + "<message>"`                 |
+| "Log this decision"                | Invoke `tbdflow + "<message>"`                 |
+| "I tried X but it didn't work"     | Invoke `tbdflow + "<message>"`                 |
 | "Generate release notes"           | Invoke `tbdflow changelog`                     |
 | "What's new?"                      | Invoke `tbdflow changelog --unreleased`        |
 | "What changed since last version?" | Invoke `tbdflow changelog --unreleased`        |
