@@ -369,12 +369,12 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
         let ci_status = git::check_ci_status(&config.main_branch_name, verbose, dry_run);
         match ci_status {
             git::CiStatus::Green => {
-                println!("{}", "Pre-flight CI check: trunk is green ✓".green());
+                println!("{}", "Pre-flight CI check: trunk is green.".green());
             }
             git::CiStatus::Failed => {
                 println!(
                     "\n{}",
-                    "⚠ The trunk is currently failing CI. Pulling now might break your local build."
+                    "The trunk is currently failing CI. Pulling now might break your local build."
                         .bold()
                         .yellow()
                 );

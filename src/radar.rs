@@ -241,7 +241,7 @@ pub fn handle_radar(verbose: bool, dry_run: bool, config: &Config) -> Result<()>
         println!(
             "{}",
             format!(
-                "⚠️  OVERLAP DETECTED with {} active branch(es):\n",
+                "OVERLAP DETECTED with {} active branch(es):\n",
                 result.overlaps.len()
             )
             .yellow()
@@ -360,7 +360,7 @@ pub fn quick_scan_for_sync(
     }
 
     let summary = format!(
-        "⚠️  Radar: {}\n   Run 'tbdflow radar' for details.",
+        "Radar: {}\n   Run 'tbdflow radar' for details.",
         lines.join("\n")
     );
 
@@ -384,10 +384,7 @@ pub fn check_before_commit(config: &Config, verbose: bool, dry_run: bool) -> Res
     }
 
     // Print warnings
-    println!(
-        "\n{}",
-        "⚠️  Radar detected overlapping work:".yellow().bold()
-    );
+    println!("\n{}", "Radar detected overlapping work:".yellow().bold());
     for overlap in &result.overlaps {
         for file_overlap in &overlap.overlapping_files {
             let indicator = match &file_overlap.overlap_kind {

@@ -113,7 +113,7 @@ pub fn trigger_review(
     // 3. Trigger the review
     println!("{}", "--- Triggering Non-blocking Review ---".blue());
     if is_targeted {
-        println!("{} Review triggered by targeted file rules.", "🎯".yellow());
+        println!("{} Review triggered by targeted file rules.", ">>".yellow());
     }
 
     let short = short_hash(commit_hash);

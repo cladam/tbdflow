@@ -112,7 +112,7 @@ pub fn warn_stale(log_branch: &str, current_branch: &str) {
     println!(
         "{}",
         format!(
-            "⚠ Stale intent log detected: notes were captured on '{}', but you are now on '{}'.",
+            "Stale intent log detected: notes were captured on '{}', but you are now on '{}'.",
             log_branch, current_branch
         )
         .yellow()

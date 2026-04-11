@@ -243,7 +243,7 @@ fn main() -> anyhow::Result<()> {
                 intent::show_intent_log(&git_root, Some(&current_branch))?;
             } else if let Some(msg) = message {
                 intent::add_note(&git_root, &msg, &current_branch)?;
-                println!("{}", format!("📝 Note recorded: \"{}\"", msg).green());
+                println!("{}", format!("Note recorded: \"{}\"", msg).green());
             } else {
                 // No message and no --show: show the log by default
                 intent::show_intent_log(&git_root, Some(&current_branch))?;
@@ -255,10 +255,7 @@ fn main() -> anyhow::Result<()> {
             match action {
                 TaskAction::Start { description } => {
                     intent::start_task(&git_root, &description, &current_branch)?;
-                    println!(
-                        "{}",
-                        format!("🎯 Task started: \"{}\"", description).green()
-                    );
+                    println!("{}", format!("Task started: \"{}\"", description).green());
                     println!(
                         "{}",
                         "Use 'tbdflow +' or 'tbdflow note' to log your thoughts as you work."
