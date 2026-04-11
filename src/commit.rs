@@ -18,7 +18,6 @@ pub struct CommitParams {
     pub no_verify: bool,
 }
 
-/// Runs the checklist interactively, allowing the user to confirm each item before committing.
 pub fn run_checklist_interactive(checklist: &[String]) -> anyhow::Result<Vec<usize>> {
     let selections = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Please confirm each item before committing:")
@@ -27,7 +26,6 @@ pub fn run_checklist_interactive(checklist: &[String]) -> anyhow::Result<Vec<usi
     Ok(selections)
 }
 
-/// Builds the TODO footer for the commit message based on unchecked items in the checklist.
 pub fn build_todo_footer(checklist: &[String], checked_indices: &[usize]) -> String {
     //let checked_indices: Vec<usize> = checked_indices.iter().cloned().collect();
     let unchecked_items: Vec<String> = checklist
@@ -43,12 +41,10 @@ pub fn build_todo_footer(checklist: &[String], checked_indices: &[usize]) -> Str
     }
 }
 
-/// Handles the interactive commit process, including checklist confirmation and issue reference handling.
 pub fn handle_interactive_commit(
     config: &DodConfig,
     base_message: &str,
 ) -> Result<Option<String>, anyhow::Error> {
-    // Start with the base commit message.
     let mut commit_message = base_message.to_string();
 
     let checked = run_checklist_interactive(&config.checklist)?;
@@ -68,10 +64,6 @@ pub fn handle_interactive_commit(
     Ok(Some(commit_message))
 }
 
-/// Runs the interactive DoD check.
-/// Returns Ok(Some(footer)) on success.
-/// Returns Ok(None) if the user aborts.
-/// Returns Err if something goes wrong.
 pub fn handle_interactive_dod(config: &DodConfig) -> Result<Option<String>> {
     let checked = run_checklist_interactive(&config.checklist)?;
     if checked.len() != config.checklist.len() {
@@ -398,12 +390,10 @@ mod tests {
     use super::*;
     use crate::config::*;
 
-    /// Helper to build a Config with default lint rules enabled.
     fn config_with_defaults() -> Config {
         Config::default()
     }
 
-    /// Helper to build a Config with linting completely disabled (lint: None).
     fn config_without_lint() -> Config {
         Config {
             lint: None,
@@ -411,7 +401,6 @@ mod tests {
         }
     }
 
-    /// Helper to build a Config with a specific set of allowed commit types.
     fn config_with_allowed_types(types: Vec<&str>) -> Config {
         Config {
             lint: Some(LintConfig {
@@ -424,8 +413,6 @@ mod tests {
             ..Default::default()
         }
     }
-
-    // ── is_valid_commit_type ───────────────────────────────────────────────
 
     #[test]
     fn commit_type_accepts_allowed_type() {
@@ -471,8 +458,6 @@ mod tests {
         assert!(!is_valid_commit_type("fix", &config));
     }
 
-    // ── is_valid_scope ─────────────────────────────────────────────────────
-
     #[test]
     fn scope_accepts_lowercase() {
         let config = config_with_defaults();
@@ -497,8 +482,6 @@ mod tests {
         let config = config_without_lint();
         assert!(is_valid_scope(&Some("UPPER".to_string()), &config));
     }
-
-    // ── is_valid_subject_line ──────────────────────────────────────────────
 
     #[test]
     fn subject_accepts_valid_message() {
@@ -538,8 +521,6 @@ mod tests {
         assert!(is_valid_subject_line("Whatever. YOLO.", &config).is_ok());
     }
 
-    // ── is_valid_body_lines ────────────────────────────────────────────────
-
     #[test]
     fn body_accepts_short_lines() {
         let config = config_with_defaults();
@@ -576,8 +557,6 @@ mod tests {
         let long = "x".repeat(200);
         assert!(is_valid_body_lines(&long, &config));
     }
-
-    // ── is_valid_issue_key ─────────────────────────────────────────────────
 
     #[test]
     fn issue_key_accepts_valid_key() {
@@ -646,8 +625,6 @@ mod tests {
         };
         assert!(is_valid_issue_key(&Some("PROJ-1".to_string()), &config).is_err());
     }
-
-    // ── build_todo_footer ──────────────────────────────────────────────────
 
     #[test]
     fn todo_footer_empty_when_all_checked() {

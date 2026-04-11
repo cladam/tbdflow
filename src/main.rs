@@ -1,11 +1,3 @@
-// ===============================================================
-// FILE: src/main.rs
-// ===============================================================
-// Project: tbdflow - Trunk-Based Development Git CLI
-// Description: Entry point for the CLI application.
-// Author: Claes Adamsson @cladam
-// ===============================================================
-
 use clap::{CommandFactory, Parser};
 use colored::Colorize;
 use std::io;

@@ -2,8 +2,6 @@ use crate::config::Config;
 use anyhow::Result;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 
-// Struct to hold the results from the commit wizard
-// All of these are flags that can be passed to the `commit` command
 #[derive(Debug, Clone)]
 pub struct CommitWizardResult {
     pub r#type: String,
@@ -16,8 +14,6 @@ pub struct CommitWizardResult {
     pub issue: Option<String>,
 }
 
-// Struct to hold the results from the branch wizard
-// All of these are flags that can be passed to the `branch` command
 #[derive(Debug, Clone)]
 pub struct BranchWizardResult {
     pub branch_type: String,
@@ -26,16 +22,12 @@ pub struct BranchWizardResult {
     pub from_commit: Option<String>,
 }
 
-// Struct to hold the results from the complete wizard
-// All of these are flags that can be passed to the `complete` command
 #[derive(Debug, Clone)]
 pub struct CompleteWizardResult {
     pub branch_type: String,
     pub name: String,
 }
 
-// Struct to hold the results from the changelog wizard
-// All of these are flags that can be passed to the `changelog` command
 #[derive(Debug, Clone)]
 pub struct ChangeLogWizardResult {
     pub from: Option<String>,
@@ -43,7 +35,6 @@ pub struct ChangeLogWizardResult {
     pub unreleased: bool,
 }
 
-// Function to run the commit wizard
 pub fn run_commit_wizard(config: &Config) -> Result<CommitWizardResult> {
     let theme = ColorfulTheme::default();
     println!("Welcome to the Commit Wizard!");
@@ -149,7 +140,6 @@ pub fn run_commit_wizard(config: &Config) -> Result<CommitWizardResult> {
     })
 }
 
-// Function to run the branch wizard
 pub fn run_branch_wizard(config: &Config) -> Result<BranchWizardResult> {
     let theme = ColorfulTheme::default();
     println!("Welcome to the Branch Wizard!");
@@ -203,7 +193,6 @@ pub fn run_branch_wizard(config: &Config) -> Result<BranchWizardResult> {
     })
 }
 
-// Function to run the complete wizard
 pub fn run_complete_wizard(config: &Config) -> Result<CompleteWizardResult> {
     let theme = ColorfulTheme::default();
     println!("Welcome to the Complete Branch Wizard!");
@@ -228,7 +217,6 @@ pub fn run_complete_wizard(config: &Config) -> Result<CompleteWizardResult> {
     Ok(CompleteWizardResult { branch_type, name })
 }
 
-// Function to run the changelog wizard
 pub fn run_changelog_wizard() -> Result<ChangeLogWizardResult> {
     let theme = ColorfulTheme::default();
     println!("Welcome to the Changelog Wizard!");

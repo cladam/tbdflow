@@ -1,14 +1,8 @@
-// This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
-// It provides overlap detection ("radar") to warn developers about potential merge conflicts
-// before they happen — the social coding safety net for Trunk-Based Development.
-
 use crate::config::{Config, RadarLevel, RadarOnCommit};
 use crate::git;
 use anyhow::Result;
 use colored::*;
 use std::collections::HashSet;
-
-// ── Data structures ────────────────────────────────────────────────────────
 
 /// The kind of overlap detected between local changes and a remote branch.
 #[derive(Debug)]
@@ -45,8 +39,6 @@ pub struct RadarResult {
     pub branches_scanned: usize,
     pub local_files_count: usize,
 }
-
-// ── Core logic ─────────────────────────────────────────────────────────────
 
 /// Run the full radar scan: fetch, compare local changes against all active remote branches.
 pub fn scan(config: &Config, verbose: bool, dry_run: bool) -> Result<RadarResult> {
@@ -197,9 +189,6 @@ fn should_ignore(file: &str, patterns: &[String]) -> bool {
     false
 }
 
-// ── Display / formatting ───────────────────────────────────────────────────
-
-/// Handle the standalone `tbdflow radar` command.
 pub fn handle_radar(verbose: bool, dry_run: bool, config: &Config) -> Result<()> {
     println!(
         "{}",
@@ -329,8 +318,6 @@ fn format_hunk_ranges(hunks: &[git::HunkRange]) -> String {
         .collect::<Vec<_>>()
         .join(", ")
 }
-
-// ── Integration helpers ────────────────────────────────────────────────────
 
 /// Lightweight radar check intended for integration into `tbdflow sync`.
 /// Returns a short summary string if overlaps are found, or None if clear.

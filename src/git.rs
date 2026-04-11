@@ -1,5 +1,3 @@
-// This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
-
 use crate::commands;
 use crate::config::Config;
 use anyhow::{Context, Result};
@@ -8,8 +6,6 @@ use colored::Colorize;
 use std::process::{Command, Stdio};
 use thiserror::Error;
 
-// --- Custom Error Type ---
-// Using `thiserror` to create a structured error type.
 #[derive(Error, Debug)]
 pub enum GitError {
     #[error("Git command failed: {0}")]
@@ -598,8 +594,6 @@ pub fn revert_commit(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<
     run_git_command("revert", &["--no-edit", commit_hash], verbose, dry_run)
 }
 
-// ── Radar helpers ──────────────────────────────────────────────────────────
-
 /// List remote branches that have NOT been merged into the main branch.
 /// Returns branch names without the `origin/` prefix.
 pub fn get_active_remote_branches(
@@ -763,8 +757,6 @@ pub fn get_local_diff_hunks(file: &str, verbose: bool, dry_run: bool) -> Result<
     Ok(hunks)
 }
 
-// ── End radar helpers ──────────────────────────────────────────────────────
-
 /// Check if a commit is an ancestor of the given branch (i.e. the commit exists on that branch).
 /// Resolves the commit hash and uses the fully-qualified branch ref to avoid ambiguity
 /// (e.g. when a tag has the same name as the branch).
@@ -812,8 +804,6 @@ pub fn resolve_commit_hash(short_sha: &str, verbose: bool, dry_run: bool) -> Res
     run_git_command("rev-parse", &["--verify", short_sha], verbose, dry_run)
         .with_context(|| format!("Could not resolve commit '{}'", short_sha))
 }
-
-// ── Pre-flight CI status check ─────────────────────────────────────────────
 
 /// The CI status of the latest commit on a branch.
 #[derive(Debug, PartialEq)]
@@ -918,14 +908,10 @@ pub fn check_ci_status(branch: &str, verbose: bool, dry_run: bool) -> CiStatus {
     }
 }
 
-/// Unit tests for the Git module.
-/// These tests check if Git is installed, if the run_git_command function works correctly,
-/// and if the status function returns expected results.
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// Test if Git is installed and available in the system PATH.
     #[test]
     fn test_git_is_installed() {
         let result = std::process::Command::new("git").arg("--version").output();
@@ -939,7 +925,6 @@ mod tests {
         );
     }
 
-    /// Test the run_git_command function with a simple command
     #[test]
     fn test_run_git_command_version() {
         let verbose = true;
@@ -950,7 +935,6 @@ mod tests {
         assert!(output.contains("git version"), "Output was: {}", output);
     }
 
-    /// Test the status function
     #[test]
     fn test_status() {
         let verbose = true;
@@ -969,14 +953,12 @@ mod tests {
         );
     }
 
-    /// Test that check_ci_status returns Green in dry-run mode
     #[test]
     fn test_ci_status_dry_run_returns_green() {
         let result = check_ci_status("main", false, true);
         assert_eq!(result, CiStatus::Green);
     }
 
-    /// Test that CiStatus variants have the expected equality behavior
     #[test]
     fn test_ci_status_equality() {
         assert_eq!(CiStatus::Green, CiStatus::Green);

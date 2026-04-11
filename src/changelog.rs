@@ -4,7 +4,6 @@ use colored::*;
 use git_conventional::Commit;
 use std::collections::HashMap;
 
-/// Returns the section header based on the commit type.
 fn get_section_header(commit_type: &str) -> &'static str {
     match commit_type {
         "feat" => "### ✨ Features",
@@ -24,12 +23,10 @@ pub fn handle_changelog(
     to: Option<String>,
     unreleased: bool,
 ) -> Result<String> {
-    // Range from last tag to HEAD if unreleased
     let range = if unreleased {
         let latest_tag = git::get_latest_tag(verbose, dry_run)?;
         format!("{}..HEAD", latest_tag)
     } else {
-        // Get the range from the specified 'from' commit to 'to' commit
         format!(
             "{}..{}",
             from.unwrap_or_default(),
@@ -37,14 +34,12 @@ pub fn handle_changelog(
         )
     };
 
-    // Fetch the commit history in a friendly format
     let history = git::get_commit_history(&range, verbose, dry_run)?;
     let mut sections: HashMap<&'static str, Vec<String>> = HashMap::new();
     let mut breaking_changes: Vec<String> = Vec::new();
     let remote_url = git::get_remote_url(verbose, dry_run).unwrap_or_default();
 
-    // Parse each line of the commit history
-    // Expected format: "hash|message"
+    // Format: "hash|message"
     for line in history.lines() {
         let parts: Vec<&str> = line.split('|').collect();
         if parts.len() != 2 {
@@ -53,8 +48,6 @@ pub fn handle_changelog(
         let hash = parts[0];
         let message = parts[1];
 
-        // Parse the commit message using git_conventional
-        // This will extract the type, scope, and description
         if let Ok(commit) = Commit::parse(message) {
             let scope = commit
                 .scope()
@@ -79,7 +72,6 @@ pub fn handle_changelog(
 
     let mut changelog = String::new();
 
-    // Add the version header
     if unreleased {
         changelog.push_str("# Unreleased Changes\n");
     } else {

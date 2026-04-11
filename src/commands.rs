@@ -261,7 +261,6 @@ pub fn handle_info(verbose: bool, dry_run: bool, edit: bool) -> Result<()> {
     };
     println!("Commit Linting: {}", lint_status);
 
-    // ── Review ───────────────────────────────────────────────────────────────
     println!("\n{}", "--- Review ---".bold());
     if final_config.review.enabled {
         println!("Review: {}", "Enabled".green());
@@ -296,7 +295,6 @@ pub fn handle_info(verbose: bool, dry_run: bool, edit: bool) -> Result<()> {
         println!("Review: {}", "Disabled".red());
     }
 
-    // ── Radar ────────────────────────────────────────────────────────────────
     println!("\n{}", "--- Radar ---".bold());
     if final_config.radar.enabled {
         println!("Radar: {}", "Enabled".green());
@@ -326,7 +324,6 @@ pub fn handle_info(verbose: bool, dry_run: bool, edit: bool) -> Result<()> {
         println!("Radar: {}", "Disabled".red());
     }
 
-    // ── CI Check ─────────────────────────────────────────────────────────────
     println!("\n{}", "--- CI Check ---".bold());
     if final_config.ci_check.enabled {
         println!("CI Check on Sync: {}", "Enabled".green());
@@ -362,9 +359,7 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
     );
     let current_branch = git::get_current_branch(verbose, dry_run)?;
 
-    // ── Pre-flight CI check ────────────────────────────────────────────────
-    // Before pulling, check the CI status of the trunk to avoid pulling a
-    // broken build into the local environment.
+    // Check trunk CI status before pulling to avoid importing a broken build
     if config.ci_check.enabled {
         let ci_status = git::check_ci_status(&config.main_branch_name, verbose, dry_run);
         match ci_status {

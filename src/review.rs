@@ -1,6 +1,3 @@
-// This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
-// It provides non-blocking post-commit review functionality.
-
 use crate::config::{Config, ReviewLabelsConfig, ReviewStrategy};
 use crate::git;
 use anyhow::{Context, Result};

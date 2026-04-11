@@ -1,7 +1,3 @@
-// This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
-// It provides the Intent Log feature for capturing pre-work context ("breadcrumbs")
-// before they are lost in the finality of a git diff.
-
 use anyhow::{Context, Result};
 use chrono::Utc;
 use colored::Colorize;

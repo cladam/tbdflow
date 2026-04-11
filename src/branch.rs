@@ -23,11 +23,9 @@ pub fn handle_branch(
         "--- Creating short-lived branch ---".to_string().blue()
     );
 
-    // Lookup the default branch name.
     let main_branch_name = get_default_branch_name(config);
     let prefix = commands::get_branch_prefix_or_error(&config.branch_types, &r#type.unwrap())?;
 
-    // Construct the branch name based on the configured strategy
     let branch_name = match config.issue_handling.strategy {
         config::IssueHandlingStrategy::BranchName => {
             let issue_part = issue.map_or("".to_string(), |i| format!("{}-", i));
@@ -50,7 +48,6 @@ pub fn handle_branch(
     Ok(())
 }
 
-// Handle the `complete` command
 pub fn handle_complete(
     r#type: String,
     name: String,
@@ -63,10 +60,8 @@ pub fn handle_complete(
         "--- Completing short-lived branch ---".to_string().blue()
     );
 
-    // Lookup the default branch name.
     let main_branch_name = get_default_branch_name(config);
 
-    // Cannot complete the main branch
     if name == main_branch_name {
         return Err(GitError::CannotCompleteMainBranch.into());
     }
@@ -74,7 +69,6 @@ pub fn handle_complete(
     let branch_name = git::find_branch(&name, &r#type, config, verbose, dry_run)?;
     println!("{}", format!("Branch to complete: {}", branch_name).blue());
 
-    // pre-flight check the branch name
     git::branch_exists_locally(&branch_name, verbose, dry_run)?;
 
     if r#type == "release" {
@@ -90,7 +84,6 @@ pub fn handle_complete(
     git::pull_latest_with_rebase(verbose, dry_run)?;
     git::merge_branch(&branch_name, verbose, dry_run)?;
 
-    // Create tag for release branches
     if r#type == "release" {
         let tag_name = format!("{}{}", config.automatic_tags.release_prefix, name);
         let merge_commit_hash = git::get_head_commit_hash(verbose, dry_run)?;

@@ -1,5 +1,3 @@
-// This file is part of tbdflow, a CLI tool for Trunk-Based Development workflows.
-// It provides commands to initialise, show, and run operations in the context of tbdflow.
 use clap::{Parser, Subcommand};
 use clap_complete::Shell;
 
@@ -11,25 +9,17 @@ use clap_complete::Shell;
     about = "A CLI tool for Trunk-Based Development (TBD) workflows",
     long_about = None)]
 #[command(propagate_version = true)]
-/// The main CLI structure for tbdflow.
-/// This struct defines the main commands and global options for the CLI tool.
 pub struct Cli {
-    /// The main command to run, which can be one of the subcommands defined in `Commands`.
     #[command(subcommand)]
     pub command: Commands,
-    /// Enable verbose output for debugging. Use this to troubleshoot issues or understand the flow better.
+    /// Enable verbose output for debugging.
     #[arg(long)]
     pub verbose: bool,
-    /// Enable dry run mode. This will simulate the command without making any changes.
+    /// Simulate the command without making any changes.
     #[arg(long)]
     pub dry_run: bool,
 }
 
-/// Subcommands for the tbdflow CLI tool.
-/// Each command corresponds to a specific operation in the Trunk-Based Development workflow.
-/// The commands include initialising the repository, committing changes, creating feature/release/hotfix branches,
-/// completing branches, syncing with the remote, checking status, and checking branches.
-/// The commands are designed to streamline the development process and enforce best practices in trunk-based development.
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Initialises the repository for Trunk-Based Development.
