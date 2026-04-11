@@ -439,9 +439,11 @@ The agent should prefer generating valid inputs over relying on linter errors.
 ### 7. Breadcrumbs — Low-Friction Intent Logging
 
 **Intent**
-Capture architectural decisions, failed attempts, or logic pivots during the development process before the final commit.
+Capture architectural decisions, failed attempts, or logic pivots during the development process before the final
+commit.
 
-Breadcrumbs provide a lightweight way to document the *why* behind code changes — the reasoning that would otherwise be lost between keystrokes.
+Breadcrumbs provide a lightweight way to document the *why* behind code changes — the reasoning that would otherwise be
+lost between keystrokes.
 
 **Command**
 
@@ -457,6 +459,17 @@ tbdflow + "<breadcrumb_message>"
 * Do **not** use this for trivial changes (typos, formatting)
 * These notes are automatically appended to the next `tbdflow commit` body
 * Multiple breadcrumbs accumulate and are included in order
+
+**Storage & Safety**
+
+Breadcrumbs are stored locally in `.tbdflow-intent.json` at the repository root. This file is **never committed** — it
+is consumed and deleted after the next `tbdflow commit`.
+
+`tbdflow` automatically ensures `.tbdflow-intent.json` is listed in `.gitignore` the first time a breadcrumb is saved.
+This prevents the `git add .` staging pattern from accidentally committing raw intent data.
+
+If `.gitignore` does not exist, it will be created with the entry. If it already contains the entry, no changes are
+made.
 
 **Decision Rules: The Intent Log**
 
@@ -482,11 +495,11 @@ Breadcrumbs are not optional decoration — they are the agent's **audit trail**
 
 **Examples**
 
-| Scenario                           | Command                                                                                                |
-|------------------------------------|--------------------------------------------------------------------------------------------------------|
-| Switching architectural pattern    | `tbdflow + "switched from Factory to Trait: Factory felt over-engineered for this scope"`              |
-| Documenting a rejected edge-case   | `tbdflow + "decided against async here: the overhead outweighs the benefits for this sync task"`       |
-| Explaining complex regex/logic     | `tbdflow + "using lookahead in regex to handle nested brackets without recursion"`                     |
+| Scenario                         | Command                                                                                          |
+|----------------------------------|--------------------------------------------------------------------------------------------------|
+| Switching architectural pattern  | `tbdflow + "switched from Factory to Trait: Factory felt over-engineered for this scope"`        |
+| Documenting a rejected edge-case | `tbdflow + "decided against async here: the overhead outweighs the benefits for this sync task"` |
+| Explaining complex regex/logic   | `tbdflow + "using lookahead in regex to handle nested brackets without recursion"`               |
 
 **Use This When**
 
@@ -530,16 +543,16 @@ tbdflow changelog [--unreleased] [--from <ref>]
 
 ## Examples
 
-| User Input                                    | Action                                                                                              |
-|-----------------------------------------------|-----------------------------------------------------------------------------------------------------|
-| "Commit this as a bug fix for login."         | `tbdflow commit -t fix -s login -m "resolve timeout issue"`                                        |
-| "Start working on API-456: Add user profile." | `tbdflow branch -t feat -n add-user-profile --issue API-456`                                       |
-| "Merge my current work back to main."         | `tbdflow complete -t <current_type> -n <current_name>`                                             |
-| "Sync me up."                                 | `tbdflow sync`                                                                                     |
-| "Anyone else working on this file?"           | `tbdflow radar`                                                                                    |
-| "Revert commit abc1234, it broke the build."  | `tbdflow undo abc1234`                                                                             |
-| "I switched from Factory to Trait."           | `tbdflow + "switched from Factory to Trait: Factory felt over-engineered for this scope"`           |
-| "What changed since the last version?"        | `tbdflow changelog --unreleased`                                                                   |
+| User Input                                    | Action                                                                                    |
+|-----------------------------------------------|-------------------------------------------------------------------------------------------|
+| "Commit this as a bug fix for login."         | `tbdflow commit -t fix -s login -m "resolve timeout issue"`                               |
+| "Start working on API-456: Add user profile." | `tbdflow branch -t feat -n add-user-profile --issue API-456`                              |
+| "Merge my current work back to main."         | `tbdflow complete -t <current_type> -n <current_name>`                                    |
+| "Sync me up."                                 | `tbdflow sync`                                                                            |
+| "Anyone else working on this file?"           | `tbdflow radar`                                                                           |
+| "Revert commit abc1234, it broke the build."  | `tbdflow undo abc1234`                                                                    |
+| "I switched from Factory to Trait."           | `tbdflow + "switched from Factory to Trait: Factory felt over-engineered for this scope"` |
+| "What changed since the last version?"        | `tbdflow changelog --unreleased`                                                          |
 
 ---
 

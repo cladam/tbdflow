@@ -7,6 +7,36 @@ use std::path::{Path, PathBuf};
 
 const INTENT_FILE: &str = ".tbdflow-intent.json";
 
+/// Ensures `.tbdflow-intent.json` is listed in the repository's `.gitignore`.
+///
+/// This prevents `git add .` (used by `tbdflow commit`) from accidentally
+/// staging the local-only intent log.  The check is cheap (single file read)
+/// and the append is idempotent — it only writes if the entry is missing.
+fn ensure_gitignored(git_root: &Path) -> Result<()> {
+    let gitignore_path = git_root.join(".gitignore");
+    let entry = INTENT_FILE;
+
+    if gitignore_path.exists() {
+        let content = fs::read_to_string(&gitignore_path)
+            .with_context(|| format!("Failed to read {}", gitignore_path.display()))?;
+        // Already present — nothing to do.
+        if content.lines().any(|line| line.trim() == entry) {
+            return Ok(());
+        }
+    }
+
+    // Append the entry (with a leading newline to avoid joining with the last line).
+    use std::io::Write;
+    let mut file = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&gitignore_path)
+        .with_context(|| format!("Failed to open {}", gitignore_path.display()))?;
+    writeln!(file, "\n# tbdflow intent log (local-only, never committed)")?;
+    writeln!(file, "{}", entry)?;
+    Ok(())
+}
+
 /// A single intent note captured during development.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IntentNote {
@@ -75,6 +105,9 @@ pub fn load_intent_log(git_root: &Path) -> Result<Option<IntentLog>> {
 
 /// Saves the intent log to disk.
 fn save_intent_log(git_root: &Path, log: &IntentLog) -> Result<()> {
+    // Guard: make sure the intent file won't be picked up by `git add .`.
+    ensure_gitignored(git_root)?;
+
     let path = intent_file_path(git_root);
     let json = serde_json::to_string_pretty(log).context("Failed to serialize intent log")?;
     fs::write(&path, json).with_context(|| format!("Failed to write {}", path.display()))?;
@@ -370,5 +403,60 @@ mod tests {
         let log = load_intent_log(dir.path()).unwrap().unwrap();
         assert!(log.branch.is_none());
         assert_eq!(log.notes.len(), 1);
+    }
+
+    #[test]
+    fn ensure_gitignored_creates_file_when_missing() {
+        let dir = setup();
+        let gitignore = dir.path().join(".gitignore");
+        assert!(!gitignore.exists());
+
+        ensure_gitignored(dir.path()).unwrap();
+
+        let content = fs::read_to_string(&gitignore).unwrap();
+        assert!(content.contains(INTENT_FILE));
+    }
+
+    #[test]
+    fn ensure_gitignored_appends_when_entry_absent() {
+        let dir = setup();
+        let gitignore = dir.path().join(".gitignore");
+        fs::write(&gitignore, "target/\n").unwrap();
+
+        ensure_gitignored(dir.path()).unwrap();
+
+        let content = fs::read_to_string(&gitignore).unwrap();
+        assert!(content.starts_with("target/\n"));
+        assert!(content.contains(INTENT_FILE));
+    }
+
+    #[test]
+    fn ensure_gitignored_is_idempotent() {
+        let dir = setup();
+        let gitignore = dir.path().join(".gitignore");
+        fs::write(&gitignore, format!("{}\n", INTENT_FILE)).unwrap();
+
+        ensure_gitignored(dir.path()).unwrap();
+
+        let content = fs::read_to_string(&gitignore).unwrap();
+        // Should appear exactly once.
+        assert_eq!(
+            content.matches(INTENT_FILE).count(),
+            1,
+            "entry duplicated in .gitignore"
+        );
+    }
+
+    #[test]
+    fn add_note_ensures_gitignore_entry() {
+        let dir = setup();
+        add_note(dir.path(), "design note", "feat/x").unwrap();
+
+        let gitignore = dir.path().join(".gitignore");
+        let content = fs::read_to_string(&gitignore).unwrap();
+        assert!(
+            content.contains(INTENT_FILE),
+            ".gitignore should contain intent file entry after first breadcrumb"
+        );
     }
 }

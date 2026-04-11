@@ -458,6 +458,14 @@ tbdflow + "<breadcrumb_message>"
 * These notes are automatically appended to the next `tbdflow commit` body
 * Multiple breadcrumbs accumulate and are included in order
 
+**Storage & Safety**
+
+Breadcrumbs are stored locally in `.tbdflow-intent.json` at the repository root. This file is **never committed** — it is consumed and deleted after the next `tbdflow commit`.
+
+`tbdflow` automatically ensures `.tbdflow-intent.json` is listed in `.gitignore` the first time a breadcrumb is saved. This prevents the `git add .` staging pattern from accidentally committing raw intent data.
+
+If `.gitignore` does not exist, it will be created with the entry. If it already contains the entry, no changes are made.
+
 **Decision Rules: The Intent Log**
 
 Breadcrumbs are not optional decoration — they are the agent's **audit trail**.
