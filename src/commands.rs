@@ -63,7 +63,7 @@ pub fn handle_init_command(verbose: bool, dry_run: bool) -> Result<()> {
                 project_root: Some(".".to_string()),
                 ..Default::default()
             };
-            let yaml_string = serde_yaml::to_string(&project_config)?;
+            let yaml_string = yaml_serde::to_string(&project_config)?;
             fs::write(&project_config_path, yaml_string)?;
             println!(
                 "{}",
@@ -79,7 +79,7 @@ pub fn handle_init_command(verbose: bool, dry_run: bool) -> Result<()> {
         // We are at the root, create the global config files.
         if !tbdflow_path.exists() {
             let default_config = config::Config::default();
-            let yaml_string = serde_yaml::to_string(&default_config)?;
+            let yaml_string = yaml_serde::to_string(&default_config)?;
             fs::write(&tbdflow_path, yaml_string)?;
             println!(
                 "{}",
@@ -172,7 +172,7 @@ pub fn handle_info(verbose: bool, dry_run: bool, edit: bool) -> Result<()> {
     // Load root config or default
     let root_config: config::Config = if root_config_path.exists() {
         let yaml_str = fs::read_to_string(&root_config_path)?;
-        serde_yaml::from_str(&yaml_str)?
+        yaml_serde::from_str(&yaml_str)?
     } else {
         config::Config::default()
     };
@@ -190,7 +190,7 @@ pub fn handle_info(verbose: bool, dry_run: bool, edit: bool) -> Result<()> {
             );
 
             let project_yaml_str = fs::read_to_string(&project_config_path)?;
-            let project_config: config::Config = serde_yaml::from_str(&project_yaml_str)?;
+            let project_config: config::Config = yaml_serde::from_str(&project_yaml_str)?;
 
             println!("\n{}", "--- Settings ---".bold());
 

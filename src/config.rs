@@ -429,7 +429,7 @@ pub fn load_tbdflow_config() -> Result<Config, anyhow::Error> {
     let root_config_path = Path::new(&git_root).join(".tbdflow.yml");
     let mut base_config = if root_config_path.exists() {
         let config_str = fs::read_to_string(root_config_path)?;
-        serde_yaml::from_str(&config_str)
+        yaml_serde::from_str(&config_str)
             .map_err(|e| anyhow!("Failed to parse root .tbdflow.yml: {}", e))?
     } else {
         Config::default()
@@ -442,7 +442,7 @@ pub fn load_tbdflow_config() -> Result<Config, anyhow::Error> {
         if local_config_path.exists() {
             // 3. Load local config and merge it into the base config.
             let local_config_str = fs::read_to_string(local_config_path)?;
-            let local_config: Config = serde_yaml::from_str(&local_config_str)
+            let local_config: Config = yaml_serde::from_str(&local_config_str)
                 .map_err(|e| anyhow!("Failed to parse local .tbdflow.yml: {}", e))?;
             merge_configs(&mut base_config, local_config);
         }
@@ -454,7 +454,7 @@ pub fn load_tbdflow_config() -> Result<Config, anyhow::Error> {
 /// Reads the DoD configuration from the `.dod.yml` file in the current directory (root of the git repository).
 pub fn load_dod_config() -> anyhow::Result<DodConfig> {
     let content = std::fs::read_to_string(".dod.yml").context("Failed to read .dod.yml")?;
-    let config: DodConfig = serde_yaml::from_str(&content).context("Failed to parse .dod.yml")?;
+    let config: DodConfig = yaml_serde::from_str(&content).context("Failed to parse .dod.yml")?;
     Ok(config)
 }
 
@@ -472,7 +472,7 @@ pub fn find_project_root() -> Result<Option<PathBuf>, anyhow::Error> {
         let config_path = current_dir.join(".tbdflow.yml");
         if config_path.exists() {
             let content = fs::read_to_string(&config_path)?;
-            let config: Config = serde_yaml::from_str(&content)?;
+            let config: Config = yaml_serde::from_str(&content)?;
             if config.project_root.is_some() {
                 return Ok(Some(current_dir));
             }
