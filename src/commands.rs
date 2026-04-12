@@ -7,7 +7,6 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-/// Handle update command for tbdflow
 pub fn handle_update_command() -> Result<(), anyhow::Error> {
     println!("{}", "--- Checking for updates ---".blue());
     let status = self_update::backends::github::Update::configure()
@@ -28,7 +27,6 @@ pub fn handle_update_command() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-/// Handle init command for tbdflow
 pub fn handle_init_command(verbose: bool, dry_run: bool) -> Result<()> {
     println!("--- Initialising tbdflow configuration ---");
 
@@ -54,7 +52,6 @@ pub fn handle_init_command(verbose: bool, dry_run: bool) -> Result<()> {
     let tbdflow_path = std::path::Path::new(&git_root).join(".tbdflow.yml");
     let mut files_created = false;
 
-    // Check if we are in a subdirectory of the git repo
     if current_dir.as_path() != std::path::Path::new(&git_root) {
         // We are in a subdirectory, create a project-specific config.
         let project_config_path = current_dir.join(".tbdflow.yml");
@@ -76,7 +73,6 @@ pub fn handle_init_command(verbose: bool, dry_run: bool) -> Result<()> {
             );
         }
     } else {
-        // We are at the root, create the global config files.
         if !tbdflow_path.exists() {
             let default_config = config::Config::default();
             let yaml_string = yaml_serde::to_string(&default_config)?;
@@ -153,7 +149,6 @@ checklist:
     Ok(())
 }
 
-/// Handle the info command for tbdflow
 pub fn handle_info(verbose: bool, dry_run: bool, edit: bool) -> Result<()> {
     let git_root = git::get_git_root(false, false)?;
     let root_config_path = PathBuf::from(&git_root).join(".tbdflow.yml");
@@ -486,7 +481,6 @@ pub fn check_and_warn_for_stale_branches(
     Ok(())
 }
 
-/// Get the branch prefix for a given branch type, or return an error if the type is invalid.
 pub fn get_branch_prefix_or_error<'a>(
     branch_types: &'a std::collections::HashMap<String, String>,
     r#type: &str,
@@ -505,9 +499,6 @@ pub fn get_branch_prefix_or_error<'a>(
     })
 }
 
-/// Handle the `undo` command — the panic button for trunk-based development.
-/// Reverts a specific commit by SHA on the main branch, syncing first to ensure
-/// we're working with the latest state of the trunk.
 pub fn handle_undo(
     sha: &str,
     no_push: bool,
@@ -522,7 +513,6 @@ pub fn handle_undo(
 
     let main_branch = &config.main_branch_name;
 
-    // 1. Verify the commit exists
     if !git::commit_exists(sha, verbose, dry_run)? {
         println!(
             "{}",
@@ -531,22 +521,19 @@ pub fn handle_undo(
         return Err(anyhow::anyhow!("Commit not found: {}", sha));
     }
 
-    // 2. Show what we're about to revert
     let subject = git::get_commit_subject(sha, verbose, dry_run)?;
     println!(
         "{}",
         format!("Commit to revert: {} ({})", sha, subject).yellow()
     );
 
-    // 3. Ensure working directory is clean
     git::is_working_directory_clean(verbose, dry_run)?;
 
-    // 4. Sync with remote (fast-forward only to preserve commit SHAs)
+    // Sync with remote (fast-forward only to preserve commit SHAs)
     println!("Syncing with remote before reverting...");
     git::checkout_main(verbose, dry_run, main_branch)?;
     git::pull_fast_forward_only(verbose, dry_run)?;
 
-    // 5. Verify the commit is on the main branch
     if !git::is_ancestor_of(sha, main_branch, verbose, dry_run)? {
         println!(
             "{}",
@@ -563,11 +550,9 @@ pub fn handle_undo(
         ));
     }
 
-    // 6. Perform the revert
     println!("{}", format!("Reverting commit {}...", sha).blue());
     git::revert_commit(sha, verbose, dry_run)?;
 
-    // 7. Push the revert (unless --no-push)
     if no_push {
         println!(
             "{}",
@@ -586,7 +571,6 @@ pub fn handle_undo(
         );
     }
 
-    // 8. Show the result
     let log_output = git::log_graph(verbose, dry_run)?;
     println!("\n{}", "Recent activity:".bold());
     println!("{}", log_output.cyan());

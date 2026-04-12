@@ -7,11 +7,7 @@ use std::path::{Path, PathBuf};
 
 const INTENT_FILE: &str = ".tbdflow-intent.json";
 
-/// Ensures `.tbdflow-intent.json` is listed in the repository's `.gitignore`.
-///
-/// This prevents `git add .` (used by `tbdflow commit`) from accidentally
-/// staging the local-only intent log.  The check is cheap (single file read)
-/// and the append is idempotent — it only writes if the entry is missing.
+/// Appends `.tbdflow-intent.json` to `.gitignore` if not already present.
 fn ensure_gitignored(git_root: &Path) -> Result<()> {
     let gitignore_path = git_root.join(".gitignore");
     let entry = INTENT_FILE;

@@ -6,13 +6,11 @@ use glob::Pattern;
 use serde_json::Value;
 use std::process::Command;
 
-/// Returns the first 7 characters of a commit hash for display purposes.
 fn short_hash(hash: &str) -> &str {
     &hash[..7.min(hash.len())]
 }
 
-/// Checks if any review rules match the files changed in a commit.
-/// Returns true if at least one rule pattern matches, meaning a review should be auto-triggered.
+/// Returns true if any review rule patterns match the files changed in this commit.
 pub fn should_auto_trigger_review(
     config: &Config,
     commit_hash: &str,
@@ -43,18 +41,6 @@ pub fn should_auto_trigger_review(
     Ok(false)
 }
 
-/// Triggers a non-blocking review for a commit.
-/// This is called automatically after committing to main (if enabled),
-/// or manually via `tbdflow review --trigger`.
-///
-/// # Arguments
-/// * `config` - The tbdflow configuration
-/// * `reviewers_override` - Optional list of reviewers to use instead of config defaults
-/// * `commit_hash` - The full commit hash
-/// * `message` - The commit message
-/// * `author` - The commit author
-/// * `verbose` - Enable verbose output
-/// * `dry_run` - Simulate without making changes
 pub fn trigger_review(
     config: &Config,
     reviewers_override: Option<&[String]>,
@@ -71,7 +57,7 @@ pub fn trigger_review(
         return Ok(());
     }
 
-    // 1. Identify which rules apply based on touched files
+    // Identify which rules apply based on touched files
     let touched_files = git::get_changed_files(commit_hash, verbose, dry_run)?;
     let mut applicable_reviewers: Vec<String> = Vec::new();
     let mut is_targeted = false;
@@ -95,7 +81,6 @@ pub fn trigger_review(
         }
     }
 
-    // 2. Aggregate reviewers
     let mut final_reviewers = if let Some(ovr) = reviewers_override {
         ovr.to_vec()
     } else if !applicable_reviewers.is_empty() {
@@ -107,7 +92,6 @@ pub fn trigger_review(
     final_reviewers.sort();
     final_reviewers.dedup();
 
-    // 3. Trigger the review
     println!("{}", "--- Triggering Non-blocking Review ---".blue());
     if is_targeted {
         println!("{} Review triggered by targeted file rules.", ">>".yellow());
@@ -130,7 +114,6 @@ pub fn trigger_review(
         return Ok(());
     }
 
-    // Strategy-specific handling using type-safe enum
     match &config.review.strategy {
         ReviewStrategy::GithubIssue => {
             create_github_issue(
@@ -163,9 +146,6 @@ pub fn trigger_review(
     Ok(())
 }
 
-/// Triggers a GitHub Actions workflow for server-side review management.
-/// This enables the "Trunktopus" pattern where Actions handle issue creation,
-/// commit status updates, and multi-reviewer orchestration.
 fn trigger_github_workflow(
     config: &Config,
     commit_hash: &str,
@@ -280,7 +260,6 @@ fn trigger_github_workflow(
     Ok(())
 }
 
-/// Creates a GitHub issue for post-commit review using the `gh` CLI.
 fn create_github_issue(
     labels: &ReviewLabelsConfig,
     reviewers: &[String],
@@ -389,7 +368,6 @@ fn create_github_issue(
     Ok(())
 }
 
-/// Checks if a specific label exists in the repository.
 fn label_exists(label_name: &str) -> bool {
     Command::new("gh")
         .args(["label", "list", "--search", label_name, "--json", "name"])
@@ -402,7 +380,6 @@ fn label_exists(label_name: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Ensures a label exists, creating it if necessary.
 fn ensure_label_exists(label_name: &str, description: &str, color: &str, verbose: bool) {
     if label_exists(label_name) {
         return;
@@ -437,7 +414,6 @@ fn ensure_label_exists(label_name: &str, description: &str, color: &str, verbose
     }
 }
 
-/// Ensures all review labels exist (pending, concern, accepted, dismissed).
 fn ensure_review_labels_exist(labels: &ReviewLabelsConfig, verbose: bool) {
     ensure_label_exists(
         &labels.pending,
@@ -465,7 +441,6 @@ fn ensure_review_labels_exist(labels: &ReviewLabelsConfig, verbose: bool) {
     );
 }
 
-/// Checks if the GitHub CLI is available.
 fn is_gh_cli_available() -> bool {
     Command::new("gh")
         .arg("--version")
@@ -474,7 +449,6 @@ fn is_gh_cli_available() -> bool {
         .unwrap_or(false)
 }
 
-/// Handles the `review --trigger` command for the current HEAD commit.
 pub fn handle_review_trigger(
     config: &Config,
     reviewers_override: Option<Vec<String>>,
@@ -524,7 +498,6 @@ pub fn handle_review_trigger(
     )
 }
 
-/// Generates a digest of commits since a given time for review.
 pub fn handle_review_digest(
     config: &Config,
     since: &str,
@@ -588,7 +561,6 @@ pub fn handle_review_digest(
     Ok(())
 }
 
-/// Marks a commit as approved (closes the associated review issue if using GitHub).
 pub fn handle_review_approve(
     config: &Config,
     commit_hash: &str,
@@ -625,7 +597,6 @@ pub fn handle_review_approve(
     Ok(())
 }
 
-/// Raises a concern on a commit review (keeps issue open, adds concern label, notifies author).
 pub fn handle_review_concern(
     config: &Config,
     commit_hash: &str,
@@ -657,7 +628,6 @@ pub fn handle_review_concern(
     Ok(())
 }
 
-/// Dismisses a review (closes issue with dismissed label).
 pub fn handle_review_dismiss(
     config: &Config,
     commit_hash: &str,
@@ -692,7 +662,6 @@ pub fn handle_review_dismiss(
     Ok(())
 }
 
-/// Raises a concern on a GitHub review issue.
 fn raise_github_concern(
     config: &Config,
     commit_hash: &str,
@@ -805,7 +774,6 @@ fn raise_github_concern(
     Ok(())
 }
 
-/// Appends a concern as a checklist item to the issue body.
 fn append_concern_checklist_item(
     issue_num: &str,
     concern_message: &str,
@@ -860,13 +828,11 @@ fn append_concern_checklist_item(
     Ok(())
 }
 
-/// Extracts body content from GitHub CLI JSON output.
 fn extract_body_from_json(json: &str) -> Option<String> {
     let parsed: Value = serde_json::from_str(json).ok()?;
     parsed["body"].as_str().map(|s| s.to_string())
 }
 
-/// Sets commit status based on concern_blocks_status config.
 fn set_commit_status(
     config: &Config,
     commit_hash: &str,
@@ -930,7 +896,6 @@ fn set_commit_status(
     Ok(())
 }
 
-/// Extracts owner and name from GitHub CLI repo JSON output.
 fn extract_repo_from_json(json: &str) -> Option<(String, String)> {
     let parsed: Value = serde_json::from_str(json).ok()?;
     let owner = parsed["owner"]["login"].as_str()?.to_string();
@@ -938,7 +903,6 @@ fn extract_repo_from_json(json: &str) -> Option<(String, String)> {
     Some((owner, name))
 }
 
-/// Dismisses a GitHub review issue (closes with dismissed label).
 fn dismiss_github_review_issue(
     labels: &ReviewLabelsConfig,
     short_hash: &str,
@@ -1065,7 +1029,6 @@ fn dismiss_github_review_issue(
     Ok(())
 }
 
-/// Closes a GitHub issue associated with a commit review, adding the accepted label.
 fn close_github_review_issue(
     labels: &ReviewLabelsConfig,
     short_hash: &str,
@@ -1194,7 +1157,6 @@ fn close_github_review_issue(
     Ok(())
 }
 
-/// Extracts issue number from GitHub CLI JSON output.
 fn extract_issue_number(json: &str) -> Option<i64> {
     let parsed: Value = serde_json::from_str(json).ok()?;
     parsed.as_array()?.first()?["number"].as_i64()

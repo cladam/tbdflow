@@ -27,7 +27,6 @@ pub fn run_checklist_interactive(checklist: &[String]) -> anyhow::Result<Vec<usi
 }
 
 pub fn build_todo_footer(checklist: &[String], checked_indices: &[usize]) -> String {
-    //let checked_indices: Vec<usize> = checked_indices.iter().cloned().collect();
     let unchecked_items: Vec<String> = checklist
         .iter()
         .enumerate()
@@ -82,7 +81,6 @@ pub fn handle_interactive_dod(config: &DodConfig) -> Result<Option<String>> {
     }
 }
 
-/// Check if the TYPE in the commit message is valid.
 pub fn is_valid_commit_type(commit_type: &str, config: &config::Config) -> bool {
     if let Some(lint_config) = &config.lint {
         if let Some(conventional_commit_type) = &lint_config.conventional_commit_type {
@@ -99,7 +97,6 @@ pub fn is_valid_commit_type(commit_type: &str, config: &config::Config) -> bool 
     true
 }
 
-/// Check if the issue key in the commit message is valid.
 pub fn is_valid_issue_key(issue_key: &Option<String>, config: &config::Config) -> Result<bool> {
     if let Some(lint_config) = &config.lint {
         if let Some(issue_key_config) = &lint_config.issue_key_missing {
@@ -139,8 +136,6 @@ pub fn is_valid_scope(scope: &Option<String>, config: &config::Config) -> bool {
     true
 }
 
-/// Check if the subject line of the commit message is valid.
-/// Validations include maximum length, capitalization, and period at the end.
 pub fn is_valid_subject_line(subject: &str, config: &config::Config) -> Result<(), String> {
     if let Some(lint) = &config.lint {
         if let Some(rules) = &lint.subject_line_rules {
@@ -173,8 +168,6 @@ pub fn is_valid_subject_line(subject: &str, config: &config::Config) -> Result<(
     Ok(())
 }
 
-/// Check if the body lines of the commit message are valid.
-/// Validations include maximum line length.
 pub fn is_valid_body_lines(body: &str, config: &config::Config) -> bool {
     if let Some(lint) = &config.lint {
         if let Some(rules) = &lint.body_line_rules {

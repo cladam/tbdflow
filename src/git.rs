@@ -70,7 +70,7 @@ pub fn is_working_directory_clean(verbose: bool, dry_run: bool) -> Result<()> {
     }
 }
 
-/// Runs a Git command that checks the status of the repository without producing output.
+/// Runs a git command, suppressing stdout/stderr. Returns the exit status.
 fn run_git_status_check(
     command: &str,
     args: &[&str],
@@ -97,12 +97,10 @@ fn run_git_status_check(
 /// Checks if there are any changes in the staging area.
 pub fn has_staged_changes(verbose: bool, dry_run: bool) -> Result<bool> {
     let status = run_git_status_check("diff", &["--staged", "--quiet"], verbose, dry_run)?;
-    // `git diff --quiet` exits with 1 if there are changes, 0 if not.
+    // git diff --quiet exits 1 if there are changes, 0 if clean.
     Ok(status.code() == Some(1))
 }
 
-/// Add a new remote repository to the current Git repository.
-/// git remote add origin <your-repository-url>
 pub fn add_remote(
     remote_name: &str,
     remote_url: &str,
@@ -117,31 +115,24 @@ pub fn add_remote(
     )
 }
 
-/// Check out the main branch.
 pub fn checkout_main(verbose: bool, dry_run: bool, main_branch: &str) -> Result<String> {
     run_git_command("checkout", &[main_branch], verbose, dry_run)
 }
 
-/// Pull the latest changes with rebase.
 pub fn pull_latest_with_rebase(verbose: bool, dry_run: bool) -> Result<String> {
-    // Using --autostash to safely handle local changes before pulling.
     run_git_command("pull", &["--rebase", "--autostash"], verbose, dry_run)
 }
 
-/// Pull the latest changes using fast-forward only.
-/// Unlike rebase, this preserves existing commit SHAs.
-/// Fails if the local branch has diverged from the remote.
+/// Fast-forward only — preserves existing commit SHAs.
+/// Fails if the local branch has diverged.
 pub fn pull_fast_forward_only(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("pull", &["--ff-only"], verbose, dry_run)
 }
 
-/// Fetch the latest changes from the origin remote.
 pub fn fetch_origin(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("fetch", &["origin"], verbose, dry_run)
 }
 
-/// Check if a remote branch exists.
-/// This checks if a branch exists on the remote repository (e.g. `origin`).
 pub fn remote_branch_exists(branch_name: &str, verbose: bool, dry_run: bool) -> Result<()> {
     let output = run_git_command(
         "ls-remote",
@@ -155,7 +146,6 @@ pub fn remote_branch_exists(branch_name: &str, verbose: bool, dry_run: bool) -> 
     }
 }
 
-/// Rebase the current branch onto the main branch.
 pub fn rebase_onto_main(main_branch_name: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command(
         "rebase",
@@ -165,13 +155,11 @@ pub fn rebase_onto_main(main_branch_name: &str, verbose: bool, dry_run: bool) ->
     )
 }
 
-/// Add all changes to the staging area.
 pub fn add_all(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("add", &["."], verbose, dry_run)
 }
 
-// Add all changes except those in specified project directories.
-// This uses the `:!<dir>` syntax to exclude directories from being added.
+/// Stages everything except the given project directories using `:(exclude)` pathspec.
 pub fn add_excluding_projects(
     project_dirs: &[String],
     verbose: bool,
@@ -195,22 +183,18 @@ pub fn add_excluding_projects(
     run_git_command("add", &args, verbose, dry_run)
 }
 
-/// Commit changes with a message.
 pub fn commit(message: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("commit", &["-m", message], verbose, dry_run)
 }
 
-/// Push changes to the remote repository.
 pub fn push(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("push", &[], verbose, dry_run)
 }
 
-/// Push all tags to the remote repository.
 pub fn push_tags(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("push", &["--tags"], verbose, dry_run)
 }
 
-/// Check if the branch exists locally.
 pub fn branch_exists_locally(branch_name: &str, verbose: bool, dry_run: bool) -> Result<()> {
     let output = run_git_command(
         "rev-parse",
@@ -224,7 +208,8 @@ pub fn branch_exists_locally(branch_name: &str, verbose: bool, dry_run: bool) ->
     }
 }
 
-/// Find a branch by name
+/// Fuzzy-matches a branch by type prefix and trailing name.
+/// Handles branches with or without issue IDs in the middle.
 pub fn find_branch(
     name: &str,
     r#type: &str,
@@ -262,23 +247,19 @@ pub fn find_branch(
     }
 }
 
-/// Check if the tag exists in the repository.
 pub fn tag_exists(tag_name: &str, verbose: bool, dry_run: bool) -> Result<bool> {
     let output = run_git_command("tag", &["-l", tag_name], verbose, dry_run)?;
     Ok(!output.is_empty())
 }
 
-/// Merge the current branch with another branch.
 pub fn merge_branch(branch_name: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("merge", &["--no-ff", branch_name], verbose, dry_run)
 }
 
-/// Delete a local short-lived branch.
 pub fn delete_local_branch(branch_name: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("branch", &["-d", branch_name], verbose, dry_run)
 }
 
-/// Delete a remote branch.
 pub fn delete_remote_branch(branch_name: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command(
         "push",
@@ -288,12 +269,10 @@ pub fn delete_remote_branch(branch_name: &str, verbose: bool, dry_run: bool) -> 
     )
 }
 
-/// Get the current branch name.
 pub fn get_current_branch(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("branch", &["--show-current"], verbose, dry_run)
 }
 
-/// Create a new branch from the current HEAD or a specified point.
 pub fn create_branch(
     branch_name: &str,
     from_point: Option<&str>,
@@ -307,30 +286,23 @@ pub fn create_branch(
     run_git_command("checkout", &args, verbose, dry_run)
 }
 
-/// Get the hash of the current HEAD commit.
 pub fn get_head_commit_hash(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("rev-parse", &["HEAD"], verbose, dry_run)
 }
 
-/// Get the latest tag in the repository.
-/// This returns the most recent tag, which is useful for versioning.
 pub fn get_latest_tag(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("describe", &["--tags", "--abbrev=0"], verbose, dry_run)
 }
 
-/// Get the commit history in a specific range.
 pub fn get_commit_history(range: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("log", &[range, "--pretty=format:%H|%s"], verbose, dry_run)
 }
 
-/// Get the remote URL of the repository.
 pub fn get_remote_url(verbose: bool, dry_run: bool) -> Result<String> {
     let url = run_git_command("remote", &["get-url", "origin"], verbose, dry_run)?;
-    // Remove the .git suffix for cleaner URLs
     Ok(url.trim_end_matches(".git").to_string())
 }
 
-/// Create a new tag with a message at a specific commit hash.
 pub fn create_tag(
     tag_name: &str,
     message: &str,
@@ -346,8 +318,6 @@ pub fn create_tag(
     )
 }
 
-/// Push a new branch to the remote repository and set it as upstream.
-/// This is useful for new branches that have not been pushed before.
 pub fn push_set_upstream(branch_name: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command(
         "push",
@@ -364,7 +334,7 @@ pub fn get_status_short(verbose: bool, dry_run: bool) -> Result<String> {
 pub fn get_status_full(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("status", &[], verbose, dry_run)
 }
-/// Show the current status of the repository.
+
 pub fn status(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("status", &["--short"], verbose, dry_run)
 }
@@ -378,7 +348,7 @@ pub fn status_for_path(relative_path: &str, verbose: bool, dry_run: bool) -> Res
     )
 }
 
-/// Show the current status of the repository, excluding changes in specified project directories.
+/// Status excluding the given project directories (monorepo root use).
 pub fn status_excluding_projects(
     project_dirs: &[String],
     verbose: bool,
@@ -397,11 +367,7 @@ pub fn status_excluding_projects(
     run_git_command("status", &args, verbose, dry_run)
 }
 
-/// Returns the monorepo-aware git status for the current working directory.
-/// Handles three cases:
-/// 1. Inside a sub-project → scoped to the project root
-/// 2. At the monorepo root → excludes project directories
-/// 3. Standalone repo → full status
+/// Monorepo-aware status: scoped to sub-project, root-only, or full.
 pub fn get_scoped_status(config: &Config, verbose: bool, dry_run: bool) -> Result<String> {
     let git_root = std::path::PathBuf::from(get_git_root(verbose, dry_run)?);
     let current_dir = std::env::current_dir()?;
@@ -425,9 +391,7 @@ pub fn get_scoped_status(config: &Config, verbose: bool, dry_run: bool) -> Resul
     }
 }
 
-/// Stages changes in a monorepo-aware way before committing.
-/// At the monorepo root, excludes project directories unless `include_projects` is set.
-/// Everywhere else, stages all changes.
+/// Monorepo-aware staging. At the repo root, excludes project dirs unless `include_projects` is set.
 pub fn stage_scoped_changes(
     config: &Config,
     include_projects: bool,
@@ -461,7 +425,6 @@ pub fn stage_scoped_changes(
     Ok(())
 }
 
-/// Show recent commits in the repository, 15 by default.
 pub fn log_graph(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command(
         "log",
@@ -471,7 +434,6 @@ pub fn log_graph(verbose: bool, dry_run: bool) -> Result<String> {
     )
 }
 
-/// Get the commit count of the current branch ahead of the main branch.
 pub fn get_commit_count_ahead(
     branch: &str,
     main_branch: &str,
@@ -482,7 +444,6 @@ pub fn get_commit_count_ahead(
     run_git_command("rev-list", &["--count", &range], verbose, dry_run)
 }
 
-/// Get the log for a specific branch.
 pub fn get_branch_log(
     branch: &str,
     main_branch: &str,
@@ -493,22 +454,18 @@ pub fn get_branch_log(
     run_git_command("log", &["--oneline", "-n", "10", &range], verbose, dry_run)
 }
 
-/// Check if the current dir is a valid Git repository.
 pub fn is_git_repository(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("rev-parse", &["--is-inside-work-tree"], verbose, dry_run)
 }
 
-/// Find the root directory of the Git repository and return its path.
 pub fn get_git_root(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("rev-parse", &["--show-toplevel"], verbose, dry_run)
 }
 
-/// Initialise a new Git repository in the current directory.
 pub fn init_git_repository(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("init", &[], verbose, dry_run)
 }
 
-/// Check for stale branches in the repository.
 pub fn get_stale_branches(
     verbose: bool,
     dry_run: bool,
@@ -551,18 +508,15 @@ pub fn get_stale_branches(
     Ok(stale_branches)
 }
 
-/// Get the current git username.
 pub fn get_user_name(verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("config", &["user.name"], verbose, dry_run)
 }
 
-/// Get the commit message for a specific commit hash.
 pub fn get_commit_message(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("log", &["-1", "--format=%s", commit_hash], verbose, dry_run)
 }
 
-/// Get the commit log since a given date/time.
-/// Returns format: hash|author|subject
+/// Returns format: `hash|author|subject`
 pub fn get_log_since(since: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command(
         "log",
@@ -572,8 +526,6 @@ pub fn get_log_since(since: &str, verbose: bool, dry_run: bool) -> Result<String
     )
 }
 
-/// Get the list of files changed in a specific commit.
-/// Returns a vector of file paths relative to the repository root.
 pub fn get_changed_files(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<Vec<String>> {
     let output = run_git_command(
         "diff-tree",
@@ -589,13 +541,11 @@ pub fn get_changed_files(commit_hash: &str, verbose: bool, dry_run: bool) -> Res
         .collect())
 }
 
-/// Revert a specific commit by its SHA, creating a new revert commit.
 pub fn revert_commit(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("revert", &["--no-edit", commit_hash], verbose, dry_run)
 }
 
-/// List remote branches that have NOT been merged into the main branch.
-/// Returns branch names without the `origin/` prefix.
+/// Remote branches not yet merged into main, without `origin/` prefix.
 pub fn get_active_remote_branches(
     main_branch: &str,
     verbose: bool,
@@ -619,8 +569,7 @@ pub fn get_active_remote_branches(
     Ok(branches)
 }
 
-/// Get the list of files changed between two refs using three-dot diff (merge-base).
-/// Useful for finding what a branch changed relative to its fork point from main.
+/// Three-dot diff: files changed by `head` relative to its fork point from `base`.
 pub fn get_diff_files_between_refs(
     base: &str,
     head: &str,
@@ -644,7 +593,6 @@ pub struct HunkRange {
 }
 
 impl HunkRange {
-    /// Check whether two hunk ranges overlap.
     pub fn overlaps(&self, other: &HunkRange) -> bool {
         let self_end = self.start_line + self.line_count.max(1) - 1;
         let other_end = other.start_line + other.line_count.max(1) - 1;
@@ -690,8 +638,6 @@ fn parse_hunk_headers(diff_output: &str, side: DiffSide) -> Vec<HunkRange> {
         .collect()
 }
 
-/// Get line-level diff hunks between two refs for a specific file.
-/// Returns the NEW-side hunk ranges (lines added/modified in `head`).
 pub fn get_diff_hunks_between_refs(
     base: &str,
     head: &str,
@@ -704,13 +650,11 @@ pub fn get_diff_hunks_between_refs(
     Ok(parse_hunk_headers(&output, DiffSide::New))
 }
 
-/// Get the author name of the most recent commit on a remote branch.
 pub fn get_branch_author(branch: &str, verbose: bool, dry_run: bool) -> Result<String> {
     let ref_name = format!("origin/{}", branch);
     run_git_command("log", &["-1", "--format=%an", &ref_name], verbose, dry_run)
 }
 
-/// Get the number of commits a remote branch is ahead of origin/main.
 pub fn get_remote_branch_commit_count(
     branch: &str,
     main_branch: &str,
@@ -722,7 +666,6 @@ pub fn get_remote_branch_commit_count(
     Ok(output.trim().parse().unwrap_or(0))
 }
 
-/// Get all locally changed files (both staged and unstaged, plus untracked).
 pub fn get_local_changed_files(verbose: bool, dry_run: bool) -> Result<Vec<String>> {
     let mut files = std::collections::HashSet::new();
 
@@ -741,8 +684,6 @@ pub fn get_local_changed_files(verbose: bool, dry_run: bool) -> Result<Vec<Strin
     Ok(files.into_iter().collect())
 }
 
-/// Get line-level diff hunks for local (unstaged + staged) changes in a specific file.
-/// Returns NEW-side hunk ranges.
 pub fn get_local_diff_hunks(file: &str, verbose: bool, dry_run: bool) -> Result<Vec<HunkRange>> {
     let mut hunks = Vec::new();
 
@@ -784,12 +725,10 @@ pub fn is_ancestor_of(
     Ok(status.code() == Some(0))
 }
 
-/// Get the full subject line of a commit.
 pub fn get_commit_subject(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("log", &["-1", "--format=%s", commit_hash], verbose, dry_run)
 }
 
-/// Verify that a commit SHA exists in the repository.
 pub fn commit_exists(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<bool> {
     // Use rev-parse --verify which exits non-zero if the ref doesn't exist.
     // run_git_command respects dry-run (returns Ok("")) so we assume it exists in that mode.
@@ -799,7 +738,6 @@ pub fn commit_exists(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<
     }
 }
 
-/// Resolve a (possibly short) commit SHA to its full hash.
 pub fn resolve_commit_hash(short_sha: &str, verbose: bool, dry_run: bool) -> Result<String> {
     run_git_command("rev-parse", &["--verify", short_sha], verbose, dry_run)
         .with_context(|| format!("Could not resolve commit '{}'", short_sha))

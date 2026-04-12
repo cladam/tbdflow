@@ -4,26 +4,21 @@ use anyhow::Result;
 use colored::*;
 use std::collections::HashSet;
 
-/// The kind of overlap detected between local changes and a remote branch.
 #[derive(Debug)]
 pub enum OverlapKind {
-    /// Both sides touch the same file (Level 1 — cheap, broad).
     SameFile,
-    /// Both sides touch overlapping line ranges in the same file (Level 2 — precise).
     LineOverlap {
         my_lines: Vec<git::HunkRange>,
         their_lines: Vec<git::HunkRange>,
     },
 }
 
-/// A single file that overlaps between local changes and a remote branch.
 #[derive(Debug)]
 pub struct FileOverlap {
     pub file_path: String,
     pub overlap_kind: OverlapKind,
 }
 
-/// Summary of overlap between local changes and one remote branch.
 #[derive(Debug)]
 pub struct BranchOverlap {
     pub branch_name: String,
@@ -32,7 +27,6 @@ pub struct BranchOverlap {
     pub overlapping_files: Vec<FileOverlap>,
 }
 
-/// The full result of a radar scan.
 #[derive(Debug)]
 pub struct RadarResult {
     pub overlaps: Vec<BranchOverlap>,
@@ -44,13 +38,11 @@ pub struct RadarResult {
 pub fn scan(config: &Config, verbose: bool, dry_run: bool) -> Result<RadarResult> {
     let main_branch = &config.main_branch_name;
 
-    // 1. Fetch latest refs from origin
     if verbose {
         println!("{}", "[RADAR] Fetching latest from origin...".dimmed());
     }
     git::fetch_origin(verbose, dry_run)?;
 
-    // 2. Get local changed files
     let local_files = git::get_local_changed_files(verbose, dry_run)?;
     if local_files.is_empty() {
         return Ok(RadarResult {
@@ -61,10 +53,8 @@ pub fn scan(config: &Config, verbose: bool, dry_run: bool) -> Result<RadarResult
     }
     let local_file_set: HashSet<&str> = local_files.iter().map(|s| s.as_str()).collect();
 
-    // 3. List active remote branches (not yet merged into main)
     let active_branches = git::get_active_remote_branches(main_branch, verbose, dry_run)?;
 
-    // 4. Filter out the current branch (don't compare with yourself)
     let current_branch = git::get_current_branch(verbose, dry_run).unwrap_or_default();
     let branches_to_scan: Vec<&String> = active_branches
         .iter()
@@ -72,14 +62,9 @@ pub fn scan(config: &Config, verbose: bool, dry_run: bool) -> Result<RadarResult
         .collect();
 
     let branches_scanned = branches_to_scan.len();
-
-    // 5. Determine detection level from config
     let level = &config.radar.level;
-
-    // 6. Load ignore patterns
     let ignore_patterns = &config.radar.ignore_patterns;
 
-    // 7. Compare each branch
     let mut overlaps = Vec::new();
     let main_ref = format!("origin/{}", main_branch);
 
@@ -145,7 +130,6 @@ pub fn scan(config: &Config, verbose: bool, dry_run: bool) -> Result<RadarResult
     })
 }
 
-/// Detect line-level overlap for a single file.
 fn detect_line_overlap(
     file: &str,
     main_ref: &str,
@@ -177,7 +161,6 @@ fn detect_line_overlap(
     }
 }
 
-/// Check if a file path should be ignored based on glob patterns.
 fn should_ignore(file: &str, patterns: &[String]) -> bool {
     for pattern in patterns {
         if let Ok(glob_pattern) = glob::Pattern::new(pattern) {

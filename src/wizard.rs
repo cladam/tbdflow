@@ -37,9 +37,6 @@ pub struct ChangeLogWizardResult {
 
 pub fn run_commit_wizard(config: &Config) -> Result<CommitWizardResult> {
     let theme = ColorfulTheme::default();
-    println!("Welcome to the Commit Wizard!");
-    println!("This wizard will guide you through creating a well-structured commit message.");
-    println!("You can press Ctrl+C at any time to exit the wizard.\n");
 
     // Load commit types from config or use defaults
     let allowed_types = config
@@ -142,9 +139,6 @@ pub fn run_commit_wizard(config: &Config) -> Result<CommitWizardResult> {
 
 pub fn run_branch_wizard(config: &Config) -> Result<BranchWizardResult> {
     let theme = ColorfulTheme::default();
-    println!("Welcome to the Branch Wizard!");
-    println!("This wizard will guide you through creating a well-structured branch name.");
-    println!("You can press Ctrl+C at any time to exit the wizard.\n");
 
     // Load branch types from config
     let mut allowed_types: Vec<String> = config.branch_types.keys().cloned().collect();
@@ -195,9 +189,6 @@ pub fn run_branch_wizard(config: &Config) -> Result<BranchWizardResult> {
 
 pub fn run_complete_wizard(config: &Config) -> Result<CompleteWizardResult> {
     let theme = ColorfulTheme::default();
-    println!("Welcome to the Complete Branch Wizard!");
-    println!("This wizard will guide you through completing a short-lived branch.");
-    println!("You can press Ctrl+C at any time to exit the wizard.\n");
 
     // Load branch types from config
     let mut allowed_types: Vec<String> = config.branch_types.keys().cloned().collect();
@@ -219,9 +210,6 @@ pub fn run_complete_wizard(config: &Config) -> Result<CompleteWizardResult> {
 
 pub fn run_changelog_wizard() -> Result<ChangeLogWizardResult> {
     let theme = ColorfulTheme::default();
-    println!("Welcome to the Changelog Wizard!");
-    println!("This wizard will guide you through generating a changelog.");
-    println!("You can press Ctrl+C at any time to exit the wizard.\n");
 
     let options = &[
         "Generate for unreleased changes (since the latest tag)",

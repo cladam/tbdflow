@@ -15,8 +15,6 @@ fn main() -> anyhow::Result<()> {
     let verbose = cli.verbose;
     let dry_run = cli.dry_run;
 
-    // Before running any command, check if we are in a git repository,
-    // unless the command is `init` itself.
     if !matches!(
         cli.command,
         Commands::Init | Commands::Update | Commands::Completion { .. }
@@ -27,13 +25,11 @@ fn main() -> anyhow::Result<()> {
             "Error: Not a git repository (or any of the parent directories).".red()
         );
         println!("Hint: Run 'tbdflow init' to initialise a new repository here.");
-        // Exit gracefully without a scary error stack trace.
         std::process::exit(1);
     }
 
     let config = config::load_tbdflow_config()?;
 
-    // Match the commands and execute the functionality.
     match cli.command {
         Commands::Init => {
             commands::handle_init_command(verbose, dry_run)?;
@@ -43,19 +39,15 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Config { get_dod } => {
             if get_dod {
-                // Print the DoD checklist for our plugin
                 if let Ok(dod_config) = config::load_dod_config() {
                     for item in dod_config.checklist {
                         println!("{}", item);
                     }
                 }
-                // Silently exit if no .dod.yml is found
-                // Add more functionality later for the config command ...
             }
         }
         Commands::HeadSha => {
             let sha = git::get_head_commit_hash(verbose, dry_run)?;
-            // Print the short (7-char) SHA for easy use with other commands
             println!("{}", &sha[..std::cmp::min(7, sha.len())]);
         }
         Commands::Update => {
@@ -211,8 +203,6 @@ fn main() -> anyhow::Result<()> {
                     println!("{}", changelog);
                 }
             } else {
-                //println!("{}", "--- Generating changelog ---".blue());
-                // Don't print the header, good for when piping to a file
                 let changelog =
                     changelog::handle_changelog(verbose, dry_run, &config, from, to, unreleased)?;
                 if changelog.is_empty() {
@@ -237,7 +227,6 @@ fn main() -> anyhow::Result<()> {
                 intent::add_note(&git_root, &msg, &current_branch)?;
                 println!("{}", format!("Note recorded: \"{}\"", msg).green());
             } else {
-                // No message and no --show: show the log by default
                 intent::show_intent_log(&git_root, Some(&current_branch))?;
             }
         }
@@ -289,7 +278,6 @@ fn main() -> anyhow::Result<()> {
             } else if digest {
                 review::handle_review_digest(&config, &since, verbose, dry_run)?;
             } else if let Some(commit_sha) = sha {
-                // Positional arg: `tbdflow review abc1234`
                 review::handle_review_trigger(
                     &config,
                     reviewers,
@@ -298,10 +286,8 @@ fn main() -> anyhow::Result<()> {
                     dry_run,
                 )?;
             } else if trigger {
-                // Flag only: `tbdflow review --trigger` (HEAD)
                 review::handle_review_trigger(&config, reviewers, None, verbose, dry_run)?;
             } else {
-                // Default: show digest if no specific action
                 review::handle_review_digest(&config, &since, verbose, dry_run)?;
             }
         }
