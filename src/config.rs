@@ -373,7 +373,7 @@ pub fn load_tbdflow_config() -> Result<Config, anyhow::Error> {
 }
 
 pub fn load_dod_config() -> anyhow::Result<DodConfig> {
-    let content = std::fs::read_to_string(".dod.yml").context("Failed to read .dod.yml")?;
+    let content = fs::read_to_string(".dod.yml").context("Failed to read .dod.yml")?;
     let config: DodConfig = yaml_serde::from_str(&content).context("Failed to parse .dod.yml")?;
     Ok(config)
 }

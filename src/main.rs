@@ -171,7 +171,7 @@ fn main() -> anyhow::Result<()> {
             for sub in cmd.get_subcommands_mut() {
                 commands::render_manpage_section(sub, &mut buffer)?;
             }
-            std::io::stdout().write_all(&buffer)?;
+            io::stdout().write_all(&buffer)?;
         }
         Commands::Completion { shell } => {
             let mut cmd = cli::Cli::command();
@@ -220,7 +220,7 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Note { message, show } => {
             let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
-            let current_branch = git::get_current_branch(verbose, dry_run)?;
+            let current_branch = get_current_branch(verbose, dry_run)?;
             if show {
                 intent::show_intent_log(&git_root, Some(&current_branch))?;
             } else if let Some(msg) = message {
@@ -232,7 +232,7 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Task(action) => {
             let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
-            let current_branch = git::get_current_branch(verbose, dry_run)?;
+            let current_branch = get_current_branch(verbose, dry_run)?;
             match action {
                 TaskAction::Start { description } => {
                     intent::start_task(&git_root, &description, &current_branch)?;

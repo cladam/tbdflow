@@ -18,7 +18,7 @@ pub struct CommitParams {
     pub no_verify: bool,
 }
 
-pub fn run_checklist_interactive(checklist: &[String]) -> anyhow::Result<Vec<usize>> {
+pub fn run_checklist_interactive(checklist: &[String]) -> Result<Vec<usize>> {
     let selections = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Please confirm each item before committing:")
         .items(checklist)
@@ -81,7 +81,7 @@ pub fn handle_interactive_dod(config: &DodConfig) -> Result<Option<String>> {
     }
 }
 
-pub fn is_valid_commit_type(commit_type: &str, config: &config::Config) -> bool {
+pub fn is_valid_commit_type(commit_type: &str, config: &Config) -> bool {
     if let Some(lint_config) = &config.lint {
         if let Some(conventional_commit_type) = &lint_config.conventional_commit_type {
             if let Some(enabled) = conventional_commit_type.enabled {
@@ -97,7 +97,7 @@ pub fn is_valid_commit_type(commit_type: &str, config: &config::Config) -> bool 
     true
 }
 
-pub fn is_valid_issue_key(issue_key: &Option<String>, config: &config::Config) -> Result<bool> {
+pub fn is_valid_issue_key(issue_key: &Option<String>, config: &Config) -> Result<bool> {
     if let Some(lint_config) = &config.lint {
         if let Some(issue_key_config) = &lint_config.issue_key_missing {
             if let Some(enabled) = issue_key_config.enabled {
@@ -116,7 +116,7 @@ pub fn is_valid_issue_key(issue_key: &Option<String>, config: &config::Config) -
     Ok(true)
 }
 
-pub fn is_valid_scope(scope: &Option<String>, config: &config::Config) -> bool {
+pub fn is_valid_scope(scope: &Option<String>, config: &Config) -> bool {
     if let Some(lint_config) = &config.lint {
         if let Some(scope_config) = &lint_config.scope {
             if let Some(enabled) = scope_config.enabled {
@@ -136,7 +136,7 @@ pub fn is_valid_scope(scope: &Option<String>, config: &config::Config) -> bool {
     true
 }
 
-pub fn is_valid_subject_line(subject: &str, config: &config::Config) -> Result<(), String> {
+pub fn is_valid_subject_line(subject: &str, config: &Config) -> Result<(), String> {
     if let Some(lint) = &config.lint {
         if let Some(rules) = &lint.subject_line_rules {
             if let Some(max_len) = rules.max_length {
@@ -168,7 +168,7 @@ pub fn is_valid_subject_line(subject: &str, config: &config::Config) -> Result<(
     Ok(())
 }
 
-pub fn is_valid_body_lines(body: &str, config: &config::Config) -> bool {
+pub fn is_valid_body_lines(body: &str, config: &Config) -> bool {
     if let Some(lint) = &config.lint {
         if let Some(rules) = &lint.body_line_rules {
             if let Some(max_len) = rules.max_line_length {

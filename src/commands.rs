@@ -31,7 +31,7 @@ pub fn handle_init_command(verbose: bool, dry_run: bool) -> Result<()> {
     println!("--- Initialising tbdflow configuration ---");
 
     if git::is_git_repository(verbose, dry_run).is_err() {
-        let current_dir = std::env::current_dir()?.to_string_lossy().to_string();
+        let current_dir = env::current_dir()?.to_string_lossy().to_string();
         if Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt(format!(
                 "Currently not in a git repository ({}). Would you like to initialise one?",
@@ -48,7 +48,7 @@ pub fn handle_init_command(verbose: bool, dry_run: bool) -> Result<()> {
     }
 
     let git_root = git::get_git_root(verbose, dry_run)?;
-    let current_dir = std::env::current_dir()?;
+    let current_dir = env::current_dir()?;
     let tbdflow_path = std::path::Path::new(&git_root).join(".tbdflow.yml");
     let mut files_created = false;
 
@@ -484,7 +484,7 @@ pub fn check_and_warn_for_stale_branches(
 pub fn get_branch_prefix_or_error<'a>(
     branch_types: &'a std::collections::HashMap<String, String>,
     r#type: &str,
-) -> anyhow::Result<&'a String> {
+) -> Result<&'a String> {
     branch_types.get(r#type).ok_or_else(|| {
         let allowed_types = branch_types
             .keys()

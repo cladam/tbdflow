@@ -101,10 +101,8 @@ pub fn scan(config: &Config, verbose: bool, dry_run: bool) -> Result<RadarResult
             let overlap_kind = match level {
                 RadarLevel::Line => {
                     // Level 2: line-level overlap detection
-                    match detect_line_overlap(file, &main_ref, &branch_ref, verbose, dry_run) {
-                        Some(kind) => kind,
-                        None => OverlapKind::SameFile, // Fall back to file-level if hunks can't be parsed
-                    }
+                    detect_line_overlap(file, &main_ref, &branch_ref, verbose, dry_run)
+                        .unwrap_or_else(|| OverlapKind::SameFile)
                 }
                 RadarLevel::File => OverlapKind::SameFile,
             };

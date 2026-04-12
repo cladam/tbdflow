@@ -852,7 +852,7 @@ mod tests {
 
     #[test]
     fn test_git_is_installed() {
-        let result = std::process::Command::new("git").arg("--version").output();
+        let result = Command::new("git").arg("--version").output();
         assert!(result.is_ok(), "Git is not installed or not in PATH");
         let output = result.unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
