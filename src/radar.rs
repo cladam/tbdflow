@@ -100,7 +100,6 @@ pub fn scan(config: &Config, verbose: bool, dry_run: bool) -> Result<RadarResult
         for file in &overlapping_files {
             let overlap_kind = match level {
                 RadarLevel::Line => {
-                    // Level 2: line-level overlap detection
                     detect_line_overlap(file, &main_ref, &branch_ref, verbose, dry_run)
                         .unwrap_or_else(|| OverlapKind::SameFile)
                 }
@@ -202,7 +201,7 @@ pub fn handle_radar(verbose: bool, dry_run: bool, config: &Config) -> Result<()>
         println!(
             "{}",
             format!(
-                "✅ No overlaps detected across {} active branch(es). You're clear!",
+                "No overlaps detected across {} active branch(es). You're clear!",
                 result.branches_scanned
             )
             .green()
@@ -227,7 +226,7 @@ pub fn handle_radar(verbose: bool, dry_run: bool, config: &Config) -> Result<()>
             println!(
                 "{}",
                 format!(
-                    "  ✅ {} other active branch(es) have no overlap with your changes.",
+                    "  {} other active branch(es) have no overlap with your changes.",
                     clean_count
                 )
                 .green()
@@ -261,8 +260,8 @@ fn print_branch_overlap(overlap: &BranchOverlap) {
             "├──"
         };
         let indicator = match &file_overlap.overlap_kind {
-            OverlapKind::LineOverlap { .. } => "⚡ LINE OVERLAP".red().bold().to_string(),
-            OverlapKind::SameFile => "📁 SAME FILE".yellow().to_string(),
+            OverlapKind::LineOverlap { .. } => "[!!] LINE OVERLAP".red().bold().to_string(),
+            OverlapKind::SameFile => "[!] SAME FILE".yellow().to_string(),
         };
 
         let detail = match &file_overlap.overlap_kind {
@@ -300,8 +299,7 @@ fn format_hunk_ranges(hunks: &[git::HunkRange]) -> String {
         .join(", ")
 }
 
-/// Lightweight radar check intended for integration into `tbdflow sync`.
-/// Returns a short summary string if overlaps are found, or None if clear.
+/// Lightweight radar check for the sync command
 pub fn quick_scan_for_sync(
     config: &Config,
     verbose: bool,
@@ -336,7 +334,6 @@ pub fn quick_scan_for_sync(
 }
 
 /// Radar check for the commit workflow.
-/// Returns true if the user should proceed, false if they chose to abort.
 pub fn check_before_commit(config: &Config, verbose: bool, dry_run: bool) -> Result<bool> {
     if config.radar.on_commit == RadarOnCommit::Off {
         return Ok(true);
@@ -356,8 +353,8 @@ pub fn check_before_commit(config: &Config, verbose: bool, dry_run: bool) -> Res
     for overlap in &result.overlaps {
         for file_overlap in &overlap.overlapping_files {
             let indicator = match &file_overlap.overlap_kind {
-                OverlapKind::LineOverlap { .. } => "⚡",
-                OverlapKind::SameFile => "📁",
+                OverlapKind::LineOverlap { .. } => "[!!]",
+                OverlapKind::SameFile => "[!]",
             };
             println!(
                 "  {} {} — @{} on {}",

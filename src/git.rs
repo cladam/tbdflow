@@ -526,6 +526,58 @@ pub fn get_log_since(since: &str, verbose: bool, dry_run: bool) -> Result<String
     )
 }
 
+pub fn get_latest_commit_time(
+    branch: &str,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<Option<DateTime<Utc>>> {
+    let ref_name = format!("origin/{}", branch);
+    let output = run_git_command("log", &["-1", "--format=%cI", &ref_name], verbose, dry_run)?;
+    if output.is_empty() {
+        return Ok(None);
+    }
+    match DateTime::parse_from_rfc3339(output.trim()) {
+        Ok(dt) => Ok(Some(dt.with_timezone(&Utc))),
+        Err(_) => Ok(None),
+    }
+}
+
+pub fn get_file_churn(
+    branch: &str,
+    hours: u64,
+    limit: usize,
+    verbose: bool,
+    dry_run: bool,
+) -> Result<Vec<(String, usize)>> {
+    let since = format!("{} hours ago", hours);
+    let ref_name = format!("origin/{}", branch);
+    let output = run_git_command(
+        "log",
+        &[
+            &ref_name,
+            "--since",
+            &since,
+            "--name-only",
+            "--pretty=format:",
+        ],
+        verbose,
+        dry_run,
+    )?;
+
+    let mut counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for line in output.lines() {
+        let trimmed = line.trim();
+        if !trimmed.is_empty() {
+            *counts.entry(trimmed.to_string()).or_insert(0) += 1;
+        }
+    }
+
+    let mut sorted: Vec<(String, usize)> = counts.into_iter().collect();
+    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted.truncate(limit);
+    Ok(sorted)
+}
+
 pub fn get_changed_files(commit_hash: &str, verbose: bool, dry_run: bool) -> Result<Vec<String>> {
     let output = run_git_command(
         "diff-tree",

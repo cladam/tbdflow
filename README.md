@@ -681,8 +681,8 @@ tbdflow radar
 OVERLAP DETECTED with 1 active branch(es):
 
   feat/API-42-user-auth (by @alice, 2 commits ahead)
-  ├── src/auth/handler.rs    LINE OVERLAP
-  └── src/auth/middleware.rs  SAME FILE
+  ├── src/auth/handler.rs [!!] LINE OVERLAP
+  └── src/auth/middleware.rs [!] SAME FILE
 
   3 other active branch(es) have no overlap with your changes.
 
