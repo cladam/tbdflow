@@ -1,6 +1,7 @@
 use crate::config::{Config, RadarLevel, RadarOnCommit};
 use crate::git;
 use anyhow::Result;
+use chrono::Utc;
 use colored::*;
 use std::collections::HashSet;
 
@@ -32,6 +33,94 @@ pub struct RadarResult {
     pub overlaps: Vec<BranchOverlap>,
     pub branches_scanned: usize,
     pub local_files_count: usize,
+}
+
+#[derive(Debug)]
+pub struct TrunkStatus {
+    pub ci: git::CiStatus,
+    pub time_ago: Option<String>,
+}
+
+/// human-readable X ago
+fn format_duration_ago(seconds: i64) -> String {
+    if seconds < 60 {
+        format!("{}s ago", seconds)
+    } else if seconds < 3600 {
+        format!("{}m ago", seconds / 60)
+    } else if seconds < 86400 {
+        format!("{}h ago", seconds / 3600)
+    } else {
+        format!("{}d ago", seconds / 86400)
+    }
+}
+
+pub fn get_trunk_status(config: &Config, verbose: bool, dry_run: bool) -> TrunkStatus {
+    let main = &config.main_branch_name;
+
+    let ci = if config.ci_check.enabled {
+        git::check_ci_status(main, verbose, dry_run)
+    } else {
+        git::CiStatus::Unknown("CI check not enabled".to_string())
+    };
+
+    let time_ago = git::get_latest_commit_time(main, verbose, dry_run)
+        .ok()
+        .flatten()
+        .map(|dt| {
+            let elapsed = Utc::now().signed_duration_since(dt).num_seconds().max(0);
+            format_duration_ago(elapsed)
+        });
+
+    TrunkStatus { ci, time_ago }
+}
+
+fn print_trunk_status(status: &TrunkStatus, main_branch: &str) {
+    let (label, colour_fn): (&str, fn(&str) -> ColoredString) = match &status.ci {
+        git::CiStatus::Green => ("Green", |s: &str| s.green()),
+        git::CiStatus::Failed => ("Red", |s: &str| s.red()),
+        git::CiStatus::Pending => ("Pending", |s: &str| s.yellow()),
+        git::CiStatus::Unknown(_) => ("Unknown", |s: &str| s.dimmed()),
+    };
+
+    let detail = status
+        .time_ago
+        .as_deref()
+        .map(|t| format!(" (Last integrated {})", t))
+        .unwrap_or_default();
+
+    let line = format!("{} is {}{}", main_branch, label, detail);
+    println!("{}", colour_fn(&line));
+}
+
+// max 5 files latest 72 hours
+pub type Hotspot = (String, usize);
+const CHURN_HOURS: u64 = 72;
+const CHURN_LIMIT: usize = 5;
+
+pub fn get_hotspots(config: &Config, verbose: bool, dry_run: bool) -> Result<Vec<Hotspot>> {
+    git::get_file_churn(
+        &config.main_branch_name,
+        CHURN_HOURS,
+        CHURN_LIMIT,
+        verbose,
+        dry_run,
+    )
+}
+
+fn print_hotspots(hotspots: &[Hotspot]) {
+    if hotspots.is_empty() {
+        println!("{}", "No file changes in the last 3 days.".dimmed());
+    } else {
+        for (file, count) in hotspots {
+            let label = if *count == 1 { "change" } else { "changes" };
+            println!(
+                "  {} ({} {})",
+                file.bold(),
+                count.to_string().yellow(),
+                label
+            );
+        }
+    }
 }
 
 /// Run the full radar scan: fetch, compare local changes against all active remote branches.
@@ -170,10 +259,23 @@ fn should_ignore(file: &str, patterns: &[String]) -> bool {
 }
 
 pub fn handle_radar(verbose: bool, dry_run: bool, config: &Config) -> Result<()> {
+    println!("{}", "--- Trunk Status ---".blue());
+    let trunk = get_trunk_status(config, verbose, dry_run);
+    print_trunk_status(&trunk, &config.main_branch_name);
+
     println!(
-        "{}",
-        "--- Scanning for overlapping work ---".to_string().blue()
+        "\n{}",
+        format!("--- Hotspots (Last {} days) ---", CHURN_HOURS / 24).blue()
     );
+
+    if verbose {
+        println!("{}", "[RADAR] Fetching latest from origin...".dimmed());
+    }
+    git::fetch_origin(verbose, dry_run)?;
+    let hotspots = get_hotspots(config, verbose, dry_run)?;
+    print_hotspots(&hotspots);
+
+    println!("\n{}", "--- Scanning for overlapping work ---".blue());
 
     if !config.radar.enabled {
         println!(
