@@ -38,14 +38,14 @@ It handles the ceremony (pulling, rebasing, linting, pushing) so you can stay fo
 
 ## What it does
 
-| Pain point                     | How tbdflow helps                                                          |
-|--------------------------------|----------------------------------------------------------------------------|
-| Inconsistent commits           | `tbdflow commit` enforces Conventional Commits with built-in linting       |
-| Long-lived branches            | `tbdflow branch` + `tbdflow complete` with stale-branch warnings           |
-| "Did I pull before pushing?"   | `tbdflow sync` + auto-rebase before every commit to main                   |
-| Pulling a broken trunk         | `tbdflow sync` pre-flight CI check warns before pulling a red build        |
-| Merge conflicts you didn't see | `tbdflow radar` shows who else is touching the same files, before you push |
-| "Why was this done?"           | `tbdflow task` + `tbdflow note` captures intent before it's lost           |
+| Pain point                     | How tbdflow helps                                                                                |
+|--------------------------------|--------------------------------------------------------------------------------------------------|
+| Inconsistent commits           | `tbdflow commit` enforces Conventional Commits with built-in linting                             |
+| Long-lived branches            | `tbdflow branch` + `tbdflow complete` with stale-branch warnings                                 |
+| "Did I pull before pushing?"   | `tbdflow sync` + auto-rebase before every commit to main                                         |
+| Pulling a broken trunk         | `tbdflow sync` pre-flight CI check warns before pulling a red build                              |
+| Merge conflicts you didn't see | `tbdflow radar` shows trunk health, file churn hotspots, and who else is touching the same files |
+| "Why was this done?"           | `tbdflow task` + `tbdflow note` captures intent before it's lost                                 |
 
 ## Philosophy
 
@@ -55,8 +55,8 @@ It handles the ceremony (pulling, rebasing, linting, pushing) so you can stay fo
 * **Cleanup shouldn't be your job.** Completed branches get merged, tagged (for releases), and deleted automatically.
 * **Commit messages should tell a story.** [Conventional Commits](https://www.conventionalcommits.org/) keep the
   history readable for humans and machines alike.
-* **Collaboration should be visible.** `tbdflow radar` shows who else is touching the same files, turning silent
-  conflicts into early conversations.
+* **Collaboration should be visible.** `tbdflow radar` shows trunk health, churn hotspots, and file overlaps; turning
+  silent conflicts into early conversations.
 
 ### Why not just use Git?
 
@@ -655,18 +655,53 @@ tbdflow commit -t refactor -s auth -m "simplify auth middleware"
 
 ### 7. `radar`
 
-Scans active remote branches for overlapping work that may cause merge conflicts with your local changes. This is the
-**social coding safety net** for Trunk-Based Development, it makes the invisible visible by showing who else is
-touching the same files before you push.
+Orient yourself before you start typing. `tbdflow radar` is the **situational-awareness dashboard** for
+Trunk-Based Development. Run it first thing in the morning, or any time you sit back down at the keyboard.
 
-In TBD, everyone integrates frequently. The biggest fear is two people editing the same lines simultaneously. Standard
-Git won't warn you until you try to push. Radar warns you *before* you commit.
+It answers three questions at a glance:
+
+1. **Is the trunk healthy?** (Trunk Status)
+2. **Where is work concentrating?** (Hotspots / Churn)
+3. **Is anyone touching the same files as me?** (Overlap Scan)
 
 **Usage:**
 
 ```bash
 tbdflow radar
 ```
+
+**Example output:**
+
+```
+--- Trunk Status ---
+main is Green (Last integrated 12m ago)
+
+--- Hotspots (Last 3 days) ---
+  src/auth/logic.rs (14 changes)
+  src/db/schema.sql (8 changes)
+
+--- Scanning for overlapping work ---
+Fetching latest from origin...
+No local changes detected. Nothing to scan.
+```
+
+#### Trunk Status (The Heartbeat)
+
+Shows the CI status of the trunk and how long ago the last commit landed. If CI checks are enabled (`ci_check.enabled:
+true`), you'll see Green / Red / Pending; otherwise it shows Unknown.
+
+> **Goal:** Provide a pulse for the repository. If main is red, fix-forward or wait and talk to a peer.
+
+#### Hotspots (The Churn)
+
+Lists the top files with the most changes on the trunk in the last 72 hours.
+
+> **Goal:** Prevent "Blind Collisions." If a file is being thrashed, you should pair or wait before editing it.
+
+#### Overlap Scan
+
+Compares your uncommitted local changes against every active remote branch to surface file (or line) overlaps before
+you push.
 
 **Detection Levels** (configurable in `.tbdflow.yml`):
 
@@ -675,7 +710,7 @@ tbdflow radar
 | `file` | Same files touched (default)          | ~5ms/branch  |
 | `line` | Overlapping line ranges in same files | ~50ms/branch |
 
-**Example output:**
+**Example overlap output:**
 
 ```
 OVERLAP DETECTED with 1 active branch(es):

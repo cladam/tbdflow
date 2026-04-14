@@ -1,3 +1,18 @@
+# [0.27.0](https://github.com/cladam/tbdflow/releases/tag/v0.27.0) (2026-04-14)
+
+### ✨ Features
+- **(radar):** add functionality for quickly gauge the codebase, hotspots & status [`7ae4920`](https://github.com/cladam/tbdflow/commit/7ae492004603df85efc2f6af2dece9fbb4be3f22)
+- add new git functions to orient the codebase better [`7ee70a8`](https://github.com/cladam/tbdflow/commit/7ee70a8d97324911f822fe62f592abe0b5ccb575)
+
+### 🐛 Bug Fixes
+- small fixes based on IDE suggestions [`691ad40`](https://github.com/cladam/tbdflow/commit/691ad40347d96d790f78f7d01914a5e894ce3f18)
+- **(comments):** went thru and updated comments, mostly removed [`34e02e2`](https://github.com/cladam/tbdflow/commit/34e02e268a0b136891bb49b4b58e5eb6b0aaee2a)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`e407bc2`](https://github.com/cladam/tbdflow/commit/e407bc2597a7d62883c7889a41772dfcb8615393)
+- update CHANGELOG [`dbb0712`](https://github.com/cladam/tbdflow/commit/dbb0712188fc7cd4c75c0c0c1c991e5d2cf3e39d)
+
+
 # [0.26.1](https://github.com/cladam/tbdflow/releases/tag/v0.26.1) (2026-04-11)
 
 ### ✨ Features
