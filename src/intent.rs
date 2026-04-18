@@ -38,6 +38,9 @@ fn ensure_gitignored(git_root: &Path) -> Result<()> {
 pub struct IntentNote {
     pub message: String,
     pub timestamp: String,
+    /// Optional WIP snapshot hash captured via `git stash create`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub snapshot_hash: Option<String>,
 }
 
 /// The full intent log stored in `.tbdflow-intent.json`.
@@ -54,6 +57,9 @@ pub struct IntentLog {
     pub started_at: String,
     /// Ordered list of developer notes / breadcrumbs.
     pub notes: Vec<IntentNote>,
+    /// Snapshot hash captured before the last `tbdflow sync`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_sync_snapshot: Option<String>,
 }
 
 /// Result of a stale-branch check.
@@ -77,6 +83,7 @@ impl IntentLog {
             branch,
             started_at: Utc::now().to_rfc3339(),
             notes: Vec::new(),
+            last_sync_snapshot: None,
         }
     }
 }
@@ -148,13 +155,18 @@ pub fn warn_stale(log_branch: &str, current_branch: &str) {
     );
 }
 
-/// Appends a note to the intent log. Creates the file if it doesn't exist.
+/// Appends a note to the intent log with an optional WIP snapshot.
 /// `current_branch` is stamped on creation so stale logs can be detected later.
-pub fn add_note(git_root: &Path, message: &str, current_branch: &str) -> Result<()> {
+/// `snapshot_hash` is the result of `git stash create`, if any.
+pub fn add_note_with_snapshot(
+    git_root: &Path,
+    message: &str,
+    current_branch: &str,
+    snapshot_hash: Option<String>,
+) -> Result<()> {
     let mut log = load_intent_log(git_root)?
         .unwrap_or_else(|| IntentLog::new(None, Some(current_branch.to_string())));
 
-    // Warn if the log belongs to a different branch, but still allow appending.
     if let BranchCheck::Stale {
         log_branch,
         current_branch,
@@ -166,15 +178,18 @@ pub fn add_note(git_root: &Path, message: &str, current_branch: &str) -> Result<
     log.notes.push(IntentNote {
         message: message.to_string(),
         timestamp: Utc::now().to_rfc3339(),
+        snapshot_hash,
     });
 
     save_intent_log(git_root, &log)?;
     Ok(())
 }
 
-/// Starts a new task, creating a fresh intent log (or updating the task name
-/// on an existing one).
-/// `current_branch` is stamped on creation so stale logs can be detected later.
+pub fn add_note(git_root: &Path, message: &str, current_branch: &str) -> Result<()> {
+    add_note_with_snapshot(git_root, message, current_branch, None)
+}
+
+/// Starts a new task, creating a fresh intent log (or updating the task name on an existing one).
 pub fn start_task(git_root: &Path, description: &str, current_branch: &str) -> Result<()> {
     let existing = load_intent_log(git_root)?;
     if let Some(existing_log) = &existing {
@@ -204,6 +219,19 @@ pub fn start_task(git_root: &Path, description: &str, current_branch: &str) -> R
     // Update the branch to the current one when starting a new task
     log.branch = Some(current_branch.to_string());
 
+    save_intent_log(git_root, &log)?;
+    Ok(())
+}
+
+/// Records a pre-sync safety snapshot hash in the intent log.
+pub fn record_sync_snapshot(
+    git_root: &Path,
+    snapshot_hash: &str,
+    current_branch: &str,
+) -> Result<()> {
+    let mut log = load_intent_log(git_root)?
+        .unwrap_or_else(|| IntentLog::new(None, Some(current_branch.to_string())));
+    log.last_sync_snapshot = Some(snapshot_hash.to_string());
     save_intent_log(git_root, &log)?;
     Ok(())
 }
@@ -353,10 +381,12 @@ mod tests {
         log.notes.push(IntentNote {
             message: "tried factory pattern".to_string(),
             timestamp: Utc::now().to_rfc3339(),
+            snapshot_hash: None,
         });
         log.notes.push(IntentNote {
             message: "switching to traits".to_string(),
             timestamp: Utc::now().to_rfc3339(),
+            snapshot_hash: None,
         });
 
         let formatted = format_for_commit(&log).unwrap();

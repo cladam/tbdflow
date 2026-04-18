@@ -335,8 +335,27 @@ pub fn handle_commit(
                 "Successfully committed and pushed changes to main.".green()
             );
 
-            // Cleanup the intent log after successful push to trunk
+            // Clean-up the intent log after successful push to trunk
             if intent_section.is_some() {
+                // Report snapshot consumption before clearing
+                if let Ok(Some(log)) = intent::load_intent_log(&git_root) {
+                    let snapshot_count = log
+                        .notes
+                        .iter()
+                        .filter(|n| n.snapshot_hash.is_some())
+                        .count()
+                        + log.last_sync_snapshot.as_ref().map_or(0, |_| 1);
+                    if snapshot_count > 0 {
+                        println!(
+                            "{}",
+                            format!(
+                                "Releasing {} WIP snapshot(s), your work is now in git history.",
+                                snapshot_count
+                            )
+                            .dimmed()
+                        );
+                    }
+                }
                 intent::cleanup_intent_log(&git_root)?;
                 println!("{}", "Intent log consumed and cleared.".dimmed());
             }

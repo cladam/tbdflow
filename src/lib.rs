@@ -7,5 +7,6 @@ pub mod config;
 pub mod git;
 pub mod intent;
 pub mod radar;
+pub mod recover;
 pub mod review;
 pub mod wizard;

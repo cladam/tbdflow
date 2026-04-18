@@ -1,5 +1,5 @@
 use crate::config::{Config, RadarLevel, RadarOnCommit};
-use crate::git;
+use crate::{git, intent};
 use anyhow::Result;
 use chrono::Utc;
 use colored::*;
@@ -342,7 +342,51 @@ pub fn handle_radar(verbose: bool, dry_run: bool, config: &Config) -> Result<()>
         );
     }
 
+    radar_snapshot(verbose, dry_run);
+
     Ok(())
+}
+
+/// Silently captures a WIP snapshot if the working directory is dirty
+/// and the last snapshot is more than 30 minutes old.
+fn radar_snapshot(verbose: bool, dry_run: bool) {
+    let is_dirty = git::is_working_directory_dirty(verbose, dry_run).unwrap_or(false);
+    if !is_dirty {
+        return;
+    }
+
+    let git_root = match git::get_git_root(verbose, dry_run) {
+        Ok(r) => std::path::PathBuf::from(r),
+        Err(_) => return,
+    };
+
+    // Check if last note snapshot is recent enough (< 30 min)
+    if let Ok(Some(log)) = intent::load_intent_log(&git_root) {
+        if let Some(last_note) = log.notes.last() {
+            if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(&last_note.timestamp) {
+                let age = Utc::now().signed_duration_since(ts);
+                if age.num_minutes() < 30 {
+                    return; // Recent snapshot exists, skip
+                }
+            }
+        }
+    }
+
+    if let Ok(Some(hash)) = git::stash_create(verbose, dry_run) {
+        let current_branch = git::get_current_branch(verbose, dry_run).unwrap_or_default();
+        let _ = intent::add_note_with_snapshot(
+            &git_root,
+            "Radar auto-snapshot",
+            &current_branch,
+            Some(hash.clone()),
+        );
+        if verbose {
+            println!(
+                "{}",
+                format!("Radar snapshot: {}", &hash[..std::cmp::min(10, hash.len())]).dimmed()
+            );
+        }
+    }
 }
 
 /// Print a single branch overlap in a tree-like format.

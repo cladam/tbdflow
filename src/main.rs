@@ -7,7 +7,7 @@ use tbdflow::cli::TaskAction;
 use tbdflow::commit::CommitParams;
 use tbdflow::git::get_current_branch;
 use tbdflow::{
-    branch, changelog, cli, commands, commit, config, git, intent, radar, review, wizard,
+    branch, changelog, cli, commands, commit, config, git, intent, radar, recover, review, wizard,
 };
 
 fn main() -> anyhow::Result<()> {
@@ -224,8 +224,22 @@ fn main() -> anyhow::Result<()> {
             if show {
                 intent::show_intent_log(&git_root, Some(&current_branch))?;
             } else if let Some(msg) = message {
-                intent::add_note(&git_root, &msg, &current_branch)?;
+                // Capture WIP state alongside the note
+                let snapshot_hash = git::stash_create(verbose, dry_run)?;
+                intent::add_note_with_snapshot(
+                    &git_root,
+                    &msg,
+                    &current_branch,
+                    snapshot_hash.clone(),
+                )?;
                 println!("{}", format!("Note recorded: \"{}\"", msg).green());
+                if let Some(hash) = snapshot_hash {
+                    println!(
+                        "{}",
+                        format!("WIP snapshot: {}", &hash[..std::cmp::min(10, hash.len())])
+                            .dimmed()
+                    );
+                }
             } else {
                 intent::show_intent_log(&git_root, Some(&current_branch))?;
             }
@@ -250,6 +264,15 @@ fn main() -> anyhow::Result<()> {
                     intent::cleanup_intent_log(&git_root)?;
                     println!("{}", "Intent log cleared.".green());
                 }
+            }
+        }
+        Commands::Recover { selector, list } => {
+            let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
+            let current_branch = get_current_branch(verbose, dry_run)?;
+            if list || selector.is_none() {
+                recover::handle_recover_list(&git_root, &current_branch)?;
+            } else if let Some(sel) = selector {
+                recover::handle_recover_apply(&git_root, &sel, verbose, dry_run)?;
             }
         }
         Commands::Review {

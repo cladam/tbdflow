@@ -237,6 +237,25 @@ pub enum Commands {
     tbdflow task clear"
     )]
     Task(TaskAction),
+    /// Recovers a WIP snapshot from the safety log.
+    /// Snapshots are captured automatically during notes and syncs.
+    #[command(
+        name = "recover",
+        after_help = "tbdflow WIP Guard\n  \
+    Snapshots are captured automatically when you use 'tbdflow n', 'tbdflow sync' or 'tbdflow radar'.\n  \
+    Use this command to list and restore them.\n\n\
+    EXAMPLES:\n  \
+    tbdflow recover --list                # Show available snapshots\n  \
+    tbdflow recover 1                     # Restore snapshot #1\n  \
+    tbdflow recover a7b8c9d0              # Restore by hash"
+    )]
+    Recover {
+        /// Snapshot index or hash to restore.
+        selector: Option<String>,
+        /// List all available snapshots instead of restoring.
+        #[arg(long, default_value_t = false)]
+        list: bool,
+    },
     /// Manages non-blocking post-commit reviews for trunk-based development.
     #[command(
         name = "review",

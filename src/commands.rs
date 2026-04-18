@@ -1,4 +1,4 @@
-use crate::{config, git, radar};
+use crate::{config, git, intent, radar};
 use anyhow::Result;
 use clap::Command as Commands;
 use colored::*;
@@ -354,6 +354,30 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
     );
     let current_branch = git::get_current_branch(verbose, dry_run)?;
 
+    // Anti-collision pre-flight: abort if a git operation is already in progress
+    if let Some(msg) = git::check_git_operation_in_progress(verbose, dry_run)? {
+        println!(
+            "{}",
+            format!("Error: {} Please resolve it before using tbdflow.", msg).red()
+        );
+        return Err(anyhow::anyhow!("{}", msg));
+    }
+
+    if let Ok(Some(hash)) = git::stash_create(verbose, dry_run) {
+        let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
+        intent::record_sync_snapshot(&git_root, &hash, &current_branch)?;
+        if verbose {
+            println!(
+                "{}",
+                format!(
+                    "Pre-sync snapshot captured: {}",
+                    &hash[..std::cmp::min(10, hash.len())]
+                )
+                .dimmed()
+            );
+        }
+    }
+
     // Check trunk CI status before pulling to avoid importing a broken build
     if config.ci_check.enabled {
         let ci_status = git::check_ci_status(&config.main_branch_name, verbose, dry_run);
@@ -510,6 +534,32 @@ pub fn handle_undo(
         "{}",
         "--- Undo: The Panic Button ---".to_string().bold().red()
     );
+
+    // Anti-collision pre-flight
+    if let Some(msg) = git::check_git_operation_in_progress(verbose, dry_run)? {
+        println!(
+            "{}",
+            format!("Error: {} Please resolve it before using tbdflow.", msg).red()
+        );
+        return Err(anyhow::anyhow!("{}", msg));
+    }
+
+    // WIP Guard: snapshot before the destructive checkout + fast-forward
+    if let Ok(Some(hash)) = git::stash_create(verbose, dry_run) {
+        let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
+        let current_branch = git::get_current_branch(verbose, dry_run)?;
+        intent::record_sync_snapshot(&git_root, &hash, &current_branch)?;
+        if verbose {
+            println!(
+                "{}",
+                format!(
+                    "Pre-undo snapshot captured: {}",
+                    &hash[..std::cmp::min(10, hash.len())]
+                )
+                .dimmed()
+            );
+        }
+    }
 
     let main_branch = &config.main_branch_name;
 

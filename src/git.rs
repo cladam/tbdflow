@@ -898,6 +898,44 @@ pub fn check_ci_status(branch: &str, verbose: bool, dry_run: bool) -> CiStatus {
     }
 }
 
+/// Creates an immutable stash snapshot without touching the stash reflog.
+pub fn stash_create(verbose: bool, dry_run: bool) -> Result<Option<String>> {
+    let hash = run_git_command("stash", &["create"], verbose, dry_run)?;
+    if hash.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(hash))
+    }
+}
+
+pub fn stash_apply(hash: &str, verbose: bool, dry_run: bool) -> Result<String> {
+    run_git_command("stash", &["apply", hash], verbose, dry_run)
+}
+
+pub fn is_working_directory_dirty(verbose: bool, dry_run: bool) -> Result<bool> {
+    let output = run_git_command("status", &["--porcelain"], verbose, dry_run)?;
+    Ok(!output.is_empty())
+}
+
+pub fn check_git_operation_in_progress(verbose: bool, dry_run: bool) -> Result<Option<String>> {
+    let git_dir = run_git_command("rev-parse", &["--git-dir"], verbose, dry_run)?;
+    let git_path = std::path::Path::new(&git_dir);
+
+    if git_path.join("rebase-apply").is_dir() || git_path.join("rebase-merge").is_dir() {
+        return Ok(Some("A rebase is already in progress.".to_string()));
+    }
+    if git_path.join("MERGE_HEAD").exists() {
+        return Ok(Some("A merge is already in progress.".to_string()));
+    }
+    if git_path.join("CHERRY_PICK_HEAD").exists() {
+        return Ok(Some("A cherry-pick is already in progress.".to_string()));
+    }
+    if git_path.join("REBASE_HEAD").exists() {
+        return Ok(Some("A rebase is already in progress.".to_string()));
+    }
+    Ok(None)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
