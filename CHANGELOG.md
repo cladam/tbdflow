@@ -1,3 +1,15 @@
+# [0.28.0](https://github.com/cladam/tbdflow/releases/tag/v0.28.0) (2026-04-18)
+
+### ✨ Features
+- refactor to prevent data-loss [`cccd486`](https://github.com/cladam/tbdflow/commit/cccd48632eb7207c20e7601c5b09b682a0e5371f)
+- add WIP Guard with recover command - using stashing [`f98d35b`](https://github.com/cladam/tbdflow/commit/f98d35bec4a16db7df2fd3e4b1b9482940a21f9c)
+
+### ⚙️ Maintenance
+- **(release):** bump version and publish to GH Releases and crates.io [`80a3f90`](https://github.com/cladam/tbdflow/commit/80a3f90ffc3bad1e73aa21408991b21dfd85416f)
+- update README with the new WIP Guard [`860888d`](https://github.com/cladam/tbdflow/commit/860888de1e67aefde02c7e3de1ff6ea92b5e200c)
+- update README and CHANELOG [`1353cf7`](https://github.com/cladam/tbdflow/commit/1353cf7b8ac0450879c0afa7a0d3b7efaddbd4b1)
+
+
 # [0.27.0](https://github.com/cladam/tbdflow/releases/tag/v0.27.0) (2026-04-14)
 
 ### ✨ Features
