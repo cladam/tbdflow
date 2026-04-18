@@ -46,6 +46,7 @@ It handles the ceremony (pulling, rebasing, linting, pushing) so you can stay fo
 | Pulling a broken trunk         | `tbdflow sync` pre-flight CI check warns before pulling a red build                              |
 | Merge conflicts you didn't see | `tbdflow radar` shows trunk health, file churn hotspots, and who else is touching the same files |
 | "Why was this done?"           | `tbdflow task` + `tbdflow note` captures intent before it's lost                                 |
+| "What if I lose my work?"      | **WIP Guard** auto-snapshots your working directory during notes, syncs, and radar scans         |
 
 ## Philosophy
 
@@ -277,6 +278,50 @@ notes from one task don't leak into another commit.
 
 **File:** Notes are stored locally in `.tbdflow-intent.json` (git-ignored, never committed). The file is deleted
 automatically after a successful push to trunk or after `tbdflow complete`.
+
+#### WIP Guard (Continuous Safety)
+
+In TBD, your work-in-progress lives locally until it's ready for trunk. WIP Guard makes sure that
+work is never lost by automatically capturing immutable snapshots of your working directory at key moments.
+
+**How it works:**
+
+Under the hood, `tbdflow` uses `git stash create` to generate a commit object representing your current working tree.
+Unlike a regular stash, these snapshots don't touch the stash reflog, they can't interfere with your manual stashes,
+and they stay in the Git object store until garbage collection (typically 14–30 days).
+
+**When snapshots are captured:**
+
+| Command         | What happens                                                                    |
+|-----------------|---------------------------------------------------------------------------------|
+| `tbdflow +`     | A snapshot is linked to each breadcrumb note                                    |
+| `tbdflow sync`  | A pre-sync snapshot is captured before rebasing                                 |
+| `tbdflow radar` | A background snapshot is taken if the working directory is dirty (every 30 min) |
+| `tbdflow undo`  | A safety snapshot is captured before the destructive checkout + revert sequence |
+
+**Anti-collision pre-flight:**
+
+Before `sync` or `undo`, tbdflow checks whether a rebase, merge, or cherry-pick is already in progress. If one is,
+the command halts with a clear message instead of creating a "Git ghost" state.
+
+**Recovery:**
+
+```bash
+# List all available snapshots
+tbdflow recover --list
+
+# Restore a snapshot by index
+tbdflow recover 1
+
+# Restore a snapshot by hash
+tbdflow recover a7b8c9d0
+```
+
+Snapshots are applied with `git stash apply` (not `pop`), so they remain available for repeated recovery.
+
+**Lifecycle:** Snapshots are preserved in the intent log until the work is committed to trunk. Feature branch
+commits keep the snapshots intact. Once work reaches main, the intent log is cleared. The commit itself is now
+the safety net.
 
 ---
 
@@ -653,7 +698,33 @@ tbdflow commit -t refactor -s auth -m "simplify auth middleware"
 #   - simple middleware chain works better
 ```
 
-### 7. `radar`
+### 7. `recover`
+
+Lists and restores WIP snapshots captured by the WIP Guard.
+
+**Usage:**
+
+```bash
+tbdflow recover --list             # Show available snapshots
+tbdflow recover <index>            # Restore by index
+tbdflow recover <hash>             # Restore by commit hash
+```
+
+**Example output:**
+
+```
+Available WIP snapshots:
+  #     Type       Timestamp              Note                                     Hash
+  ------------------------------------------------------------------------------------------
+  1     intent     2026-04-18T14:15:00     trying trait-based approach              a7b8c9d0e1
+  2     intent     2026-04-18T14:42:00     added error variants                     f2e3d4c5b6
+  3     pre-sync   2026-04-18T15:01:00     Pre-sync safety snapshot                 e1f2g3h4i5
+```
+
+> Snapshots are branch-aware. If you switch branches,
+> tbdflow warns you before applying a snapshot from a different context.
+
+### 8. `radar`
 
 Orient yourself before you start typing. `tbdflow radar` is the **situational-awareness dashboard** for
 Trunk-Based Development. Run it first thing in the morning, or any time you sit back down at the keyboard.
@@ -745,7 +816,7 @@ radar:
     - "CHANGELOG.md"
 ```
 
-### 8. Pre-flight CI check
+### 9. Pre-flight CI check
 
 When enabled, `tbdflow sync` checks the CI status of the trunk (via the `gh` CLI) **before** pulling.
 If the trunk is red or pending, you get a prompt instead of blindly pulling a broken build.
@@ -768,7 +839,7 @@ ci_check:
 
 > Requires the [GitHub CLI](https://cli.github.com/) (`gh`) to be installed and authenticated.
 
-### 9. Utility commands
+### 10. Utility commands
 
 Not part of the core workflow, but handy for checking on things:
 
@@ -826,7 +897,7 @@ tbdflow undo abc1234 --no-push
 tbdflow --dry-run undo abc1234
 ```
 
-### 10. Advanced Usage
+### 11. Advanced Usage
 
 #### Shell Completion
 
