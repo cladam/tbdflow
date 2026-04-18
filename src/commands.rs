@@ -365,7 +365,12 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
 
     if let Ok(Some(hash)) = git::stash_create(verbose, dry_run) {
         let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
-        intent::record_sync_snapshot(&git_root, &hash, &current_branch)?;
+        intent::record_safety_snapshot(
+            &git_root,
+            &hash,
+            &current_branch,
+            "Pre-sync safety snapshot",
+        )?;
         if verbose {
             println!(
                 "{}",
@@ -548,7 +553,12 @@ pub fn handle_undo(
     if let Ok(Some(hash)) = git::stash_create(verbose, dry_run) {
         let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
         let current_branch = git::get_current_branch(verbose, dry_run)?;
-        intent::record_sync_snapshot(&git_root, &hash, &current_branch)?;
+        intent::record_safety_snapshot(
+            &git_root,
+            &hash,
+            &current_branch,
+            "Pre-undo safety snapshot",
+        )?;
         if verbose {
             println!(
                 "{}",

@@ -1,93 +1,64 @@
 use crate::{git, intent};
 use anyhow::{Context, Result};
-use colored::*;
+use colored::Colorize;
+use dialoguer::{theme::ColorfulTheme, Confirm};
 use std::path::Path;
 
+/// A single recoverable snapshot entry.
 #[derive(Debug)]
 pub struct SnapshotEntry {
     pub index: usize,
     pub timestamp: String,
-    pub note: Option<String>,
-    pub branch: Option<String>,
+    pub note: String,
     pub hash: String,
-    pub kind: SnapshotKind,
-}
-
-#[derive(Debug)]
-pub enum SnapshotKind {
-    Intent,
-    PreSync,
-}
-
-impl std::fmt::Display for SnapshotKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SnapshotKind::Intent => write!(f, "intent"),
-            SnapshotKind::PreSync => write!(f, "pre-sync"),
-        }
-    }
 }
 
 /// Collects all available snapshots from the intent log.
-pub fn collect_snapshots(git_root: &Path) -> Result<Vec<SnapshotEntry>> {
+pub fn collect_snapshots(
+    git_root: &Path,
+) -> Result<(Option<intent::IntentLog>, Vec<SnapshotEntry>)> {
     let log = intent::load_intent_log(git_root)?;
     let mut entries = Vec::new();
 
-    if let Some(log) = log {
-        let branch = log.branch.clone();
-
-        // Collect note snapshots
+    if let Some(ref log) = log {
+        // Collect note snapshots (intent, sync, undo, radar — all stored as notes)
         for note in &log.notes {
             if let Some(hash) = &note.snapshot_hash {
                 entries.push(SnapshotEntry {
-                    index: 0, // will be assigned below
+                    index: 0, // assigned below
                     timestamp: note.timestamp.clone(),
-                    note: Some(note.message.clone()),
-                    branch: branch.clone(),
+                    note: note.message.clone(),
                     hash: hash.clone(),
-                    kind: SnapshotKind::Intent,
                 });
             }
         }
-
-        // Collect last sync snapshot
-        if let Some(hash) = &log.last_sync_snapshot {
-            entries.push(SnapshotEntry {
-                index: 0,
-                timestamp: log.started_at.clone(),
-                note: Some("Pre-sync safety snapshot".to_string()),
-                branch: branch.clone(),
-                hash: hash.clone(),
-                kind: SnapshotKind::PreSync,
-            });
-        }
     }
 
-    // Assign indices
+    // Assign 1-based indices
     for (i, entry) in entries.iter_mut().enumerate() {
         entry.index = i + 1;
     }
 
-    Ok(entries)
+    Ok((log, entries))
 }
 
-/// Lists all available snapshots in a table.
 pub fn handle_recover_list(git_root: &Path, current_branch: &str) -> Result<()> {
-    let entries = collect_snapshots(git_root)?;
+    let (log, entries) = collect_snapshots(git_root)?;
 
     if entries.is_empty() {
         println!(
             "{}",
-            "No snapshots available. Snapshots are created automatically when you use 'tbdflow n' or 'tbdflow sync'.".dimmed()
+            "No snapshots available. Snapshots are created automatically when you use 'tbdflow n' or 'tbdflow sync'."
+                .dimmed()
         );
         return Ok(());
     }
 
-    // Stale-branch warning
+    // Stale-branch warning (reuses already-loaded log — no second read)
     if let Some(intent::IntentLog {
         branch: Some(ref log_branch),
         ..
-    }) = intent::load_intent_log(git_root)?
+    }) = log
     {
         if log_branch != current_branch {
             intent::warn_stale(log_branch, current_branch);
@@ -96,11 +67,8 @@ pub fn handle_recover_list(git_root: &Path, current_branch: &str) -> Result<()> 
     }
 
     println!("{}", "Available WIP snapshots:".blue().bold());
-    println!(
-        "  {:<5} {:<10} {:<22} {:<40} {}",
-        "#", "Type", "Timestamp", "Note", "Hash"
-    );
-    println!("  {}", "-".repeat(90));
+    println!("  {:<5} {:<22} {:<42} {}", "#", "Timestamp", "Note", "Hash");
+    println!("  {}", "-".repeat(85));
 
     for entry in &entries {
         let ts_display = if entry.timestamp.len() >= 19 {
@@ -108,25 +76,15 @@ pub fn handle_recover_list(git_root: &Path, current_branch: &str) -> Result<()> 
         } else {
             &entry.timestamp
         };
-        let note_display = entry
-            .note
-            .as_deref()
-            .unwrap_or("-")
-            .chars()
-            .take(38)
-            .collect::<String>();
+        let note_display: String = entry.note.chars().take(40).collect();
         let short_hash = if entry.hash.len() >= 10 {
             &entry.hash[..10]
         } else {
             &entry.hash
         };
         println!(
-            "  {:<5} {:<10} {:<22} {:<40} {}",
-            entry.index,
-            entry.kind.to_string(),
-            ts_display,
-            note_display,
-            short_hash,
+            "  {:<5} {:<22} {:<42} {}",
+            entry.index, ts_display, note_display, short_hash,
         );
     }
 
@@ -144,17 +102,15 @@ pub fn handle_recover_apply(
     verbose: bool,
     dry_run: bool,
 ) -> Result<()> {
-    let entries = collect_snapshots(git_root)?;
+    let (_log, entries) = collect_snapshots(git_root)?;
 
     let hash = if let Ok(idx) = selector.parse::<usize>() {
-        // Lookup by index
         entries
             .iter()
             .find(|e| e.index == idx)
             .map(|e| e.hash.clone())
             .ok_or_else(|| anyhow::anyhow!("No snapshot at index {}", idx))?
     } else {
-        // Treat as a hash — verify it looks plausible
         selector.to_string()
     };
 
@@ -165,15 +121,25 @@ pub fn handle_recover_apply(
             .yellow()
     );
 
-    if !dry_run {
-        git::stash_apply(&hash, verbose, dry_run).context(
-            "Failed to apply snapshot. The commit object may have been garbage-collected.",
-        )?;
-    } else {
+    if dry_run {
         println!(
             "{}",
             format!("[DRY RUN] Would run: git stash apply {}", hash).yellow()
         );
+    } else {
+        let confirmed = Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Apply snapshot?")
+            .default(true)
+            .interact()?;
+
+        if !confirmed {
+            println!("{}", "Recover aborted.".yellow());
+            return Ok(());
+        }
+
+        git::stash_apply(&hash, verbose, dry_run).context(
+            "Failed to apply snapshot. The commit object may have been garbage-collected.",
+        )?;
     }
 
     println!("{}", "Snapshot applied successfully.".green());
@@ -182,4 +148,69 @@ pub fn handle_recover_apply(
         "The snapshot remains available for future recovery.".dimmed()
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::intent::{add_note, add_note_with_snapshot, record_safety_snapshot};
+
+    fn setup() -> tempfile::TempDir {
+        tempfile::tempdir().unwrap()
+    }
+
+    #[test]
+    fn collect_snapshots_returns_empty_when_no_log() {
+        let dir = setup();
+        let (log, entries) = collect_snapshots(dir.path()).unwrap();
+        assert!(log.is_none());
+        assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn collect_snapshots_skips_notes_without_hashes() {
+        let dir = setup();
+        add_note(dir.path(), "plain note", "feat/x").unwrap();
+
+        let (_log, entries) = collect_snapshots(dir.path()).unwrap();
+        assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn collect_snapshots_includes_notes_with_hashes() {
+        let dir = setup();
+        add_note_with_snapshot(dir.path(), "snap note", "feat/x", Some("abc123".into())).unwrap();
+        add_note(dir.path(), "plain note", "feat/x").unwrap();
+        add_note_with_snapshot(dir.path(), "snap 2", "feat/x", Some("def456".into())).unwrap();
+
+        let (_log, entries) = collect_snapshots(dir.path()).unwrap();
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].index, 1);
+        assert_eq!(entries[0].hash, "abc123");
+        assert_eq!(entries[0].note, "snap note");
+        assert_eq!(entries[1].index, 2);
+        assert_eq!(entries[1].hash, "def456");
+    }
+
+    #[test]
+    fn collect_snapshots_includes_safety_snapshots() {
+        let dir = setup();
+        record_safety_snapshot(dir.path(), "sync1", "main", "Pre-sync safety snapshot").unwrap();
+        record_safety_snapshot(dir.path(), "sync2", "main", "Pre-undo safety snapshot").unwrap();
+
+        let (_log, entries) = collect_snapshots(dir.path()).unwrap();
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].hash, "sync1");
+        assert_eq!(entries[1].hash, "sync2");
+    }
+
+    #[test]
+    fn collect_snapshots_returns_log_for_reuse() {
+        let dir = setup();
+        add_note_with_snapshot(dir.path(), "note", "feat/x", Some("hash".into())).unwrap();
+
+        let (log, _entries) = collect_snapshots(dir.path()).unwrap();
+        assert!(log.is_some());
+        assert_eq!(log.unwrap().branch.as_deref(), Some("feat/x"));
+    }
 }

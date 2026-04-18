@@ -343,8 +343,7 @@ pub fn handle_commit(
                         .notes
                         .iter()
                         .filter(|n| n.snapshot_hash.is_some())
-                        .count()
-                        + log.last_sync_snapshot.as_ref().map_or(0, |_| 1);
+                        .count();
                     if snapshot_count > 0 {
                         println!(
                             "{}",

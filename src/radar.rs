@@ -348,7 +348,7 @@ pub fn handle_radar(verbose: bool, dry_run: bool, config: &Config) -> Result<()>
 }
 
 /// Silently captures a WIP snapshot if the working directory is dirty
-/// and the last snapshot is more than 30 minutes old.
+/// and the last snapshot with a hash is more than 30 minutes old.
 fn radar_snapshot(verbose: bool, dry_run: bool) {
     let is_dirty = git::is_working_directory_dirty(verbose, dry_run).unwrap_or(false);
     if !is_dirty {
@@ -357,13 +357,19 @@ fn radar_snapshot(verbose: bool, dry_run: bool) {
 
     let git_root = match git::get_git_root(verbose, dry_run) {
         Ok(r) => std::path::PathBuf::from(r),
-        Err(_) => return,
+        Err(e) => {
+            if verbose {
+                eprintln!("Radar snapshot skipped: {e}");
+            }
+            return;
+        }
     };
 
-    // Check if last note snapshot is recent enough (< 30 min)
+    // Check if last *snapshot* (not just any note) is recent enough (< 30 min)
     if let Ok(Some(log)) = intent::load_intent_log(&git_root) {
-        if let Some(last_note) = log.notes.last() {
-            if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(&last_note.timestamp) {
+        let last_snapshot = log.notes.iter().rev().find(|n| n.snapshot_hash.is_some());
+        if let Some(note) = last_snapshot {
+            if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(&note.timestamp) {
                 let age = Utc::now().signed_duration_since(ts);
                 if age.num_minutes() < 30 {
                     return; // Recent snapshot exists, skip
@@ -372,19 +378,30 @@ fn radar_snapshot(verbose: bool, dry_run: bool) {
         }
     }
 
-    if let Ok(Some(hash)) = git::stash_create(verbose, dry_run) {
-        let current_branch = git::get_current_branch(verbose, dry_run).unwrap_or_default();
-        let _ = intent::add_note_with_snapshot(
-            &git_root,
-            "Radar auto-snapshot",
-            &current_branch,
-            Some(hash.clone()),
-        );
-        if verbose {
-            println!(
-                "{}",
-                format!("Radar snapshot: {}", &hash[..std::cmp::min(10, hash.len())]).dimmed()
-            );
+    match git::stash_create(verbose, dry_run) {
+        Ok(Some(hash)) => {
+            let current_branch = git::get_current_branch(verbose, dry_run).unwrap_or_default();
+            if let Err(e) = intent::add_note_with_snapshot(
+                &git_root,
+                "Radar auto-snapshot",
+                &current_branch,
+                Some(hash.clone()),
+            ) {
+                if verbose {
+                    eprintln!("Radar snapshot save failed: {e}");
+                }
+            } else if verbose {
+                println!(
+                    "{}",
+                    format!("Radar snapshot: {}", &hash[..std::cmp::min(10, hash.len())]).dimmed()
+                );
+            }
+        }
+        Ok(None) => {} // Clean directory, nothing to snapshot
+        Err(e) => {
+            if verbose {
+                eprintln!("Radar snapshot failed: {e}");
+            }
         }
     }
 }

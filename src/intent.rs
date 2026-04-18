@@ -57,9 +57,6 @@ pub struct IntentLog {
     pub started_at: String,
     /// Ordered list of developer notes / breadcrumbs.
     pub notes: Vec<IntentNote>,
-    /// Snapshot hash captured before the last `tbdflow sync`.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub last_sync_snapshot: Option<String>,
 }
 
 /// Result of a stale-branch check.
@@ -83,7 +80,6 @@ impl IntentLog {
             branch,
             started_at: Utc::now().to_rfc3339(),
             notes: Vec::new(),
-            last_sync_snapshot: None,
         }
     }
 }
@@ -138,8 +134,6 @@ pub fn check_branch(log: &IntentLog, current_branch: &str) -> BranchCheck {
     }
 }
 
-/// Prints a warning about a stale intent log and returns true if the user
-/// should be blocked (i.e. they need to resolve it first).
 pub fn warn_stale(log_branch: &str, current_branch: &str) {
     println!(
         "{}",
@@ -156,8 +150,6 @@ pub fn warn_stale(log_branch: &str, current_branch: &str) {
 }
 
 /// Appends a note to the intent log with an optional WIP snapshot.
-/// `current_branch` is stamped on creation so stale logs can be detected later.
-/// `snapshot_hash` is the result of `git stash create`, if any.
 pub fn add_note_with_snapshot(
     git_root: &Path,
     message: &str,
@@ -223,21 +215,22 @@ pub fn start_task(git_root: &Path, description: &str, current_branch: &str) -> R
     Ok(())
 }
 
-/// Records a pre-sync safety snapshot hash in the intent log.
-pub fn record_sync_snapshot(
+/// Records a safety snapshot as a note in the intent log.
+pub fn record_safety_snapshot(
     git_root: &Path,
     snapshot_hash: &str,
     current_branch: &str,
+    label: &str,
 ) -> Result<()> {
-    let mut log = load_intent_log(git_root)?
-        .unwrap_or_else(|| IntentLog::new(None, Some(current_branch.to_string())));
-    log.last_sync_snapshot = Some(snapshot_hash.to_string());
-    save_intent_log(git_root, &log)?;
-    Ok(())
+    add_note_with_snapshot(
+        git_root,
+        label,
+        current_branch,
+        Some(snapshot_hash.to_string()),
+    )
 }
 
 /// Formats the intent log for inclusion in a commit message body.
-/// Returns `None` if there are no notes to include.
 pub fn format_for_commit(log: &IntentLog) -> Option<String> {
     if log.notes.is_empty() {
         return None;
@@ -484,5 +477,77 @@ mod tests {
             content.contains(INTENT_FILE),
             ".gitignore should contain intent file entry after first breadcrumb"
         );
+    }
+
+    #[test]
+    fn add_note_with_snapshot_stores_hash() {
+        let dir = setup();
+        add_note_with_snapshot(
+            dir.path(),
+            "snapshot note",
+            "feat/x",
+            Some("abc123".to_string()),
+        )
+        .unwrap();
+
+        let log = load_intent_log(dir.path()).unwrap().unwrap();
+        assert_eq!(log.notes.len(), 1);
+        assert_eq!(log.notes[0].snapshot_hash.as_deref(), Some("abc123"));
+    }
+
+    #[test]
+    fn add_note_without_snapshot_stores_none() {
+        let dir = setup();
+        add_note(dir.path(), "plain note", "feat/x").unwrap();
+
+        let log = load_intent_log(dir.path()).unwrap().unwrap();
+        assert!(log.notes[0].snapshot_hash.is_none());
+    }
+
+    #[test]
+    fn record_safety_snapshot_accumulates() {
+        let dir = setup();
+        record_safety_snapshot(dir.path(), "hash1", "main", "Pre-sync safety snapshot").unwrap();
+        record_safety_snapshot(dir.path(), "hash2", "main", "Pre-sync safety snapshot").unwrap();
+
+        let log = load_intent_log(dir.path()).unwrap().unwrap();
+        assert_eq!(log.notes.len(), 2);
+        assert_eq!(log.notes[0].snapshot_hash.as_deref(), Some("hash1"));
+        assert_eq!(log.notes[1].snapshot_hash.as_deref(), Some("hash2"));
+    }
+
+    #[test]
+    fn record_safety_snapshot_creates_log_when_none_exists() {
+        let dir = setup();
+        record_safety_snapshot(dir.path(), "hash1", "main", "Pre-undo safety snapshot").unwrap();
+
+        let log = load_intent_log(dir.path()).unwrap().unwrap();
+        assert_eq!(log.notes.len(), 1);
+        assert_eq!(log.notes[0].message, "Pre-undo safety snapshot");
+        assert_eq!(log.branch.as_deref(), Some("main"));
+    }
+
+    #[test]
+    fn snapshot_hash_roundtrips_through_json() {
+        let dir = setup();
+        add_note_with_snapshot(
+            dir.path(),
+            "with hash",
+            "feat/x",
+            Some("deadbeef1234".to_string()),
+        )
+        .unwrap();
+        add_note(dir.path(), "without hash", "feat/x").unwrap();
+
+        // Re-read from disk
+        let log = load_intent_log(dir.path()).unwrap().unwrap();
+        assert_eq!(log.notes[0].snapshot_hash.as_deref(), Some("deadbeef1234"));
+        assert!(log.notes[1].snapshot_hash.is_none());
+
+        // Verify the JSON doesn't contain snapshot_hash for the second note
+        let path = dir.path().join(INTENT_FILE);
+        let raw = fs::read_to_string(path).unwrap();
+        // snapshot_hash should appear exactly once (for the first note)
+        assert_eq!(raw.matches("snapshot_hash").count(), 1);
     }
 }
