@@ -17,6 +17,30 @@
 #      workflow: nbr-review.yml
 #      default_reviewers:
 #        - reviewer-username
+#
+# For teams NOT using tbdflow, you can trigger reviews in three ways:
+#
+# A) Tag-based trigger — add to the `on:` section:
+#    push:
+#      tags:
+#        - 'review/*'
+#
+# B) Conventional commit filter — add to the `create-review` job:
+#    if: >-
+#      github.event_name == 'workflow_dispatch' ||
+#      contains(github.event.head_commit.message, 'feat:') ||
+#      contains(github.event.head_commit.message, 'fix:') ||
+#      contains(github.event.head_commit.message, 'refactor:') ||
+#      contains(github.event.head_commit.message, 'perf:')
+#
+# C) Commit message marker — see the "Check if review needed" step below
+#
+# Option B (conventional commit job filter) is recommended (if you really don't want to use tbdflow :)).
+# Most teams already use conventional commits, so it's zero friction,
+# just commit as usual and reviews happen automatically for meaningful changes while skipping chore: and ci: commits.
+#
+# Option C is essentially a more flexible version of B (regex instead of contains()), so teams that want finer control will graduate to that.
+#
 
 name: Non-Blocking Review
 
@@ -46,6 +70,13 @@ on:
   push:
     branches:
       - main
+    # --- (A) Uncomment to also trigger on review tags ---
+    # tags:
+    #   - 'review/*'
+
+  # Trigger when review issues are closed (updates commit status)
+  issues:
+    types: [closed]
 
 # Prevent duplicate issues from rapid pushes
 concurrency:
@@ -55,6 +86,14 @@ concurrency:
 jobs:
   create-review:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # --- (B) Uncomment to only review conventional commit types ---
+    # if: >-
+    #   github.event_name == 'workflow_dispatch' ||
+    #   contains(github.event.head_commit.message, 'feat:') ||
+    #   contains(github.event.head_commit.message, 'fix:') ||
+    #   contains(github.event.head_commit.message, 'refactor:') ||
+    #   contains(github.event.head_commit.message, 'perf:')
     permissions:
       issues: write
       statuses: write
@@ -66,17 +105,47 @@ jobs:
         with:
           fetch-depth: 2  # Need parent commit for diff
 
+      # --- (C) Uncomment to filter by commit message marker [review] or
+      #     conventional commit prefixes. Gate subsequent steps with:
+      #     if: steps.check-review.outputs.needs_review == 'true'
+      #
+      # - name: Check if review needed
+      #   id: check-review
+      #   run: |
+      #     MSG=$(git log -1 --format=%s)
+      #     if [[ "$MSG" =~ ^(feat|fix|refactor|perf|docs)\(?.*\)?:.* ]]; then
+      #       echo "needs_review=true" >> $GITHUB_OUTPUT
+      #     elif [[ "$MSG" =~ \[review\] ]]; then
+      #       echo "needs_review=true" >> $GITHUB_OUTPUT
+      #     else
+      #       echo "needs_review=false" >> $GITHUB_OUTPUT
+      #     fi
+
       - name: Get commit info
         id: commit-info
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SHA: ${{ inputs.commit_sha }}
+          INPUT_MESSAGE: ${{ inputs.commit_message }}
+          INPUT_AUTHOR: ${{ inputs.author }}
+          INPUT_REVIEWERS: ${{ inputs.reviewers }}
+          PUSH_SHA: ${{ github.sha }}
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "sha=${{ inputs.commit_sha }}" >> $GITHUB_OUTPUT
-            echo "message=${{ inputs.commit_message }}" >> $GITHUB_OUTPUT
-            echo "author=${{ inputs.author }}" >> $GITHUB_OUTPUT
-            echo "reviewers=${{ inputs.reviewers }}" >> $GITHUB_OUTPUT
+          if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
+            echo "sha=$INPUT_SHA" >> $GITHUB_OUTPUT
+            # Use heredoc for message to safely handle special characters
+            EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+            echo "message<<$EOF" >> $GITHUB_OUTPUT
+            echo "$INPUT_MESSAGE" >> $GITHUB_OUTPUT
+            echo "$EOF" >> $GITHUB_OUTPUT
+            echo "author=$INPUT_AUTHOR" >> $GITHUB_OUTPUT
+            echo "reviewers=$INPUT_REVIEWERS" >> $GITHUB_OUTPUT
           else
-            echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "message=$(git log -1 --format=%s)" >> $GITHUB_OUTPUT
+            echo "sha=$PUSH_SHA" >> $GITHUB_OUTPUT
+            EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+            echo "message<<$EOF" >> $GITHUB_OUTPUT
+            git log -1 --format=%s >> $GITHUB_OUTPUT
+            echo "$EOF" >> $GITHUB_OUTPUT
             echo "author=$(git log -1 --format=%an)" >> $GITHUB_OUTPUT
             echo "reviewers=" >> $GITHUB_OUTPUT
           fi
@@ -85,11 +154,11 @@ jobs:
         id: existing
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ steps.commit-info.outputs.sha }}
         run: |
-          SHORT_SHA="${{ steps.commit-info.outputs.sha }}"
-          SHORT_SHA="${SHORT_SHA:0:7}"
+          SHORT_SHA="${COMMIT_SHA:0:7}"
 
-          EXISTING=$(gh issue list --state open --label "author-issue" --search "$SHORT_SHA in:title" --json number --jq '.[0].number // empty')
+          EXISTING=$(gh issue list --state open --label "review-pending" --search "$SHORT_SHA in:title" --json number --jq '.[0].number // empty')
 
           if [ -n "$EXISTING" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
@@ -99,22 +168,13 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Set pending commit status
-        if: steps.existing.outputs.exists != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh api repos/${{ github.repository }}/statuses/${{ steps.commit-info.outputs.sha }} \
-            -f state='pending' \
-            -f context='peer-review' \
-            -f description='Awaiting non-blocking review'
-          echo "✅ Commit status set to pending"
-
       - name: Generate inline diff (for small changes)
         if: steps.existing.outputs.exists != 'true'
         id: diff
+        env:
+          COMMIT_SHA: ${{ steps.commit-info.outputs.sha }}
         run: |
-          DIFF=$(git show --no-color --stat --patch --no-prefix ${{ steps.commit-info.outputs.sha }} | tail -n +2)
+          DIFF=$(git show --no-color --stat --patch --no-prefix "$COMMIT_SHA" | tail -n +2)
           DIFF_LINES=$(echo "$DIFF" | wc -l)
 
           if [ "$DIFF_LINES" -le 60 ]; then
@@ -136,44 +196,50 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh label create "peer-review" --color "1D76DB" --description "Peer review of commit" 2>/dev/null || true
-          gh label create "author-issue" --color "5319E7" --description "Author issue for commit review" 2>/dev/null || true
+          gh label create "review-pending" --color "1D76DB" --description "Review awaiting attention" 2>/dev/null || true
+          gh label create "review-accepted" --color "0E8A16" --description "Review approved" 2>/dev/null || true
+          gh label create "review-concern" --color "E4E669" --description "Concern raised - needs attention" 2>/dev/null || true
+          gh label create "review-dismissed" --color "6E7681" --description "Review dismissed" 2>/dev/null || true
 
       - name: Create review issue
         if: steps.existing.outputs.exists != 'true'
         id: create-issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ steps.commit-info.outputs.sha }}
+          COMMIT_MESSAGE: ${{ steps.commit-info.outputs.message }}
+          COMMIT_AUTHOR: ${{ steps.commit-info.outputs.author }}
+          COMMIT_REVIEWERS: ${{ steps.commit-info.outputs.reviewers }}
+          INCLUDE_DIFF: ${{ steps.diff.outputs.include_diff }}
+          DIFF_LINES: ${{ steps.diff.outputs.diff_lines }}
+          DIFF_CONTENT: ${{ steps.diff.outputs.diff }}
+          REPO_FULL_NAME: ${{ github.repository }}
         run: |
-          SHA="${{ steps.commit-info.outputs.sha }}"
-          SHORT_SHA="${SHA:0:7}"
-          MESSAGE="${{ steps.commit-info.outputs.message }}"
-          AUTHOR="${{ steps.commit-info.outputs.author }}"
-          REVIEWERS="${{ steps.commit-info.outputs.reviewers }}"
-          REPO_URL="https://github.com/${{ github.repository }}"
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+          REPO_URL="https://github.com/$REPO_FULL_NAME"
 
           # Build diff section
-          if [ "${{ steps.diff.outputs.include_diff }}" == "true" ]; then
+          if [ "$INCLUDE_DIFF" == "true" ]; then
             DIFF_SECTION="
 
           <details>
-          <summary>📝 Inline diff (${{ steps.diff.outputs.diff_lines }} lines)</summary>
+          <summary>📝 Inline diff (${DIFF_LINES} lines)</summary>
 
           \`\`\`diff
-          ${{ steps.diff.outputs.diff }}
+          ${DIFF_CONTENT}
           \`\`\`
 
           </details>"
           else
             DIFF_SECTION="
 
-          > 📄 Large change (${{ steps.diff.outputs.diff_lines }} lines) - [view full diff]($REPO_URL/commit/$SHA)"
+          > 📄 Large change (${DIFF_LINES} lines) - [view full diff]($REPO_URL/commit/$COMMIT_SHA)"
           fi
 
           # Build reviewer checklist
           REVIEWER_CHECKLIST=""
-          if [ -n "$REVIEWERS" ]; then
-            IFS=',' read -ra REVIEWER_ARRAY <<< "$REVIEWERS"
+          if [ -n "$COMMIT_REVIEWERS" ]; then
+            IFS=',' read -ra REVIEWER_ARRAY <<< "$COMMIT_REVIEWERS"
             for reviewer in "${REVIEWER_ARRAY[@]}"; do
               reviewer=$(echo "$reviewer" | xargs)  # trim whitespace
               if [ -n "$reviewer" ]; then
@@ -185,9 +251,9 @@ jobs:
 
           BODY="## Non-Blocking Review Request
 
-          **Commit:** [\`$SHORT_SHA\`]($REPO_URL/commit/$SHA)
-          **Author:** $AUTHOR
-          **Message:** $MESSAGE
+          **Commit:** [\`$SHORT_SHA\`]($REPO_URL/commit/$COMMIT_SHA)
+          **Author:** $COMMIT_AUTHOR
+          **Message:** $COMMIT_MESSAGE
           $DIFF_SECTION
 
           ---
@@ -225,48 +291,69 @@ jobs:
 
           # Create the issue
           ISSUE_URL=$(gh issue create \
-            --title "[Review] $MESSAGE ($SHORT_SHA)" \
+            --title "[Review] $COMMIT_MESSAGE ($SHORT_SHA)" \
             --body "$BODY" \
-            --label "peer-review,author-issue")
+            --label "review-pending")
 
           ISSUE_NUM=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
           echo "issue_number=$ISSUE_NUM" >> $GITHUB_OUTPUT
           echo "✅ Created review issue #$ISSUE_NUM: $ISSUE_URL"
 
-  # Update commit status when review issue is closed
+          # Set pending commit status with link to the review issue
+          gh api "repos/$REPO_FULL_NAME/statuses/$COMMIT_SHA" \
+            -f state='pending' \
+            -f context='peer-review' \
+            -f description='Awaiting non-blocking review' \
+            -f target_url="$ISSUE_URL"
+          echo "✅ Commit status set to pending"
+
+  # Update commit status when review issue is closed.
+  # Matches review-pending (manual close) OR review-accepted (tbdflow CLI approve).
   on-review-closed:
     runs-on: ubuntu-latest
-    if: github.event_name == 'issues' && github.event.action == 'closed' && contains(github.event.issue.labels.*.name, 'author-issue')
+    if: >-
+      github.event_name == 'issues' &&
+      github.event.action == 'closed' &&
+      (contains(github.event.issue.labels.*.name, 'review-pending') ||
+       contains(github.event.issue.labels.*.name, 'review-accepted'))
     permissions:
       statuses: write
-      issues: read
+      issues: write  # needs write to swap labels on close
 
     steps:
       - name: Extract commit SHA and mark as reviewed
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          REPO_FULL_NAME: ${{ github.repository }}
         run: |
-          BODY="${{ github.event.issue.body }}"
-
           # Extract commit SHA from issue body (looks for /commit/SHA pattern)
-          FULL_SHA=$(echo "$BODY" | grep -oE 'github\.com/.*/commit/[a-f0-9]+' | grep -oE '[a-f0-9]{40}' | head -n1)
+          FULL_SHA=$(echo "$ISSUE_BODY" | grep -oE 'github\.com/.*/commit/[a-f0-9]+' | grep -oE '[a-f0-9]{40}' | head -n1)
 
           if [ -z "$FULL_SHA" ]; then
             # Try short SHA from title
-            SHORT_SHA=$(echo "${{ github.event.issue.title }}" | grep -oE '\([a-f0-9]{7}\)' | tr -d '()')
+            SHORT_SHA=$(echo "$ISSUE_TITLE" | grep -oE '\([a-f0-9]{7}\)' | tr -d '()')
             if [ -n "$SHORT_SHA" ]; then
               # Get full SHA from short
-              FULL_SHA=$(gh api repos/${{ github.repository }}/commits/$SHORT_SHA --jq '.sha' 2>/dev/null || echo "")
+              FULL_SHA=$(gh api "repos/$REPO_FULL_NAME/commits/$SHORT_SHA" --jq '.sha' 2>/dev/null || echo "")
             fi
           fi
 
           if [ -n "$FULL_SHA" ]; then
-            gh api repos/${{ github.repository }}/statuses/$FULL_SHA \
+            ISSUE_NUM=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
+
+            # Swap labels idempotently (safe if tbdflow CLI already did this)
+            gh issue edit "$ISSUE_NUM" --repo "$REPO_FULL_NAME" --remove-label "review-pending" 2>/dev/null || true
+            gh issue edit "$ISSUE_NUM" --repo "$REPO_FULL_NAME" --add-label "review-accepted" 2>/dev/null || true
+
+            gh api "repos/$REPO_FULL_NAME/statuses/$FULL_SHA" \
               -f state='success' \
               -f context='peer-review' \
-              -f description='Non-blocking review completed ✅'
+              -f description='Non-blocking review completed ✅' \
+              -f target_url="$ISSUE_URL"
             echo "✅ Commit $FULL_SHA marked as reviewed"
           else
             echo "⚠️ Could not extract commit SHA from issue"
           fi
-
