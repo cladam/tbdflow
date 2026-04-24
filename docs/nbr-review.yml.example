@@ -25,6 +25,11 @@
 #      tags:
 #        - 'review/*'
 #
+#   Examples:
+#     git tag -a "review/abc1234" -m "Asking for review of abc1234"
+#     or by using the lightweight approach: git tag "review/abc1234"
+#     git push origin review/abc1234
+#
 # B) Conventional commit filter — add to the `create-review` job:
 #    if: >-
 #      github.event_name == 'workflow_dispatch' ||
@@ -71,8 +76,8 @@ on:
     branches:
       - main
     # --- (A) Uncomment to also trigger on review tags ---
-    # tags:
-    #   - 'review/*'
+    #tags:
+    #  - 'review/*'
 
   # Trigger when review issues are closed (updates commit status)
   issues:
@@ -308,14 +313,16 @@ jobs:
           echo "✅ Commit status set to pending"
 
   # Update commit status when review issue is closed.
-  # Matches review-pending (manual close) OR review-accepted (tbdflow CLI approve).
+  # Matches any review label to ensure commit status is always updated.
   on-review-closed:
     runs-on: ubuntu-latest
     if: >-
       github.event_name == 'issues' &&
       github.event.action == 'closed' &&
       (contains(github.event.issue.labels.*.name, 'review-pending') ||
-       contains(github.event.issue.labels.*.name, 'review-accepted'))
+       contains(github.event.issue.labels.*.name, 'review-accepted') ||
+       contains(github.event.issue.labels.*.name, 'review-dismissed') ||
+       contains(github.event.issue.labels.*.name, 'invalid'))
     permissions:
       statuses: write
       issues: write  # needs write to swap labels on close
@@ -327,6 +334,7 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_LABELS: ${{ join(github.event.issue.labels.*.name, ',') }}
           REPO_FULL_NAME: ${{ github.repository }}
         run: |
           # Extract commit SHA from issue body (looks for /commit/SHA pattern)
@@ -344,14 +352,30 @@ jobs:
           if [ -n "$FULL_SHA" ]; then
             ISSUE_NUM=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
 
-            # Swap labels idempotently (safe if tbdflow CLI already did this)
-            gh issue edit "$ISSUE_NUM" --repo "$REPO_FULL_NAME" --remove-label "review-pending" 2>/dev/null || true
-            gh issue edit "$ISSUE_NUM" --repo "$REPO_FULL_NAME" --add-label "review-accepted" 2>/dev/null || true
+            # Swap labels only if no terminal label is already set
+            # (tbdflow CLI or a human may have already set review-accepted or review-dismissed)
+            HAS_ACCEPTED=$(echo "$ISSUE_LABELS" | grep -c "review-accepted" || true)
+            HAS_DISMISSED=$(echo "$ISSUE_LABELS" | grep -c "review-dismissed" || true)
+            IS_INVALID=$(echo "$ISSUE_LABELS" | grep -c "invalid" || true)
+
+            if [ "$HAS_ACCEPTED" -eq 0 ] && [ "$HAS_DISMISSED" -eq 0 ] && [ "$IS_INVALID" -eq 0 ]; then
+              gh issue edit "$ISSUE_NUM" --repo "$REPO_FULL_NAME" --remove-label "review-pending" 2>/dev/null || true
+              gh issue edit "$ISSUE_NUM" --repo "$REPO_FULL_NAME" --add-label "review-accepted" 2>/dev/null || true
+            fi
+
+            # Set commit status based on review outcome
+            if [ "$HAS_DISMISSED" -gt 0 ]; then
+              STATUS_DESC="Review dismissed"
+            elif [ "$IS_INVALID" -gt 0 ]; then
+              STATUS_DESC="Invalid review"
+            else
+              STATUS_DESC="Non-blocking review completed ✅"
+            fi
 
             gh api "repos/$REPO_FULL_NAME/statuses/$FULL_SHA" \
               -f state='success' \
               -f context='peer-review' \
-              -f description='Non-blocking review completed ✅' \
+              -f description="$STATUS_DESC" \
               -f target_url="$ISSUE_URL"
             echo "✅ Commit $FULL_SHA marked as reviewed"
           else
