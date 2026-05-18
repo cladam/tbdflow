@@ -255,7 +255,7 @@ The `note` command has two shorthand aliases: `+` and `n`.
 
 When you run `tbdflow commit`, the notes are appended to the commit body automatically:
 
-```
+```text
 feat(auth): implement trait-based auth logic
 
 Intent Log:
@@ -743,7 +743,7 @@ tbdflow radar
 
 **Example output:**
 
-```
+```text
 --- Trunk Status ---
 main is Green (Last integrated 12m ago)
 
@@ -783,10 +783,10 @@ you push.
 
 **Example overlap output:**
 
-```
+```text
 OVERLAP DETECTED with 1 active branch(es):
 
-  feat/API-42-user-auth (by @alice, 2 commits ahead)
+  feat/API-42-user-auth (by @alicia, 2 commits ahead)
   ├── src/auth/handler.rs [!!] LINE OVERLAP
   └── src/auth/middleware.rs [!] SAME FILE
 
