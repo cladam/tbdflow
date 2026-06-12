@@ -1,4 +1,5 @@
 use crate::config::{Config, RadarLevel, RadarOnCommit};
+use crate::git::RunOpts;
 use crate::{git, intent};
 use anyhow::Result;
 use chrono::Utc;
@@ -54,16 +55,16 @@ fn format_duration_ago(seconds: i64) -> String {
     }
 }
 
-pub fn get_trunk_status(config: &Config, verbose: bool, dry_run: bool) -> TrunkStatus {
+pub fn get_trunk_status(config: &Config, opts: RunOpts) -> TrunkStatus {
     let main = &config.main_branch_name;
 
     let ci = if config.ci_check.enabled {
-        git::check_ci_status(main, verbose, dry_run)
+        git::check_ci_status(main, opts)
     } else {
         git::CiStatus::Unknown("CI check not enabled".to_string())
     };
 
-    let time_ago = git::get_latest_commit_time(main, verbose, dry_run)
+    let time_ago = git::get_latest_commit_time(main, opts)
         .ok()
         .flatten()
         .map(|dt| {
@@ -97,13 +98,12 @@ pub type Hotspot = (String, usize);
 const CHURN_HOURS: u64 = 72;
 const CHURN_LIMIT: usize = 5;
 
-pub fn get_hotspots(config: &Config, verbose: bool, dry_run: bool) -> Result<Vec<Hotspot>> {
+pub fn get_hotspots(config: &Config, opts: RunOpts) -> Result<Vec<Hotspot>> {
     git::get_file_churn(
         &config.main_branch_name,
         CHURN_HOURS,
         CHURN_LIMIT,
-        verbose,
-        dry_run,
+        opts,
     )
 }
 
@@ -124,15 +124,15 @@ fn print_hotspots(hotspots: &[Hotspot]) {
 }
 
 /// Run the full radar scan: fetch, compare local changes against all active remote branches.
-pub fn scan(config: &Config, verbose: bool, dry_run: bool) -> Result<RadarResult> {
+pub fn scan(config: &Config, opts: RunOpts) -> Result<RadarResult> {
     let main_branch = &config.main_branch_name;
 
-    if verbose {
+    if opts.verbose {
         println!("{}", "[RADAR] Fetching latest from origin...".dimmed());
     }
-    git::fetch_origin(verbose, dry_run)?;
+    git::fetch_origin(opts)?;
 
-    let local_files = git::get_local_changed_files(verbose, dry_run)?;
+    let local_files = git::get_local_changed_files(opts)?;
     if local_files.is_empty() {
         return Ok(RadarResult {
             overlaps: vec![],
@@ -142,9 +142,9 @@ pub fn scan(config: &Config, verbose: bool, dry_run: bool) -> Result<RadarResult
     }
     let local_file_set: HashSet<&str> = local_files.iter().map(|s| s.as_str()).collect();
 
-    let active_branches = git::get_active_remote_branches(main_branch, verbose, dry_run)?;
+    let active_branches = git::get_active_remote_branches(main_branch, opts)?;
 
-    let current_branch = git::get_current_branch(verbose, dry_run).unwrap_or_default();
+    let current_branch = git::get_current_branch(opts).unwrap_or_default();
     let branches_to_scan: Vec<&String> = active_branches
         .iter()
         .filter(|b| b.as_str() != current_branch)
@@ -162,7 +162,7 @@ pub fn scan(config: &Config, verbose: bool, dry_run: bool) -> Result<RadarResult
 
         // Get files changed by this branch relative to main
         let branch_files =
-            match git::get_diff_files_between_refs(&main_ref, &branch_ref, verbose, dry_run) {
+            match git::get_diff_files_between_refs(&main_ref, &branch_ref, opts) {
                 Ok(files) => files,
                 Err(_) => continue, // Skip branches that can't be diffed (e.g. orphan)
             };
@@ -179,17 +179,17 @@ pub fn scan(config: &Config, verbose: bool, dry_run: bool) -> Result<RadarResult
         }
 
         // Get branch metadata
-        let author = git::get_branch_author(branch, verbose, dry_run)
+        let author = git::get_branch_author(branch, opts)
             .unwrap_or_else(|_| "unknown".to_string());
         let commits_ahead =
-            git::get_remote_branch_commit_count(branch, main_branch, verbose, dry_run).unwrap_or(0);
+            git::get_remote_branch_commit_count(branch, main_branch, opts).unwrap_or(0);
 
         // Build file overlaps with appropriate detail level
         let mut file_overlaps = Vec::new();
         for file in &overlapping_files {
             let overlap_kind = match level {
                 RadarLevel::Line => {
-                    detect_line_overlap(file, &main_ref, &branch_ref, verbose, dry_run)
+                    detect_line_overlap(file, &main_ref, &branch_ref, opts)
                         .unwrap_or_else(|| OverlapKind::SameFile)
                 }
                 RadarLevel::File => OverlapKind::SameFile,
@@ -220,12 +220,11 @@ fn detect_line_overlap(
     file: &str,
     main_ref: &str,
     branch_ref: &str,
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
 ) -> Option<OverlapKind> {
-    let my_hunks = git::get_local_diff_hunks(file, verbose, dry_run).ok()?;
+    let my_hunks = git::get_local_diff_hunks(file, opts).ok()?;
     let their_hunks =
-        git::get_diff_hunks_between_refs(main_ref, branch_ref, file, verbose, dry_run).ok()?;
+        git::get_diff_hunks_between_refs(main_ref, branch_ref, file, opts).ok()?;
 
     if my_hunks.is_empty() || their_hunks.is_empty() {
         return None;
@@ -258,9 +257,9 @@ fn should_ignore(file: &str, patterns: &[String]) -> bool {
     false
 }
 
-pub fn handle_radar(verbose: bool, dry_run: bool, config: &Config) -> Result<()> {
+pub fn handle_radar(opts: RunOpts, config: &Config) -> Result<()> {
     println!("{}", "--- Trunk Status ---".blue());
-    let trunk = get_trunk_status(config, verbose, dry_run);
+    let trunk = get_trunk_status(config, opts);
     print_trunk_status(&trunk, &config.main_branch_name);
 
     println!(
@@ -268,11 +267,11 @@ pub fn handle_radar(verbose: bool, dry_run: bool, config: &Config) -> Result<()>
         format!("--- Hotspots (Last {} days) ---", CHURN_HOURS / 24).blue()
     );
 
-    if verbose {
+    if opts.verbose {
         println!("{}", "[RADAR] Fetching latest from origin...".dimmed());
     }
-    git::fetch_origin(verbose, dry_run)?;
-    let hotspots = get_hotspots(config, verbose, dry_run)?;
+    git::fetch_origin(opts)?;
+    let hotspots = get_hotspots(config, opts)?;
     print_hotspots(&hotspots);
 
     println!("\n{}", "--- Scanning for overlapping work ---".blue());
@@ -287,7 +286,7 @@ pub fn handle_radar(verbose: bool, dry_run: bool, config: &Config) -> Result<()>
     }
 
     println!("Fetching latest from origin...");
-    let result = scan(config, verbose, dry_run)?;
+    let result = scan(config, opts)?;
 
     if result.local_files_count == 0 {
         println!("{}", "No local changes detected. Nothing to scan.".green());
@@ -342,23 +341,23 @@ pub fn handle_radar(verbose: bool, dry_run: bool, config: &Config) -> Result<()>
         );
     }
 
-    radar_snapshot(verbose, dry_run);
+    radar_snapshot(opts);
 
     Ok(())
 }
 
 /// Silently captures a WIP snapshot if the working directory is dirty
 /// and the last snapshot with a hash is more than 30 minutes old.
-fn radar_snapshot(verbose: bool, dry_run: bool) {
-    let is_dirty = git::is_working_directory_dirty(verbose, dry_run).unwrap_or(false);
+fn radar_snapshot(opts: RunOpts) {
+    let is_dirty = git::is_working_directory_dirty(opts).unwrap_or(false);
     if !is_dirty {
         return;
     }
 
-    let git_root = match git::get_git_root(verbose, dry_run) {
+    let git_root = match git::get_git_root(opts) {
         Ok(r) => std::path::PathBuf::from(r),
         Err(e) => {
-            if verbose {
+            if opts.verbose {
                 eprintln!("Radar snapshot skipped: {e}");
             }
             return;
@@ -378,19 +377,19 @@ fn radar_snapshot(verbose: bool, dry_run: bool) {
         }
     }
 
-    match git::stash_create(verbose, dry_run) {
+    match git::stash_create(opts) {
         Ok(Some(hash)) => {
-            let current_branch = git::get_current_branch(verbose, dry_run).unwrap_or_default();
+            let current_branch = git::get_current_branch(opts).unwrap_or_default();
             if let Err(e) = intent::add_note_with_snapshot(
                 &git_root,
                 "Radar auto-snapshot",
                 &current_branch,
                 Some(hash.clone()),
             ) {
-                if verbose {
+                if opts.verbose {
                     eprintln!("Radar snapshot save failed: {e}");
                 }
-            } else if verbose {
+            } else if opts.verbose {
                 println!(
                     "{}",
                     format!("Radar snapshot: {}", &hash[..std::cmp::min(10, hash.len())]).dimmed()
@@ -399,7 +398,7 @@ fn radar_snapshot(verbose: bool, dry_run: bool) {
         }
         Ok(None) => {} // Clean directory, nothing to snapshot
         Err(e) => {
-            if verbose {
+            if opts.verbose {
                 eprintln!("Radar snapshot failed: {e}");
             }
         }
@@ -465,14 +464,13 @@ fn format_hunk_ranges(hunks: &[git::HunkRange]) -> String {
 /// Lightweight radar check for the sync command
 pub fn quick_scan_for_sync(
     config: &Config,
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
 ) -> Result<Option<String>> {
     if !config.radar.enabled || !config.radar.on_sync {
         return Ok(None);
     }
 
-    let result = scan(config, verbose, dry_run)?;
+    let result = scan(config, opts)?;
     if result.overlaps.is_empty() || result.local_files_count == 0 {
         return Ok(None);
     }
@@ -497,7 +495,7 @@ pub fn quick_scan_for_sync(
 }
 
 /// Radar check for the commit workflow.
-pub fn check_before_commit(config: &Config, verbose: bool, dry_run: bool) -> Result<bool> {
+pub fn check_before_commit(config: &Config, opts: RunOpts) -> Result<bool> {
     if config.radar.on_commit == RadarOnCommit::Off {
         return Ok(true);
     }
@@ -506,7 +504,7 @@ pub fn check_before_commit(config: &Config, verbose: bool, dry_run: bool) -> Res
         return Ok(true);
     }
 
-    let result = scan(config, verbose, dry_run)?;
+    let result = scan(config, opts)?;
     if result.overlaps.is_empty() || result.local_files_count == 0 {
         return Ok(true);
     }

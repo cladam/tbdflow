@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::git::GitError;
+use crate::git::{GitError, RunOpts};
 use crate::{commands, config, git, intent};
 use anyhow::Result;
 use colored::Colorize;
@@ -15,8 +15,7 @@ pub fn handle_branch(
     name: Option<String>,
     issue: Option<String>,
     from_commit: Option<String>,
-    dry_run: bool,
-    verbose: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     println!(
         "{}",
@@ -36,11 +35,11 @@ pub fn handle_branch(
         }
     };
 
-    git::is_working_directory_clean(verbose, dry_run)?;
-    git::checkout_main(verbose, dry_run, main_branch_name)?;
-    git::pull_latest_with_rebase(verbose, dry_run)?;
-    git::create_branch(&branch_name, from_commit.as_deref(), verbose, dry_run)?;
-    git::push_set_upstream(&branch_name, verbose, dry_run)?;
+    git::is_working_directory_clean(opts)?;
+    git::checkout_main(opts, main_branch_name)?;
+    git::pull_latest_with_rebase(opts)?;
+    git::create_branch(&branch_name, from_commit.as_deref(), opts)?;
+    git::push_set_upstream(&branch_name, opts)?;
     println!(
         "\n{}",
         format!("Success! Switched to new branch: '{}'", branch_name).green()
@@ -52,8 +51,7 @@ pub fn handle_complete(
     r#type: String,
     name: String,
     config: &Config,
-    dry_run: bool,
-    verbose: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     println!(
         "{}",
@@ -66,33 +64,32 @@ pub fn handle_complete(
         return Err(GitError::CannotCompleteMainBranch.into());
     }
 
-    let branch_name = git::find_branch(&name, &r#type, config, verbose, dry_run)?;
+    let branch_name = git::find_branch(&name, &r#type, config, opts)?;
     println!("{}", format!("Branch to complete: {}", branch_name).blue());
 
-    git::branch_exists_locally(&branch_name, verbose, dry_run)?;
+    git::branch_exists_locally(&branch_name, opts)?;
 
     if r#type == "release" {
         let tag_name = format!("{}{}", config.automatic_tags.release_prefix, name);
 
-        if git::tag_exists(&tag_name, verbose, dry_run)? {
+        if git::tag_exists(&tag_name, opts)? {
             return Err(GitError::TagAlreadyExists(tag_name).into());
         }
     }
 
-    git::is_working_directory_clean(verbose, dry_run)?;
-    git::checkout_main(verbose, dry_run, main_branch_name)?;
-    git::pull_latest_with_rebase(verbose, dry_run)?;
-    git::merge_branch(&branch_name, verbose, dry_run)?;
+    git::is_working_directory_clean(opts)?;
+    git::checkout_main(opts, main_branch_name)?;
+    git::pull_latest_with_rebase(opts)?;
+    git::merge_branch(&branch_name, opts)?;
 
     if r#type == "release" {
         let tag_name = format!("{}{}", config.automatic_tags.release_prefix, name);
-        let merge_commit_hash = git::get_head_commit_hash(verbose, dry_run)?;
+        let merge_commit_hash = git::get_head_commit_hash(opts)?;
         git::create_tag(
             &tag_name,
             &format!("Release {}", name),
             &merge_commit_hash,
-            verbose,
-            dry_run,
+            opts,
         )?;
         println!(
             "{}",
@@ -100,16 +97,16 @@ pub fn handle_complete(
         );
     }
 
-    git::push(verbose, dry_run)?;
+    git::push(opts)?;
     if r#type == "release" {
-        git::push_tags(verbose, dry_run)?;
+        git::push_tags(opts)?;
     }
 
-    git::delete_local_branch(&branch_name, verbose, dry_run)?;
-    git::delete_remote_branch(&branch_name, verbose, dry_run)?;
+    git::delete_local_branch(&branch_name, opts)?;
+    git::delete_remote_branch(&branch_name, opts)?;
 
     // Cleanup the intent log after merging back to trunk
-    let git_root = PathBuf::from(git::get_git_root(verbose, dry_run)?);
+    let git_root = PathBuf::from(git::get_git_root(opts)?);
     if intent::load_intent_log(&git_root)?.is_some() {
         intent::cleanup_intent_log(&git_root)?;
         println!("{}", "Intent log cleared after branch completion.".dimmed());

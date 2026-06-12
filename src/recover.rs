@@ -1,4 +1,5 @@
 use crate::{git, intent};
+use crate::git::RunOpts;
 use anyhow::{Context, Result};
 use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, Confirm};
@@ -99,8 +100,7 @@ pub fn handle_recover_list(git_root: &Path, current_branch: &str) -> Result<()> 
 pub fn handle_recover_apply(
     git_root: &Path,
     selector: &str,
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     let (_log, entries) = collect_snapshots(git_root)?;
 
@@ -121,7 +121,7 @@ pub fn handle_recover_apply(
             .yellow()
     );
 
-    if dry_run {
+    if opts.dry_run {
         println!(
             "{}",
             format!("[DRY RUN] Would run: git stash apply {}", hash).yellow()
@@ -137,7 +137,7 @@ pub fn handle_recover_apply(
             return Ok(());
         }
 
-        git::stash_apply(&hash, verbose, dry_run).context(
+        git::stash_apply(&hash, opts).context(
             "Failed to apply snapshot. The commit object may have been garbage-collected.",
         )?;
     }

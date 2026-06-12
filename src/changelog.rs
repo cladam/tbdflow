@@ -1,4 +1,5 @@
 use crate::{config::Config, git};
+use crate::git::RunOpts;
 use anyhow::Result;
 use colored::*;
 use git_conventional::Commit;
@@ -16,15 +17,14 @@ fn get_section_header(commit_type: &str) -> &'static str {
 }
 
 pub fn handle_changelog(
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
     config: &Config,
     from: Option<String>,
     to: Option<String>,
     unreleased: bool,
 ) -> Result<String> {
     let range = if unreleased {
-        let latest_tag = git::get_latest_tag(verbose, dry_run)?;
+        let latest_tag = git::get_latest_tag(opts)?;
         format!("{}..HEAD", latest_tag)
     } else {
         format!(
@@ -34,10 +34,10 @@ pub fn handle_changelog(
         )
     };
 
-    let history = git::get_commit_history(&range, verbose, dry_run)?;
+    let history = git::get_commit_history(&range, opts)?;
     let mut sections: HashMap<&'static str, Vec<String>> = HashMap::new();
     let mut breaking_changes: Vec<String> = Vec::new();
-    let remote_url = git::get_remote_url(verbose, dry_run).unwrap_or_default();
+    let remote_url = git::get_remote_url(opts).unwrap_or_default();
 
     // Format: "hash|message"
     for line in history.lines() {

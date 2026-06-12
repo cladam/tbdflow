@@ -1,5 +1,5 @@
 use crate::config::{Config, ReviewLabelsConfig, ReviewStrategy};
-use crate::git;
+use crate::git::{self, RunOpts};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use glob::Pattern;
@@ -14,19 +14,18 @@ fn short_hash(hash: &str) -> &str {
 pub fn should_auto_trigger_review(
     config: &Config,
     commit_hash: &str,
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
 ) -> Result<bool> {
     if !config.review.enabled || config.review.rules.is_empty() {
         return Ok(false);
     }
 
-    let touched_files = git::get_changed_files(commit_hash, verbose, dry_run)?;
+    let touched_files = git::get_changed_files(commit_hash, opts)?;
 
     for rule in &config.review.rules {
         if let Ok(pattern) = Pattern::new(&rule.pattern) {
             if touched_files.iter().any(|f| pattern.matches(f)) {
-                if verbose {
+                if opts.verbose {
                     println!(
                         "{} Auto-trigger: files match rule pattern '{}'",
                         "[REVIEW]".magenta(),
@@ -47,18 +46,17 @@ pub fn trigger_review(
     commit_hash: &str,
     message: &str,
     author: &str,
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     if !config.review.enabled {
-        if verbose {
+        if opts.verbose {
             println!("{}", "Review system is disabled in config.".dimmed());
         }
         return Ok(());
     }
 
     // Identify which rules apply based on touched files
-    let touched_files = git::get_changed_files(commit_hash, verbose, dry_run)?;
+    let touched_files = git::get_changed_files(commit_hash, opts)?;
     let mut applicable_reviewers: Vec<String> = Vec::new();
     let mut is_targeted = false;
 
@@ -66,7 +64,7 @@ pub fn trigger_review(
         if let Ok(pattern) = Pattern::new(&rule.pattern) {
             let matched = touched_files.iter().any(|f| pattern.matches(f));
             if matched {
-                if verbose {
+                if opts.verbose {
                     println!(
                         "{} File match for rule: {}",
                         "[RULE]".magenta(),
@@ -109,7 +107,7 @@ pub fn trigger_review(
         println!("   Reviewers: {}", final_reviewers.join(", "));
     }
 
-    if dry_run {
+    if opts.dry_run {
         println!("{}", "[DRY RUN] Would create review request".yellow());
         return Ok(());
     }
@@ -122,7 +120,7 @@ pub fn trigger_review(
                 commit_hash,
                 message,
                 author,
-                verbose,
+                opts,
             )?;
         }
         ReviewStrategy::GithubWorkflow => {
@@ -132,7 +130,7 @@ pub fn trigger_review(
                 message,
                 author,
                 &final_reviewers,
-                verbose,
+                opts,
             )?;
         }
         ReviewStrategy::LogOnly => {
@@ -152,7 +150,7 @@ fn trigger_github_workflow(
     message: &str,
     author: &str,
     reviewers: &[String],
-    verbose: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     if !is_gh_cli_available() {
         println!(
@@ -174,7 +172,7 @@ fn trigger_github_workflow(
 
     let short = short_hash(commit_hash);
 
-    if verbose {
+    if opts.verbose {
         println!(
             "{} Triggering workflow '{}' for commit {}",
             "[INFO]".cyan(),
@@ -247,7 +245,7 @@ fn trigger_github_workflow(
                 commit_hash,
                 message,
                 author,
-                verbose,
+                opts,
             )?;
         } else {
             println!(
@@ -266,7 +264,7 @@ fn create_github_issue(
     commit_hash: &str,
     message: &str,
     author: &str,
-    verbose: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     let short = short_hash(commit_hash);
 
@@ -285,10 +283,10 @@ fn create_github_issue(
     }
 
     // Ensure all review labels exist (create if missing)
-    ensure_review_labels_exist(labels, verbose);
+    ensure_review_labels_exist(labels, opts);
 
     // Get the repository URL for commit links
-    let repo_url = git::get_remote_url(verbose, false).unwrap_or_default();
+    let repo_url = git::get_remote_url(opts).unwrap_or_default();
     let commit_url = if repo_url.is_empty() {
         format!("`{}`", commit_hash)
     } else {
@@ -345,7 +343,7 @@ fn create_github_issue(
         args.push(&assignees_str);
     }
 
-    if verbose {
+    if opts.verbose {
         println!("{} gh {}", "[RUNNING]".cyan(), args.join(" "));
     }
 
@@ -380,12 +378,12 @@ fn label_exists(label_name: &str) -> bool {
         .unwrap_or(false)
 }
 
-fn ensure_label_exists(label_name: &str, description: &str, color: &str, verbose: bool) {
+fn ensure_label_exists(label_name: &str, description: &str, color: &str, opts: RunOpts) {
     if label_exists(label_name) {
         return;
     }
 
-    if verbose {
+    if opts.verbose {
         println!("{} Creating '{}' label...", "[INFO]".cyan(), label_name);
     }
 
@@ -403,7 +401,7 @@ fn ensure_label_exists(label_name: &str, description: &str, color: &str, verbose
 
     match result {
         Ok(output) if output.status.success() => {
-            if verbose {
+            if opts.verbose {
                 println!("{} Created '{}' label", "[INFO]".cyan(), label_name);
             }
         }
@@ -414,30 +412,30 @@ fn ensure_label_exists(label_name: &str, description: &str, color: &str, verbose
     }
 }
 
-fn ensure_review_labels_exist(labels: &ReviewLabelsConfig, verbose: bool) {
+fn ensure_review_labels_exist(labels: &ReviewLabelsConfig, opts: RunOpts) {
     ensure_label_exists(
         &labels.pending,
         "Review pending - awaiting attention",
         "FBCA04", // Yellow
-        verbose,
+        opts,
     );
     ensure_label_exists(
         &labels.concern,
         "Review concern raised - needs attention",
         "D93F0B", // Red-orange
-        verbose,
+        opts,
     );
     ensure_label_exists(
         &labels.accepted,
         "Review accepted/approved",
         "0E8A16", // Green
-        verbose,
+        opts,
     );
     ensure_label_exists(
         &labels.dismissed,
         "Review dismissed - won't fix",
         "6A737D", // Gray
-        verbose,
+        opts,
     );
 }
 
@@ -453,8 +451,7 @@ pub fn handle_review_trigger(
     config: &Config,
     reviewers_override: Option<Vec<String>>,
     commit_sha: Option<&str>,
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     if !config.review.enabled {
         println!(
@@ -472,8 +469,8 @@ pub fn handle_review_trigger(
     let commit_hash = match commit_sha {
         Some(sha) if !sha.is_empty() => {
             // Resolve the provided SHA to a full hash
-            let full = git::resolve_commit_hash(sha, verbose, dry_run)?;
-            if verbose {
+            let full = git::resolve_commit_hash(sha, opts)?;
+            if opts.verbose {
                 println!(
                     "{} Triggering review for commit {}",
                     "[REVIEW]".magenta(),
@@ -482,10 +479,10 @@ pub fn handle_review_trigger(
             }
             full
         }
-        _ => git::get_head_commit_hash(verbose, dry_run)?,
+        _ => git::get_head_commit_hash(opts)?,
     };
-    let message = git::get_commit_message(&commit_hash, verbose, dry_run)?;
-    let author = git::get_user_name(verbose, dry_run)?;
+    let message = git::get_commit_message(&commit_hash, opts)?;
+    let author = git::get_user_name(opts)?;
 
     trigger_review(
         config,
@@ -493,23 +490,21 @@ pub fn handle_review_trigger(
         &commit_hash,
         &message,
         &author,
-        verbose,
-        dry_run,
+        opts,
     )
 }
 
 pub fn handle_review_digest(
     config: &Config,
     since: &str,
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     println!(
         "{}",
         format!("--- Trunk Evolution Digest (Since {}) ---", since).blue()
     );
 
-    let log = git::get_log_since(since, verbose, dry_run)?;
+    let log = git::get_log_since(since, opts)?;
 
     if log.is_empty() {
         println!(
@@ -564,26 +559,25 @@ pub fn handle_review_digest(
 pub fn handle_review_approve(
     config: &Config,
     commit_hash: &str,
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     let short = short_hash(commit_hash);
 
     println!("{}", format!("--- Approving Commit {} ---", short).blue());
 
-    if dry_run {
+    if opts.dry_run {
         println!("{}", "[DRY RUN] Would mark commit as approved".yellow());
         return Ok(());
     }
 
     match &config.review.strategy {
         ReviewStrategy::GithubIssue => {
-            close_github_review_issue(&config.review.labels, short, verbose)?;
+            close_github_review_issue(&config.review.labels, short, opts)?;
         }
         ReviewStrategy::GithubWorkflow => {
             // For workflow strategy, close the issue which will trigger
             // the server-side Action to update commit status
-            close_github_review_issue(&config.review.labels, short, verbose)?;
+            close_github_review_issue(&config.review.labels, short, opts)?;
             println!(
                 "{}",
                 "   Server-side workflow will update commit status.".dimmed()
@@ -601,8 +595,7 @@ pub fn handle_review_concern(
     config: &Config,
     commit_hash: &str,
     message: &str,
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     let short = short_hash(commit_hash);
 
@@ -611,14 +604,14 @@ pub fn handle_review_concern(
         format!("--- Raising Concern on Commit {} ---", short).blue()
     );
 
-    if dry_run {
+    if opts.dry_run {
         println!("{}", "[DRY RUN] Would raise concern on commit".yellow());
         return Ok(());
     }
 
     match &config.review.strategy {
         ReviewStrategy::GithubIssue | ReviewStrategy::GithubWorkflow => {
-            raise_github_concern(config, commit_hash, message, verbose)?;
+            raise_github_concern(config, commit_hash, message, opts)?;
         }
         ReviewStrategy::LogOnly => {
             println!("{}", format!("CONCERN on {}: {}", short, message).yellow());
@@ -632,8 +625,7 @@ pub fn handle_review_dismiss(
     config: &Config,
     commit_hash: &str,
     message: &str,
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     let short = short_hash(commit_hash);
 
@@ -642,14 +634,14 @@ pub fn handle_review_dismiss(
         format!("--- Dismissing Review for Commit {} ---", short).blue()
     );
 
-    if dry_run {
+    if opts.dry_run {
         println!("{}", "[DRY RUN] Would dismiss review".yellow());
         return Ok(());
     }
 
     match &config.review.strategy {
         ReviewStrategy::GithubIssue | ReviewStrategy::GithubWorkflow => {
-            dismiss_github_review_issue(&config.review.labels, short, message, verbose)?;
+            dismiss_github_review_issue(&config.review.labels, short, message, opts)?;
         }
         ReviewStrategy::LogOnly => {
             println!(
@@ -666,7 +658,7 @@ fn raise_github_concern(
     config: &Config,
     commit_hash: &str,
     message: &str,
-    verbose: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     let short = short_hash(commit_hash);
     let labels = &config.review.labels;
@@ -682,7 +674,7 @@ fn raise_github_concern(
     // Search for the review issue
     let search_query = format!("[Review] in:title {} in:title is:open", short);
 
-    if verbose {
+    if opts.verbose {
         println!("{} Searching for review issue...", "[INFO]".cyan());
     }
 
@@ -714,7 +706,7 @@ fn raise_github_concern(
         let issue_num_str = issue_num.to_string();
 
         // Update labels: remove pending, add concern
-        if verbose {
+        if opts.verbose {
             println!(
                 "{} Updating labels on issue #{}",
                 "[INFO]".cyan(),
@@ -750,10 +742,10 @@ fn raise_github_concern(
             .output();
 
         // Append checklist item to the issue body
-        append_concern_checklist_item(&issue_num_str, message, verbose)?;
+        append_concern_checklist_item(&issue_num_str, message, opts)?;
 
         // Set commit status based on config
-        set_commit_status(config, commit_hash, message, verbose)?;
+        set_commit_status(config, commit_hash, message, opts)?;
 
         println!(
             "{}",
@@ -777,7 +769,7 @@ fn raise_github_concern(
 fn append_concern_checklist_item(
     issue_num: &str,
     concern_message: &str,
-    verbose: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     // Get current issue body
     let output = Command::new("gh")
@@ -814,7 +806,7 @@ fn append_concern_checklist_item(
         current_body
     };
 
-    if verbose {
+    if opts.verbose {
         println!(
             "{} Updating issue body with concern checklist item",
             "[INFO]".cyan()
@@ -837,7 +829,7 @@ fn set_commit_status(
     config: &Config,
     commit_hash: &str,
     message: &str,
-    verbose: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     if !is_gh_cli_available() {
         return Ok(());
@@ -869,7 +861,7 @@ fn set_commit_status(
         return Ok(());
     };
 
-    if verbose {
+    if opts.verbose {
         println!(
             "{} Setting commit status to '{}' for {}",
             "[INFO]".cyan(),
@@ -907,7 +899,7 @@ fn dismiss_github_review_issue(
     labels: &ReviewLabelsConfig,
     short_hash: &str,
     message: &str,
-    verbose: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     if !is_gh_cli_available() {
         println!(
@@ -920,7 +912,7 @@ fn dismiss_github_review_issue(
     // Search for the review issue
     let search_query = format!("[Review] in:title {} in:title is:open", short_hash);
 
-    if verbose {
+    if opts.verbose {
         println!("{} Searching for review issue...", "[INFO]".cyan());
     }
 
@@ -945,7 +937,7 @@ fn dismiss_github_review_issue(
             let issue_num_str = issue_num.to_string();
 
             // Update labels: remove pending/concern, add dismissed
-            if verbose {
+            if opts.verbose {
                 println!(
                     "{} Updating labels on issue #{}",
                     "[INFO]".cyan(),
@@ -1032,7 +1024,7 @@ fn dismiss_github_review_issue(
 fn close_github_review_issue(
     labels: &ReviewLabelsConfig,
     short_hash: &str,
-    verbose: bool,
+    opts: RunOpts,
 ) -> Result<()> {
     if !is_gh_cli_available() {
         println!(
@@ -1046,7 +1038,7 @@ fn close_github_review_issue(
     // Search for the review issue
     let search_query = format!("[Review] in:title {} in:title is:open", short_hash);
 
-    if verbose {
+    if opts.verbose {
         println!("{} Searching for review issue...", "[INFO]".cyan());
     }
 
@@ -1072,7 +1064,7 @@ fn close_github_review_issue(
             let issue_num_str = issue_num.to_string();
 
             // Remove pending/concern labels and add accepted label
-            if verbose {
+            if opts.verbose {
                 println!(
                     "{} Updating labels on issue #{}",
                     "[INFO]".cyan(),
@@ -1110,7 +1102,7 @@ fn close_github_review_issue(
                 ])
                 .output();
 
-            if verbose {
+            if opts.verbose {
                 println!("{} Closing issue #{}", "[INFO]".cyan(), issue_num);
             }
 

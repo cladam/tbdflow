@@ -1,4 +1,5 @@
 use crate::config::{Config, DodConfig};
+use crate::git::RunOpts;
 use crate::{config, git, intent, radar, review};
 use anyhow::Result;
 use colored::Colorize;
@@ -190,8 +191,7 @@ pub fn is_valid_body_lines(body: &str, config: &Config) -> bool {
 }
 
 pub fn handle_commit(
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
     config: &Config,
     params: CommitParams,
 ) -> Result<()> {
@@ -274,7 +274,7 @@ pub fn handle_commit(
     };
 
     if let Some(todo_footer) = todo_footer_result? {
-        let git_root = PathBuf::from(git::get_git_root(verbose, dry_run)?);
+        let git_root = PathBuf::from(git::get_git_root(opts)?);
 
         // Read the intent log (if any) for inclusion in the commit body.
         let intent_log = intent::load_intent_log(&git_root)?;
@@ -305,31 +305,31 @@ pub fn handle_commit(
             format!("Commit message will be:\n---\n{}\n---", commit_message).blue()
         );
 
-        if verbose {
+        if opts.verbose {
             let current_dir = std::env::current_dir()?;
             println!("Git root: {:?}", git_root);
             println!("Current dir: {:?}", current_dir);
             println!("monorepo: {:?}", config.monorepo);
         }
-        git::stage_scoped_changes(config, params.include_projects, verbose, dry_run)?;
+        git::stage_scoped_changes(config, params.include_projects, opts)?;
 
-        if !git::has_staged_changes(verbose, dry_run)? {
+        if !git::has_staged_changes(opts)? {
             println!("{}", "No changes added to commit.".yellow());
             return Ok(());
         }
 
         // Radar: check for overlapping work before committing
-        if !radar::check_before_commit(config, verbose, dry_run)? {
+        if !radar::check_before_commit(config, opts)? {
             println!("{}", "Commit aborted by user.".yellow());
             return Ok(());
         }
 
-        let current_branch = git::get_current_branch(verbose, dry_run)?;
+        let current_branch = git::get_current_branch(opts)?;
         if current_branch == config.main_branch_name {
             println!("--- Committing directly to main branch ---");
-            git::pull_latest_with_rebase(verbose, dry_run)?;
-            git::commit(&commit_message, verbose, dry_run)?;
-            git::push(verbose, dry_run)?;
+            git::pull_latest_with_rebase(opts)?;
+            git::commit(&commit_message, opts)?;
+            git::push(opts)?;
             println!(
                 "\n{}",
                 "Successfully committed and pushed changes to main.".green()
@@ -360,23 +360,22 @@ pub fn handle_commit(
             }
 
             // Auto-trigger review if rules match the changed files
-            let commit_hash = git::get_head_commit_hash(verbose, dry_run)?;
-            if review::should_auto_trigger_review(config, &commit_hash, verbose, dry_run)? {
-                let author = git::get_user_name(verbose, dry_run)?;
+            let commit_hash = git::get_head_commit_hash(opts)?;
+            if review::should_auto_trigger_review(config, &commit_hash, opts)? {
+                let author = git::get_user_name(opts)?;
                 review::trigger_review(
                     config,
                     None,
                     &commit_hash,
                     &commit_message,
                     &author,
-                    verbose,
-                    dry_run,
+                    opts,
                 )?;
             }
         } else {
             println!("--- Committing to feature branch '{}' ---", current_branch);
-            git::commit(&commit_message, verbose, dry_run)?;
-            git::push(verbose, dry_run)?;
+            git::commit(&commit_message, opts)?;
+            git::push(opts)?;
             println!(
                 "\n{}",
                 format!("Successfully pushed changes to '{}'.", current_branch).green()
@@ -384,9 +383,9 @@ pub fn handle_commit(
         }
 
         if let Some(tag_name) = params.tag {
-            let commit_hash = git::get_head_commit_hash(verbose, dry_run)?;
-            git::create_tag(&tag_name, &commit_message, &commit_hash, verbose, dry_run)?;
-            git::push_tags(verbose, dry_run)?;
+            let commit_hash = git::get_head_commit_hash(opts)?;
+            git::create_tag(&tag_name, &commit_message, &commit_hash, opts)?;
+            git::push_tags(opts)?;
             println!(
                 "{}",
                 format!("Success! Created and pushed tag '{}'", tag_name).green()

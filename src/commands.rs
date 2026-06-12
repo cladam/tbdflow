@@ -1,3 +1,4 @@
+use crate::git::RunOpts;
 use crate::{config, git, intent, radar};
 use anyhow::Result;
 use clap::Command as Commands;
@@ -27,10 +28,10 @@ pub fn handle_update_command() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-pub fn handle_init_command(verbose: bool, dry_run: bool) -> Result<()> {
+pub fn handle_init_command(opts: RunOpts) -> Result<()> {
     println!("--- Initialising tbdflow configuration ---");
 
-    if git::is_git_repository(verbose, dry_run).is_err() {
+    if git::is_git_repository(opts).is_err() {
         let current_dir = env::current_dir()?.to_string_lossy().to_string();
         if Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt(format!(
@@ -39,7 +40,7 @@ pub fn handle_init_command(verbose: bool, dry_run: bool) -> Result<()> {
             ))
             .interact()?
         {
-            git::init_git_repository(verbose, dry_run)?;
+            git::init_git_repository(opts)?;
             println!("{}", "New git repository initialised.".green());
         } else {
             println!("Aborted. Please run `tbdflow init` from within a git repository.");
@@ -47,7 +48,7 @@ pub fn handle_init_command(verbose: bool, dry_run: bool) -> Result<()> {
         }
     }
 
-    let git_root = git::get_git_root(verbose, dry_run)?;
+    let git_root = git::get_git_root(opts)?;
     let current_dir = env::current_dir()?;
     let tbdflow_path = std::path::Path::new(&git_root).join(".tbdflow.yml");
     let mut files_created = false;
@@ -110,8 +111,8 @@ checklist:
             "\n{}",
             "Creating initial commit for configuration files...".blue()
         );
-        git::add_all(verbose, dry_run)?;
-        git::commit("chore: Initialise tbdflow configuration", verbose, dry_run)?;
+        git::add_all(opts)?;
+        git::commit("chore: Initialise tbdflow configuration", opts)?;
         println!("{}", "Initial commit created.".green());
 
         if Confirm::with_theme(&ColorfulTheme::default())
@@ -125,18 +126,18 @@ checklist:
                 .interact_text()?;
 
             if !remote_url.is_empty() {
-                git::add_remote("origin", &remote_url, verbose, dry_run)?;
-                git::fetch_origin(verbose, dry_run)?;
+                git::add_remote("origin", &remote_url, opts)?;
+                git::fetch_origin(opts)?;
 
-                if git::remote_branch_exists("main", verbose, dry_run).is_ok() {
+                if git::remote_branch_exists("main", opts).is_ok() {
                     println!(
                         "{}",
                         "Remote 'main' branch found. Reconciling histories...".yellow()
                     );
-                    git::rebase_onto_main("main", verbose, dry_run)?;
+                    git::rebase_onto_main("main", opts)?;
                 }
 
-                git::push_set_upstream("main", verbose, dry_run)?;
+                git::push_set_upstream("main", opts)?;
                 println!(
                     "{}",
                     "Successfully linked remote and pushed initial commit.".green()
@@ -149,8 +150,8 @@ checklist:
     Ok(())
 }
 
-pub fn handle_info(verbose: bool, dry_run: bool, edit: bool) -> Result<()> {
-    let git_root = git::get_git_root(false, false)?;
+pub fn handle_info(opts: RunOpts, edit: bool) -> Result<()> {
+    let git_root = git::get_git_root(RunOpts::new(false, false))?;
     let root_config_path = PathBuf::from(&git_root).join(".tbdflow.yml");
 
     if edit {
@@ -327,16 +328,16 @@ pub fn handle_info(verbose: bool, dry_run: bool, edit: bool) -> Result<()> {
     }
 
     println!("\n{}", "--- Git Info ---".bold());
-    if let Ok(remote_url) = git::get_remote_url(verbose, dry_run) {
+    if let Ok(remote_url) = git::get_remote_url(opts) {
         println!("Remote 'origin' URL: {}", remote_url.to_string().cyan());
     } else {
         println!("Remote 'origin' URL: Not found.");
     }
 
-    let current_branch = git::get_current_branch(verbose, dry_run)?;
+    let current_branch = git::get_current_branch(opts)?;
     println!("Current branch: {}", current_branch.to_string().cyan());
 
-    if let Ok(latest_tag) = git::get_latest_tag(verbose, dry_run) {
+    if let Ok(latest_tag) = git::get_latest_tag(opts) {
         println!("Latest tag: {}", latest_tag.to_string().cyan());
     } else {
         println!("Latest tag: Not found.");
@@ -345,17 +346,17 @@ pub fn handle_info(verbose: bool, dry_run: bool, edit: bool) -> Result<()> {
     Ok(())
 }
 
-pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Result<()> {
+pub fn handle_sync(opts: RunOpts, config: &config::Config) -> Result<()> {
     println!(
         "{}",
         "--- Syncing with remote and showing status ---"
             .to_string()
             .blue()
     );
-    let current_branch = git::get_current_branch(verbose, dry_run)?;
+    let current_branch = git::get_current_branch(opts)?;
 
     // Anti-collision pre-flight: abort if a git operation is already in progress
-    if let Some(msg) = git::check_git_operation_in_progress(verbose, dry_run)? {
+    if let Some(msg) = git::check_git_operation_in_progress(opts)? {
         println!(
             "{}",
             format!("Error: {} Please resolve it before using tbdflow.", msg).red()
@@ -363,15 +364,15 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
         return Err(anyhow::anyhow!("{}", msg));
     }
 
-    if let Ok(Some(hash)) = git::stash_create(verbose, dry_run) {
-        let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
+    if let Ok(Some(hash)) = git::stash_create(opts) {
+        let git_root = std::path::PathBuf::from(git::get_git_root(opts)?);
         intent::record_safety_snapshot(
             &git_root,
             &hash,
             &current_branch,
             "Pre-sync safety snapshot",
         )?;
-        if verbose {
+        if opts.verbose {
             println!(
                 "{}",
                 format!(
@@ -385,7 +386,7 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
 
     // Check trunk CI status before pulling to avoid importing a broken build
     if config.ci_check.enabled {
-        let ci_status = git::check_ci_status(&config.main_branch_name, verbose, dry_run);
+        let ci_status = git::check_ci_status(&config.main_branch_name, opts);
         match ci_status {
             git::CiStatus::Green => {
                 println!("{}", "Pre-flight CI check: trunk is green.".green());
@@ -418,7 +419,7 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
                 }
             }
             git::CiStatus::Unknown(reason) => {
-                if verbose {
+                if opts.verbose {
                     println!(
                         "{} {}",
                         "Pre-flight CI check skipped:".dimmed(),
@@ -432,19 +433,19 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
 
     if current_branch == config.main_branch_name {
         println!("On main branch, pulling latest changes...");
-        git::pull_latest_with_rebase(verbose, dry_run)?;
+        git::pull_latest_with_rebase(opts)?;
     } else {
         println!(
             "On feature branch '{}', rebasing onto latest '{}'...",
             current_branch, config.main_branch_name
         );
-        git::fetch_origin(verbose, dry_run)?;
-        git::rebase_onto_main(&config.main_branch_name, verbose, dry_run)?;
+        git::fetch_origin(opts)?;
+        git::rebase_onto_main(&config.main_branch_name, opts)?;
     }
 
     println!("\n{}", "Current status:".bold());
 
-    let status_output = git::get_scoped_status(config, verbose, dry_run)?;
+    let status_output = git::get_scoped_status(config, opts)?;
 
     if status_output.is_empty() {
         println!("{}", "Working directory is clean.".green());
@@ -452,20 +453,20 @@ pub fn handle_sync(verbose: bool, dry_run: bool, config: &config::Config) -> Res
         println!("{}", status_output.yellow());
     }
 
-    let log_output = git::log_graph(verbose, dry_run)?;
+    let log_output = git::log_graph(opts)?;
     println!("\n{}", "Recent activity:".bold());
     println!("{}", log_output.cyan());
 
     // Radar: quick overlap scan
-    if let Ok(Some(radar_summary)) = radar::quick_scan_for_sync(config, verbose, dry_run) {
+    if let Ok(Some(radar_summary)) = radar::quick_scan_for_sync(config, opts) {
         println!("\n{}", radar_summary.yellow());
     }
 
-    check_and_warn_for_stale_branches(verbose, dry_run, &current_branch, config)?;
+    check_and_warn_for_stale_branches(opts, &current_branch, config)?;
     Ok(())
 }
 
-pub fn handle_check_branches(verbose: bool, dry_run: bool, config: &config::Config) -> Result<()> {
+pub fn handle_check_branches(opts: RunOpts, config: &config::Config) -> Result<()> {
     println!(
         "{}",
         "--- Checking current branch and stale branches ---"
@@ -473,23 +474,21 @@ pub fn handle_check_branches(verbose: bool, dry_run: bool, config: &config::Conf
             .blue()
     );
 
-    let current_branch = git::get_current_branch(verbose, dry_run)?;
+    let current_branch = git::get_current_branch(opts)?;
     if current_branch != config.main_branch_name {
         return Err(git::GitError::NotOnMainBranch(current_branch).into());
     }
-    check_and_warn_for_stale_branches(verbose, dry_run, &current_branch, config)?;
+    check_and_warn_for_stale_branches(opts, &current_branch, config)?;
     Ok(())
 }
 
 pub fn check_and_warn_for_stale_branches(
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
     current_branch: &str,
     config: &config::Config,
 ) -> Result<()> {
     let stale_branches = git::get_stale_branches(
-        verbose,
-        dry_run,
+        opts,
         current_branch,
         config.stale_branch_threshold_days,
     )?;
@@ -531,8 +530,7 @@ pub fn get_branch_prefix_or_error<'a>(
 pub fn handle_undo(
     sha: &str,
     no_push: bool,
-    verbose: bool,
-    dry_run: bool,
+    opts: RunOpts,
     config: &config::Config,
 ) -> Result<()> {
     println!(
@@ -541,7 +539,7 @@ pub fn handle_undo(
     );
 
     // Anti-collision pre-flight
-    if let Some(msg) = git::check_git_operation_in_progress(verbose, dry_run)? {
+    if let Some(msg) = git::check_git_operation_in_progress(opts)? {
         println!(
             "{}",
             format!("Error: {} Please resolve it before using tbdflow.", msg).red()
@@ -550,16 +548,16 @@ pub fn handle_undo(
     }
 
     // WIP Guard: snapshot before the destructive checkout + fast-forward
-    if let Ok(Some(hash)) = git::stash_create(verbose, dry_run) {
-        let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
-        let current_branch = git::get_current_branch(verbose, dry_run)?;
+    if let Ok(Some(hash)) = git::stash_create(opts) {
+        let git_root = std::path::PathBuf::from(git::get_git_root(opts)?);
+        let current_branch = git::get_current_branch(opts)?;
         intent::record_safety_snapshot(
             &git_root,
             &hash,
             &current_branch,
             "Pre-undo safety snapshot",
         )?;
-        if verbose {
+        if opts.verbose {
             println!(
                 "{}",
                 format!(
@@ -573,7 +571,7 @@ pub fn handle_undo(
 
     let main_branch = &config.main_branch_name;
 
-    if !git::commit_exists(sha, verbose, dry_run)? {
+    if !git::commit_exists(sha, opts)? {
         println!(
             "{}",
             format!("Error: Commit '{}' does not exist in this repository.", sha).red()
@@ -581,20 +579,20 @@ pub fn handle_undo(
         return Err(anyhow::anyhow!("Commit not found: {}", sha));
     }
 
-    let subject = git::get_commit_subject(sha, verbose, dry_run)?;
+    let subject = git::get_commit_subject(sha, opts)?;
     println!(
         "{}",
         format!("Commit to revert: {} ({})", sha, subject).yellow()
     );
 
-    git::is_working_directory_clean(verbose, dry_run)?;
+    git::is_working_directory_clean(opts)?;
 
     // Sync with remote (fast-forward only to preserve commit SHAs)
     println!("Syncing with remote before reverting...");
-    git::checkout_main(verbose, dry_run, main_branch)?;
-    git::pull_fast_forward_only(verbose, dry_run)?;
+    git::checkout_main(opts, main_branch)?;
+    git::pull_fast_forward_only(opts)?;
 
-    if !git::is_ancestor_of(sha, main_branch, verbose, dry_run)? {
+    if !git::is_ancestor_of(sha, main_branch, opts)? {
         println!(
             "{}",
             format!(
@@ -611,7 +609,7 @@ pub fn handle_undo(
     }
 
     println!("{}", format!("Reverting commit {}...", sha).blue());
-    git::revert_commit(sha, verbose, dry_run)?;
+    git::revert_commit(sha, opts)?;
 
     if no_push {
         println!(
@@ -620,7 +618,7 @@ pub fn handle_undo(
         );
     } else {
         println!("Pushing revert to remote...");
-        git::push(verbose, dry_run)?;
+        git::push(opts)?;
         println!(
             "\n{}",
             format!(
@@ -631,7 +629,7 @@ pub fn handle_undo(
         );
     }
 
-    let log_output = git::log_graph(verbose, dry_run)?;
+    let log_output = git::log_graph(opts)?;
     println!("\n{}", "Recent activity:".bold());
     println!("{}", log_output.cyan());
 

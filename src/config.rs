@@ -1,4 +1,4 @@
-use crate::git;
+use crate::git::{self, RunOpts};
 use anyhow::{anyhow, Context};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -336,10 +336,7 @@ fn merge_configs(parent: &mut Config, child: Config) {
 }
 
 pub fn load_tbdflow_config() -> Result<Config, anyhow::Error> {
-    let verbose = false;
-    let dry_run = false;
-
-    let git_root = match git::get_git_root(verbose, dry_run) {
+    let git_root = match git::get_git_root(RunOpts::new(false, false)) {
         Ok(path) => path,
         Err(_) => {
             // Not in a git repo, so we can't find the config.
@@ -384,7 +381,7 @@ pub fn is_monorepo_root(config: &Config, current_dir: &Path, git_root: &Path) ->
 
 pub fn find_project_root() -> Result<Option<PathBuf>, anyhow::Error> {
     let mut current_dir = std::env::current_dir()?;
-    let git_root = PathBuf::from(git::get_git_root(false, false)?);
+    let git_root = PathBuf::from(git::get_git_root(RunOpts::new(false, false))?);
 
     loop {
         let config_path = current_dir.join(".tbdflow.yml");

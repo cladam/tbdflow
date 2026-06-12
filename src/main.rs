@@ -6,6 +6,7 @@ use tbdflow::cli::Commands;
 use tbdflow::cli::TaskAction;
 use tbdflow::commit::CommitParams;
 use tbdflow::git::get_current_branch;
+use tbdflow::git::RunOpts;
 use tbdflow::{
     branch, changelog, cli, commands, commit, config, git, intent, radar, recover, review, wizard,
 };
@@ -14,11 +15,12 @@ fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
     let verbose = cli.verbose;
     let dry_run = cli.dry_run;
+    let opts = RunOpts::new(verbose, dry_run);
 
     if !matches!(
         cli.command,
         Commands::Init | Commands::Update | Commands::Completion { .. }
-    ) && git::is_git_repository(verbose, dry_run).is_err()
+    ) && git::is_git_repository(opts).is_err()
     {
         println!(
             "{}",
@@ -32,10 +34,10 @@ fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::Init => {
-            commands::handle_init_command(verbose, dry_run)?;
+            commands::handle_init_command(opts)?;
         }
         Commands::Info { edit } => {
-            commands::handle_info(verbose, dry_run, edit)?;
+            commands::handle_info(opts, edit)?;
         }
         Commands::Config { get_dod } => {
             if get_dod {
@@ -47,7 +49,7 @@ fn main() -> anyhow::Result<()> {
             }
         }
         Commands::HeadSha => {
-            let sha = git::get_head_commit_hash(verbose, dry_run)?;
+            let sha = git::get_head_commit_hash(opts)?;
             println!("{}", &sha[..std::cmp::min(7, sha.len())]);
         }
         Commands::Update => {
@@ -95,7 +97,7 @@ fn main() -> anyhow::Result<()> {
                 }
             };
 
-            commit::handle_commit(verbose, dry_run, &config, params)?;
+            commit::handle_commit(opts, &config, params)?;
         }
         Commands::Branch {
             r#type,
@@ -112,16 +114,15 @@ fn main() -> anyhow::Result<()> {
                     Some(wizard_result.name),
                     wizard_result.issue,
                     wizard_result.from_commit,
-                    dry_run,
-                    verbose,
+                    opts,
                 )?;
             } else {
-                branch::handle_branch(r#type, &config, name, issue, from_commit, dry_run, verbose)?;
+                branch::handle_branch(r#type, &config, name, issue, from_commit, opts)?;
             }
         }
         Commands::Complete { r#type, name } => match (r#type, name) {
             (Some(t), Some(n)) => {
-                branch::handle_complete(t, n, &config, dry_run, verbose)?;
+                branch::handle_complete(t, n, &config, opts)?;
             }
             _ => {
                 let wizard_result = wizard::run_complete_wizard(&config)?;
@@ -129,20 +130,19 @@ fn main() -> anyhow::Result<()> {
                     wizard_result.branch_type,
                     wizard_result.name,
                     &config,
-                    dry_run,
-                    verbose,
+                    opts,
                 )?;
             }
         },
         Commands::Sync => {
-            commands::handle_sync(verbose, dry_run, &config)?;
+            commands::handle_sync(opts, &config)?;
         }
         Commands::Radar => {
-            radar::handle_radar(verbose, dry_run, &config)?;
+            radar::handle_radar(opts, &config)?;
         }
         Commands::Status => {
             println!("--- Checking status ---");
-            let status_output = git::get_scoped_status(&config, verbose, dry_run)?;
+            let status_output = git::get_scoped_status(&config, opts)?;
 
             if status_output.is_empty() {
                 println!("{}", "Working directory is clean.".green());
@@ -152,11 +152,11 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::CurrentBranch => {
             println!("{}", "--- Current branch ---".to_string().blue());
-            let branch_name = get_current_branch(verbose, dry_run)?;
+            let branch_name = get_current_branch(opts)?;
             println!("{}", format!("Current branch is: {}", branch_name).green());
         }
         Commands::CheckBranches => {
-            commands::handle_check_branches(verbose, dry_run, &config)?;
+            commands::handle_check_branches(opts, &config)?;
         }
         Commands::GenerateManPage => {
             println!("{}", "--- Generating a man page ---".to_string().blue());
@@ -186,9 +186,8 @@ fn main() -> anyhow::Result<()> {
             if from.is_none() && to.is_none() && !unreleased {
                 // Enter interactive wizard mode
                 let wizard_result = wizard::run_changelog_wizard()?;
-                let changelog = changelog::handle_changelog(
-                    verbose,
-                    dry_run,
+                    let changelog = changelog::handle_changelog(
+                    opts,
                     &config,
                     wizard_result.from,
                     wizard_result.to,
@@ -204,7 +203,7 @@ fn main() -> anyhow::Result<()> {
                 }
             } else {
                 let changelog =
-                    changelog::handle_changelog(verbose, dry_run, &config, from, to, unreleased)?;
+                    changelog::handle_changelog(opts, &config, from, to, unreleased)?;
                 if changelog.is_empty() {
                     println!(
                         "{}",
@@ -216,16 +215,16 @@ fn main() -> anyhow::Result<()> {
             }
         }
         Commands::Undo { sha, no_push } => {
-            commands::handle_undo(&sha, no_push, verbose, dry_run, &config)?;
+            commands::handle_undo(&sha, no_push, opts, &config)?;
         }
         Commands::Note { message, show } => {
-            let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
-            let current_branch = get_current_branch(verbose, dry_run)?;
-            if show {
+            let git_root = std::path::PathBuf::from(git::get_git_root(opts)?);
+            let current_branch = get_current_branch(opts)?
+;            if show {
                 intent::show_intent_log(&git_root, Some(&current_branch))?;
             } else if let Some(msg) = message {
                 // Capture WIP state alongside the note
-                let snapshot_hash = git::stash_create(verbose, dry_run)?;
+                let snapshot_hash = git::stash_create(opts)?;
                 intent::add_note_with_snapshot(
                     &git_root,
                     &msg,
@@ -245,8 +244,8 @@ fn main() -> anyhow::Result<()> {
             }
         }
         Commands::Task(action) => {
-            let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
-            let current_branch = get_current_branch(verbose, dry_run)?;
+            let git_root = std::path::PathBuf::from(git::get_git_root(opts)?);
+            let current_branch = get_current_branch(opts)?;
             match action {
                 TaskAction::Start { description } => {
                     intent::start_task(&git_root, &description, &current_branch)?;
@@ -267,12 +266,12 @@ fn main() -> anyhow::Result<()> {
             }
         }
         Commands::Recover { selector, list } => {
-            let git_root = std::path::PathBuf::from(git::get_git_root(verbose, dry_run)?);
-            let current_branch = get_current_branch(verbose, dry_run)?;
+            let git_root = std::path::PathBuf::from(git::get_git_root(opts)?);
+            let current_branch = get_current_branch(opts)?;
             if list || selector.is_none() {
                 recover::handle_recover_list(&git_root, &current_branch)?;
             } else if let Some(sel) = selector {
-                recover::handle_recover_apply(&git_root, &sel, verbose, dry_run)?;
+                recover::handle_recover_apply(&git_root, &sel, opts)?;
             }
         }
         Commands::Review {
@@ -287,31 +286,30 @@ fn main() -> anyhow::Result<()> {
             reviewers,
         } => {
             if let Some(commit_hash) = approve {
-                review::handle_review_approve(&config, &commit_hash, verbose, dry_run)?;
+                review::handle_review_approve(&config, &commit_hash, opts)?;
             } else if let Some(commit_hash) = concern {
                 let msg = message.ok_or_else(|| {
                     anyhow::anyhow!("--message is required when raising a concern")
                 })?;
-                review::handle_review_concern(&config, &commit_hash, &msg, verbose, dry_run)?;
+                review::handle_review_concern(&config, &commit_hash, &msg, opts)?;
             } else if let Some(commit_hash) = dismiss {
                 let msg = message.ok_or_else(|| {
                     anyhow::anyhow!("--message is required when dismissing a review")
                 })?;
-                review::handle_review_dismiss(&config, &commit_hash, &msg, verbose, dry_run)?;
+                review::handle_review_dismiss(&config, &commit_hash, &msg, opts)?;
             } else if digest {
-                review::handle_review_digest(&config, &since, verbose, dry_run)?;
-            } else if let Some(commit_sha) = sha {
+                review::handle_review_digest(&config, &since, opts)?
+;            } else if let Some(commit_sha) = sha {
                 review::handle_review_trigger(
                     &config,
                     reviewers,
                     Some(commit_sha.as_str()),
-                    verbose,
-                    dry_run,
+                    opts,
                 )?;
             } else if trigger {
-                review::handle_review_trigger(&config, reviewers, None, verbose, dry_run)?;
+                review::handle_review_trigger(&config, reviewers, None, opts)?;
             } else {
-                review::handle_review_digest(&config, &since, verbose, dry_run)?;
+                review::handle_review_digest(&config, &since, opts)?;
             }
         }
     }
