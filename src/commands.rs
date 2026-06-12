@@ -165,7 +165,6 @@ pub fn handle_info(opts: RunOpts, edit: bool) -> Result<()> {
 
     println!("{}", "--- tbdflow Configuration ---".blue());
 
-    // Load root config or default
     let root_config: config::Config = if root_config_path.exists() {
         let yaml_str = fs::read_to_string(&root_config_path)?;
         yaml_serde::from_str(&yaml_str)?
@@ -175,6 +174,20 @@ pub fn handle_info(opts: RunOpts, edit: bool) -> Result<()> {
 
     let final_config = config::load_tbdflow_config()?;
 
+    print_mode_and_settings(&root_config, &root_config_path, &final_config)?;
+    print_review_config(&final_config.review);
+    print_radar_config(&final_config.radar);
+    print_ci_config(&final_config.ci_check);
+    print_git_info(opts)?;
+
+    Ok(())
+}
+
+fn print_mode_and_settings(
+    root_config: &config::Config,
+    root_config_path: &PathBuf,
+    final_config: &config::Config,
+) -> Result<()> {
     if let Some(project_root) = config::find_project_root()? {
         let project_config_path = project_root.join(".tbdflow.yml");
         if project_config_path.exists() {
@@ -190,7 +203,6 @@ pub fn handle_info(opts: RunOpts, edit: bool) -> Result<()> {
 
             println!("\n{}", "--- Settings ---".bold());
 
-            // Compare and print settings
             let main_branch_source =
                 if project_config.main_branch_name != root_config.main_branch_name {
                     "(overridden by project)".yellow()
@@ -215,7 +227,6 @@ pub fn handle_info(opts: RunOpts, edit: bool) -> Result<()> {
             );
         }
     } else {
-        // Not in a sub-project, check if we are at the root of a monorepo
         if root_config.monorepo.enabled && !root_config.monorepo.project_dirs.is_empty() {
             println!("Mode: {} (Root)", "Monorepo".to_string().bold());
             println!(
@@ -244,7 +255,6 @@ pub fn handle_info(opts: RunOpts, edit: bool) -> Result<()> {
         );
     }
 
-    // Common settings for all modes, using the final merged config
     println!(
         "Stale Branch Threshold: {} days",
         format!("{}", final_config.stale_branch_threshold_days).cyan()
@@ -257,31 +267,29 @@ pub fn handle_info(opts: RunOpts, edit: bool) -> Result<()> {
     };
     println!("Commit Linting: {}", lint_status);
 
+    Ok(())
+}
+
+fn print_review_config(review: &config::ReviewConfig) {
     println!("\n{}", "--- Review ---".bold());
-    if final_config.review.enabled {
+    if review.enabled {
         println!("Review: {}", "Enabled".green());
-        println!(
-            "Strategy: {}",
-            format!("{:?}", final_config.review.strategy).cyan()
-        );
-        if !final_config.review.default_reviewers.is_empty() {
+        println!("Strategy: {}", format!("{:?}", review.strategy).cyan());
+        if !review.default_reviewers.is_empty() {
             println!(
                 "Default Reviewers: {}",
-                final_config.review.default_reviewers.join(", ").cyan()
+                review.default_reviewers.join(", ").cyan()
             );
         }
-        if let Some(ref workflow) = final_config.review.workflow {
+        if let Some(ref workflow) = review.workflow {
             println!("Workflow: {}", workflow.cyan());
         }
-        if !final_config.review.rules.is_empty() {
-            println!(
-                "Targeted Rules: {}",
-                format!("{}", final_config.review.rules.len()).cyan()
-            );
+        if !review.rules.is_empty() {
+            println!("Targeted Rules: {}", format!("{}", review.rules.len()).cyan());
         }
         println!(
             "Concern Blocks Status: {}",
-            if final_config.review.concern_blocks_status {
+            if review.concern_blocks_status {
                 "Yes".yellow()
             } else {
                 "No".dimmed()
@@ -290,43 +298,43 @@ pub fn handle_info(opts: RunOpts, edit: bool) -> Result<()> {
     } else {
         println!("Review: {}", "Disabled".red());
     }
+}
 
+fn print_radar_config(radar: &config::RadarConfig) {
     println!("\n{}", "--- Radar ---".bold());
-    if final_config.radar.enabled {
+    if radar.enabled {
         println!("Radar: {}", "Enabled".green());
-        println!(
-            "Detection Level: {}",
-            format!("{:?}", final_config.radar.level).cyan()
-        );
+        println!("Detection Level: {}", format!("{:?}", radar.level).cyan());
         println!(
             "On Sync: {}",
-            if final_config.radar.on_sync {
+            if radar.on_sync {
                 "Yes".green()
             } else {
                 "No".dimmed()
             }
         );
-        println!(
-            "On Commit: {}",
-            format!("{:?}", final_config.radar.on_commit).cyan()
-        );
-        if !final_config.radar.ignore_patterns.is_empty() {
+        println!("On Commit: {}", format!("{:?}", radar.on_commit).cyan());
+        if !radar.ignore_patterns.is_empty() {
             println!(
                 "Ignore Patterns: {}",
-                final_config.radar.ignore_patterns.join(", ").dimmed()
+                radar.ignore_patterns.join(", ").dimmed()
             );
         }
     } else {
         println!("Radar: {}", "Disabled".red());
     }
+}
 
+fn print_ci_config(ci_check: &config::CiCheckConfig) {
     println!("\n{}", "--- CI Check ---".bold());
-    if final_config.ci_check.enabled {
+    if ci_check.enabled {
         println!("CI Check on Sync: {}", "Enabled".green());
     } else {
         println!("CI Check on Sync: {}", "Disabled".red());
     }
+}
 
+fn print_git_info(opts: RunOpts) -> Result<()> {
     println!("\n{}", "--- Git Info ---".bold());
     if let Ok(remote_url) = git::get_remote_url(opts) {
         println!("Remote 'origin' URL: {}", remote_url.to_string().cyan());

@@ -335,10 +335,6 @@ pub fn get_status_full(opts: RunOpts) -> Result<String> {
     run_git_command("status", &[], opts)
 }
 
-pub fn status(opts: RunOpts) -> Result<String> {
-    run_git_command("status", &["--short"], opts)
-}
-
 pub fn status_for_path(relative_path: &str, opts: RunOpts) -> Result<String> {
     run_git_command(
         "status",
@@ -385,7 +381,7 @@ pub fn get_scoped_status(config: &Config, opts: RunOpts) -> Result<String> {
         );
         status_excluding_projects(&config.monorepo.project_dirs, opts)
     } else {
-        status(opts)
+        get_status_short(opts)
     }
 }
 
@@ -945,7 +941,7 @@ mod tests {
     #[test]
     fn test_status() {
         let opts = RunOpts::new(true, false);
-        let result = status(opts);
+        let result = get_status_short(opts);
         assert!(result.is_ok(), "Expected Ok, got {:?}", result);
         let output = result.unwrap();
         // Accept any output (including empty if clean)
