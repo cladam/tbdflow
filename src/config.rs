@@ -396,7 +396,10 @@ pub fn find_project_root() -> Result<Option<PathBuf>, anyhow::Error> {
         if current_dir == git_root || current_dir.parent().is_none() {
             break;
         }
-        current_dir = current_dir.parent().unwrap().to_path_buf();
+        current_dir = current_dir
+            .parent()
+            .ok_or_else(|| anyhow::anyhow!("Reached filesystem root while searching for project config"))?
+            .to_path_buf();
     }
 
     Ok(None)

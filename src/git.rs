@@ -372,7 +372,10 @@ pub fn get_scoped_status(config: &Config, opts: RunOpts) -> Result<String> {
             status_for_path(".", opts)
         } else {
             let relative_path = proj_root.strip_prefix(&git_root).unwrap_or(&proj_root);
-            status_for_path(relative_path.to_str().unwrap(), opts)
+            let path_str = relative_path
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("Project path contains non-UTF-8 characters: {:?}", relative_path))?;
+            status_for_path(path_str, opts)
         }
     } else if crate::config::is_monorepo_root(config, &current_dir, &git_root) {
         println!(
