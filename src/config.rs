@@ -398,7 +398,9 @@ pub fn find_project_root() -> Result<Option<PathBuf>, anyhow::Error> {
         }
         current_dir = current_dir
             .parent()
-            .ok_or_else(|| anyhow::anyhow!("Reached filesystem root while searching for project config"))?
+            .ok_or_else(|| {
+                anyhow::anyhow!("Reached filesystem root while searching for project config")
+            })?
             .to_path_buf();
     }
 

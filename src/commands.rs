@@ -285,7 +285,10 @@ fn print_review_config(review: &config::ReviewConfig) {
             println!("Workflow: {}", workflow.cyan());
         }
         if !review.rules.is_empty() {
-            println!("Targeted Rules: {}", format!("{}", review.rules.len()).cyan());
+            println!(
+                "Targeted Rules: {}",
+                format!("{}", review.rules.len()).cyan()
+            );
         }
         println!(
             "Concern Blocks Status: {}",
@@ -495,11 +498,8 @@ pub fn check_and_warn_for_stale_branches(
     current_branch: &str,
     config: &config::Config,
 ) -> Result<()> {
-    let stale_branches = git::get_stale_branches(
-        opts,
-        current_branch,
-        config.stale_branch_threshold_days,
-    )?;
+    let stale_branches =
+        git::get_stale_branches(opts, current_branch, config.stale_branch_threshold_days)?;
     if !stale_branches.is_empty() {
         println!(
             "\n{}",
@@ -535,12 +535,7 @@ pub fn get_branch_prefix_or_error<'a>(
     })
 }
 
-pub fn handle_undo(
-    sha: &str,
-    no_push: bool,
-    opts: RunOpts,
-    config: &config::Config,
-) -> Result<()> {
+pub fn handle_undo(sha: &str, no_push: bool, opts: RunOpts, config: &config::Config) -> Result<()> {
     println!(
         "{}",
         "--- Undo: The Panic Button ---".to_string().bold().red()

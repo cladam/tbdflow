@@ -113,16 +113,8 @@ pub fn has_staged_changes(opts: RunOpts) -> Result<bool> {
     Ok(status.code() == Some(1))
 }
 
-pub fn add_remote(
-    remote_name: &str,
-    remote_url: &str,
-    opts: RunOpts,
-) -> Result<String> {
-    run_git_command(
-        "remote",
-        &["add", remote_name, remote_url],
-        opts,
-    )
+pub fn add_remote(remote_name: &str, remote_url: &str, opts: RunOpts) -> Result<String> {
+    run_git_command("remote", &["add", remote_name, remote_url], opts)
 }
 
 pub fn checkout_main(opts: RunOpts, main_branch: &str) -> Result<String> {
@@ -168,10 +160,7 @@ pub fn add_all(opts: RunOpts) -> Result<String> {
 }
 
 /// Stages everything except the given project directories using `:(exclude)` pathspec.
-pub fn add_excluding_projects(
-    project_dirs: &[String],
-    opts: RunOpts,
-) -> Result<String> {
+pub fn add_excluding_projects(project_dirs: &[String], opts: RunOpts) -> Result<String> {
     let mut args = vec!["."];
     // Use the more explicit and robust `:(exclude)` pathspec syntax.
     let exclude_args: Vec<String> = project_dirs
@@ -203,11 +192,7 @@ pub fn push_tags(opts: RunOpts) -> Result<String> {
 }
 
 pub fn branch_exists_locally(branch_name: &str, opts: RunOpts) -> Result<()> {
-    let output = run_git_command(
-        "rev-parse",
-        &["--verify", "--quiet", branch_name],
-        opts,
-    )?;
+    let output = run_git_command("rev-parse", &["--verify", "--quiet", branch_name], opts)?;
     match output {
         _ if output.is_empty() => Err(GitError::BranchNotFound(branch_name.to_string()).into()),
         _ => Ok(()),
@@ -216,12 +201,7 @@ pub fn branch_exists_locally(branch_name: &str, opts: RunOpts) -> Result<()> {
 
 /// Fuzzy-matches a branch by type prefix and trailing name.
 /// Handles branches with or without issue IDs in the middle.
-pub fn find_branch(
-    name: &str,
-    r#type: &str,
-    config: &Config,
-    opts: RunOpts,
-) -> Result<String> {
+pub fn find_branch(name: &str, r#type: &str, config: &Config, opts: RunOpts) -> Result<String> {
     let prefix = commands::get_branch_prefix_or_error(&config.branch_types, r#type)?;
 
     let all_branches = run_git_command("branch", &["--list"], opts)?;
@@ -266,22 +246,14 @@ pub fn delete_local_branch(branch_name: &str, opts: RunOpts) -> Result<String> {
 }
 
 pub fn delete_remote_branch(branch_name: &str, opts: RunOpts) -> Result<String> {
-    run_git_command(
-        "push",
-        &["origin", "--delete", branch_name],
-        opts,
-    )
+    run_git_command("push", &["origin", "--delete", branch_name], opts)
 }
 
 pub fn get_current_branch(opts: RunOpts) -> Result<String> {
     run_git_command("branch", &["--show-current"], opts)
 }
 
-pub fn create_branch(
-    branch_name: &str,
-    from_point: Option<&str>,
-    opts: RunOpts,
-) -> Result<String> {
+pub fn create_branch(branch_name: &str, from_point: Option<&str>, opts: RunOpts) -> Result<String> {
     let mut args = vec!["-b", branch_name];
     if let Some(point) = from_point {
         args.push(point);
@@ -312,19 +284,11 @@ pub fn create_tag(
     commit_hash: &str,
     opts: RunOpts,
 ) -> Result<String> {
-    run_git_command(
-        "tag",
-        &["-a", tag_name, "-m", message, commit_hash],
-        opts,
-    )
+    run_git_command("tag", &["-a", tag_name, "-m", message, commit_hash], opts)
 }
 
 pub fn push_set_upstream(branch_name: &str, opts: RunOpts) -> Result<String> {
-    run_git_command(
-        "push",
-        &["--set-upstream", "origin", branch_name],
-        opts,
-    )
+    run_git_command("push", &["--set-upstream", "origin", branch_name], opts)
 }
 
 pub fn get_status_short(opts: RunOpts) -> Result<String> {
@@ -336,18 +300,11 @@ pub fn get_status_full(opts: RunOpts) -> Result<String> {
 }
 
 pub fn status_for_path(relative_path: &str, opts: RunOpts) -> Result<String> {
-    run_git_command(
-        "status",
-        &["--short", "--", relative_path],
-        opts,
-    )
+    run_git_command("status", &["--short", "--", relative_path], opts)
 }
 
 /// Status excluding the given project directories (monorepo root use).
-pub fn status_excluding_projects(
-    project_dirs: &[String],
-    opts: RunOpts,
-) -> Result<String> {
+pub fn status_excluding_projects(project_dirs: &[String], opts: RunOpts) -> Result<String> {
     let mut args = vec!["--short", "--"];
     let exclude_args: Vec<String> = project_dirs
         .iter()
@@ -372,9 +329,12 @@ pub fn get_scoped_status(config: &Config, opts: RunOpts) -> Result<String> {
             status_for_path(".", opts)
         } else {
             let relative_path = proj_root.strip_prefix(&git_root).unwrap_or(&proj_root);
-            let path_str = relative_path
-                .to_str()
-                .ok_or_else(|| anyhow::anyhow!("Project path contains non-UTF-8 characters: {:?}", relative_path))?;
+            let path_str = relative_path.to_str().ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Project path contains non-UTF-8 characters: {:?}",
+                    relative_path
+                )
+            })?;
             status_for_path(path_str, opts)
         }
     } else if crate::config::is_monorepo_root(config, &current_dir, &git_root) {
@@ -389,11 +349,7 @@ pub fn get_scoped_status(config: &Config, opts: RunOpts) -> Result<String> {
 }
 
 /// Monorepo-aware staging. At the repo root, excludes project dirs unless `include_projects` is set.
-pub fn stage_scoped_changes(
-    config: &Config,
-    include_projects: bool,
-    opts: RunOpts,
-) -> Result<()> {
+pub fn stage_scoped_changes(config: &Config, include_projects: bool, opts: RunOpts) -> Result<()> {
     let git_root = std::path::PathBuf::from(get_git_root(opts)?);
     let current_dir = std::env::current_dir()?;
 
@@ -422,27 +378,15 @@ pub fn stage_scoped_changes(
 }
 
 pub fn log_graph(opts: RunOpts) -> Result<String> {
-    run_git_command(
-        "log",
-        &["--graph", "--oneline", "-n", "15"],
-        opts,
-    )
+    run_git_command("log", &["--graph", "--oneline", "-n", "15"], opts)
 }
 
-pub fn get_commit_count_ahead(
-    branch: &str,
-    main_branch: &str,
-    opts: RunOpts,
-) -> Result<String> {
+pub fn get_commit_count_ahead(branch: &str, main_branch: &str, opts: RunOpts) -> Result<String> {
     let range = format!("origin/{}..{}", main_branch, branch);
     run_git_command("rev-list", &["--count", &range], opts)
 }
 
-pub fn get_branch_log(
-    branch: &str,
-    main_branch: &str,
-    opts: RunOpts,
-) -> Result<String> {
+pub fn get_branch_log(branch: &str, main_branch: &str, opts: RunOpts) -> Result<String> {
     let range = format!("origin/{}..{}", main_branch, branch);
     run_git_command("log", &["--oneline", "-n", "10", &range], opts)
 }
@@ -516,10 +460,7 @@ pub fn get_log_since(since: &str, opts: RunOpts) -> Result<String> {
     )
 }
 
-pub fn get_latest_commit_time(
-    branch: &str,
-    opts: RunOpts,
-) -> Result<Option<DateTime<Utc>>> {
+pub fn get_latest_commit_time(branch: &str, opts: RunOpts) -> Result<Option<DateTime<Utc>>> {
     let ref_name = format!("origin/{}", branch);
     let output = run_git_command("log", &["-1", "--format=%cI", &ref_name], opts)?;
     if output.is_empty() {
@@ -584,16 +525,9 @@ pub fn revert_commit(commit_hash: &str, opts: RunOpts) -> Result<String> {
 }
 
 /// Remote branches not yet merged into main, without `origin/` prefix.
-pub fn get_active_remote_branches(
-    main_branch: &str,
-    opts: RunOpts,
-) -> Result<Vec<String>> {
+pub fn get_active_remote_branches(main_branch: &str, opts: RunOpts) -> Result<Vec<String>> {
     let main_ref = format!("origin/{}", main_branch);
-    let output = run_git_command(
-        "branch",
-        &["-r", "--no-merged", &main_ref],
-        opts,
-    )?;
+    let output = run_git_command("branch", &["-r", "--no-merged", &main_ref], opts)?;
     let branches = output
         .lines()
         .map(|l| l.trim())
@@ -606,11 +540,7 @@ pub fn get_active_remote_branches(
 }
 
 /// Three-dot diff: files changed by `head` relative to its fork point from `base`.
-pub fn get_diff_files_between_refs(
-    base: &str,
-    head: &str,
-    opts: RunOpts,
-) -> Result<Vec<String>> {
+pub fn get_diff_files_between_refs(base: &str, head: &str, opts: RunOpts) -> Result<Vec<String>> {
     let range = format!("{}...{}", base, head);
     let output = run_git_command("diff", &["--name-only", &range], opts)?;
     Ok(output
@@ -734,11 +664,7 @@ pub fn get_local_diff_hunks(file: &str, opts: RunOpts) -> Result<Vec<HunkRange>>
 /// Check if a commit is an ancestor of the given branch (i.e. the commit exists on that branch).
 /// Resolves the commit hash and uses the fully-qualified branch ref to avoid ambiguity
 /// (e.g. when a tag has the same name as the branch).
-pub fn is_ancestor_of(
-    commit_hash: &str,
-    branch: &str,
-    opts: RunOpts,
-) -> Result<bool> {
+pub fn is_ancestor_of(commit_hash: &str, branch: &str, opts: RunOpts) -> Result<bool> {
     // Resolve to a full hash — short SHAs can be unreliable with merge-base
     let full_hash = run_git_command("rev-parse", &["--verify", commit_hash], opts)?;
     // In dry-run mode rev-parse returns "" so we just assume it's fine

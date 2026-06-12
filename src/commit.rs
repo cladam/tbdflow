@@ -190,11 +190,7 @@ pub fn is_valid_body_lines(body: &str, config: &Config) -> bool {
     true
 }
 
-pub fn handle_commit(
-    opts: RunOpts,
-    config: &Config,
-    params: CommitParams,
-) -> Result<()> {
+pub fn handle_commit(opts: RunOpts, config: &Config, params: CommitParams) -> Result<()> {
     println!("{}", "--- Committing changes ---".blue());
 
     // Check for conflicting flags based on issue handling strategy
@@ -363,14 +359,7 @@ pub fn handle_commit(
             let commit_hash = git::get_head_commit_hash(opts)?;
             if review::should_auto_trigger_review(config, &commit_hash, opts)? {
                 let author = git::get_user_name(opts)?;
-                review::trigger_review(
-                    config,
-                    None,
-                    &commit_hash,
-                    &commit_message,
-                    &author,
-                    opts,
-                )?;
+                review::trigger_review(config, None, &commit_hash, &commit_message, &author, opts)?;
             }
         } else {
             println!("--- Committing to feature branch '{}' ---", current_branch);

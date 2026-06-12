@@ -1,5 +1,5 @@
-use crate::{config::Config, git};
 use crate::git::RunOpts;
+use crate::{config::Config, git};
 use anyhow::Result;
 use colored::*;
 use git_conventional::Commit;

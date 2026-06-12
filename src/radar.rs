@@ -99,12 +99,7 @@ const CHURN_HOURS: u64 = 72;
 const CHURN_LIMIT: usize = 5;
 
 pub fn get_hotspots(config: &Config, opts: RunOpts) -> Result<Vec<Hotspot>> {
-    git::get_file_churn(
-        &config.main_branch_name,
-        CHURN_HOURS,
-        CHURN_LIMIT,
-        opts,
-    )
+    git::get_file_churn(&config.main_branch_name, CHURN_HOURS, CHURN_LIMIT, opts)
 }
 
 fn print_hotspots(hotspots: &[Hotspot]) {
@@ -161,11 +156,10 @@ pub fn scan(config: &Config, opts: RunOpts) -> Result<RadarResult> {
         let branch_ref = format!("origin/{}", branch);
 
         // Get files changed by this branch relative to main
-        let branch_files =
-            match git::get_diff_files_between_refs(&main_ref, &branch_ref, opts) {
-                Ok(files) => files,
-                Err(_) => continue, // Skip branches that can't be diffed (e.g. orphan)
-            };
+        let branch_files = match git::get_diff_files_between_refs(&main_ref, &branch_ref, opts) {
+            Ok(files) => files,
+            Err(_) => continue, // Skip branches that can't be diffed (e.g. orphan)
+        };
 
         // Find intersection (file-level overlap)
         let overlapping_files: Vec<&String> = branch_files
@@ -179,8 +173,7 @@ pub fn scan(config: &Config, opts: RunOpts) -> Result<RadarResult> {
         }
 
         // Get branch metadata
-        let author = git::get_branch_author(branch, opts)
-            .unwrap_or_else(|_| "unknown".to_string());
+        let author = git::get_branch_author(branch, opts).unwrap_or_else(|_| "unknown".to_string());
         let commits_ahead =
             git::get_remote_branch_commit_count(branch, main_branch, opts).unwrap_or(0);
 
@@ -188,10 +181,8 @@ pub fn scan(config: &Config, opts: RunOpts) -> Result<RadarResult> {
         let mut file_overlaps = Vec::new();
         for file in &overlapping_files {
             let overlap_kind = match level {
-                RadarLevel::Line => {
-                    detect_line_overlap(file, &main_ref, &branch_ref, opts)
-                        .unwrap_or_else(|| OverlapKind::SameFile)
-                }
+                RadarLevel::Line => detect_line_overlap(file, &main_ref, &branch_ref, opts)
+                    .unwrap_or_else(|| OverlapKind::SameFile),
                 RadarLevel::File => OverlapKind::SameFile,
             };
 
@@ -223,8 +214,7 @@ fn detect_line_overlap(
     opts: RunOpts,
 ) -> Option<OverlapKind> {
     let my_hunks = git::get_local_diff_hunks(file, opts).ok()?;
-    let their_hunks =
-        git::get_diff_hunks_between_refs(main_ref, branch_ref, file, opts).ok()?;
+    let their_hunks = git::get_diff_hunks_between_refs(main_ref, branch_ref, file, opts).ok()?;
 
     if my_hunks.is_empty() || their_hunks.is_empty() {
         return None;
@@ -462,10 +452,7 @@ fn format_hunk_ranges(hunks: &[git::HunkRange]) -> String {
 }
 
 /// Lightweight radar check for the sync command
-pub fn quick_scan_for_sync(
-    config: &Config,
-    opts: RunOpts,
-) -> Result<Option<String>> {
+pub fn quick_scan_for_sync(config: &Config, opts: RunOpts) -> Result<Option<String>> {
     if !config.radar.enabled || !config.radar.on_sync {
         return Ok(None);
     }

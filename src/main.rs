@@ -186,7 +186,7 @@ fn main() -> anyhow::Result<()> {
             if from.is_none() && to.is_none() && !unreleased {
                 // Enter interactive wizard mode
                 let wizard_result = wizard::run_changelog_wizard()?;
-                    let changelog = changelog::handle_changelog(
+                let changelog = changelog::handle_changelog(
                     opts,
                     &config,
                     wizard_result.from,
@@ -202,8 +202,7 @@ fn main() -> anyhow::Result<()> {
                     println!("{}", changelog);
                 }
             } else {
-                let changelog =
-                    changelog::handle_changelog(opts, &config, from, to, unreleased)?;
+                let changelog = changelog::handle_changelog(opts, &config, from, to, unreleased)?;
                 if changelog.is_empty() {
                     println!(
                         "{}",
@@ -219,8 +218,8 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Note { message, show } => {
             let git_root = std::path::PathBuf::from(git::get_git_root(opts)?);
-            let current_branch = get_current_branch(opts)?
-;            if show {
+            let current_branch = get_current_branch(opts)?;
+            if show {
                 intent::show_intent_log(&git_root, Some(&current_branch))?;
             } else if let Some(msg) = message {
                 // Capture WIP state alongside the note
@@ -298,14 +297,9 @@ fn main() -> anyhow::Result<()> {
                 })?;
                 review::handle_review_dismiss(&config, &commit_hash, &msg, opts)?;
             } else if digest {
-                review::handle_review_digest(&config, &since, opts)?
-;            } else if let Some(commit_sha) = sha {
-                review::handle_review_trigger(
-                    &config,
-                    reviewers,
-                    Some(commit_sha.as_str()),
-                    opts,
-                )?;
+                review::handle_review_digest(&config, &since, opts)?;
+            } else if let Some(commit_sha) = sha {
+                review::handle_review_trigger(&config, reviewers, Some(commit_sha.as_str()), opts)?;
             } else if trigger {
                 review::handle_review_trigger(&config, reviewers, None, opts)?;
             } else {

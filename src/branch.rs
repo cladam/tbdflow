@@ -47,12 +47,7 @@ pub fn handle_branch(
     Ok(())
 }
 
-pub fn handle_complete(
-    r#type: String,
-    name: String,
-    config: &Config,
-    opts: RunOpts,
-) -> Result<()> {
+pub fn handle_complete(r#type: String, name: String, config: &Config, opts: RunOpts) -> Result<()> {
     println!(
         "{}",
         "--- Completing short-lived branch ---".to_string().blue()

@@ -1,5 +1,5 @@
-use crate::{git, intent};
 use crate::git::RunOpts;
+use crate::{git, intent};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, Confirm};
@@ -97,11 +97,7 @@ pub fn handle_recover_list(git_root: &Path, current_branch: &str) -> Result<()> 
 }
 
 /// Applies a snapshot by index or hash.
-pub fn handle_recover_apply(
-    git_root: &Path,
-    selector: &str,
-    opts: RunOpts,
-) -> Result<()> {
+pub fn handle_recover_apply(git_root: &Path, selector: &str, opts: RunOpts) -> Result<()> {
     let (_log, entries) = collect_snapshots(git_root)?;
 
     let hash = if let Ok(idx) = selector.parse::<usize>() {

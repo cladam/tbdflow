@@ -124,14 +124,7 @@ pub fn trigger_review(
             )?;
         }
         ReviewStrategy::GithubWorkflow => {
-            trigger_github_workflow(
-                config,
-                commit_hash,
-                message,
-                author,
-                &final_reviewers,
-                opts,
-            )?;
+            trigger_github_workflow(config, commit_hash, message, author, &final_reviewers, opts)?;
         }
         ReviewStrategy::LogOnly => {
             println!(
@@ -494,11 +487,7 @@ pub fn handle_review_trigger(
     )
 }
 
-pub fn handle_review_digest(
-    config: &Config,
-    since: &str,
-    opts: RunOpts,
-) -> Result<()> {
+pub fn handle_review_digest(config: &Config, since: &str, opts: RunOpts) -> Result<()> {
     println!(
         "{}",
         format!("--- Trunk Evolution Digest (Since {}) ---", since).blue()
@@ -556,11 +545,7 @@ pub fn handle_review_digest(
     Ok(())
 }
 
-pub fn handle_review_approve(
-    config: &Config,
-    commit_hash: &str,
-    opts: RunOpts,
-) -> Result<()> {
+pub fn handle_review_approve(config: &Config, commit_hash: &str, opts: RunOpts) -> Result<()> {
     let short = short_hash(commit_hash);
 
     println!("{}", format!("--- Approving Commit {} ---", short).blue());
