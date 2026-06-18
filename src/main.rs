@@ -19,7 +19,7 @@ fn main() -> anyhow::Result<()> {
 
     if !matches!(
         cli.command,
-        Commands::Init | Commands::Update | Commands::Completion { .. }
+        Commands::Init { .. } | Commands::Update | Commands::Completion { .. }
     ) && git::is_git_repository(opts).is_err()
     {
         println!(
@@ -33,8 +33,17 @@ fn main() -> anyhow::Result<()> {
     let config = config::load_tbdflow_config()?;
 
     match cli.command {
-        Commands::Init => {
-            commands::handle_init_command(opts)?;
+        Commands::Init {
+            non_interactive,
+            main_branch,
+            remote,
+        } => {
+            let init_opts = commands::InitOptions {
+                non_interactive,
+                main_branch,
+                remote,
+            };
+            commands::handle_init_command(opts, init_opts)?;
         }
         Commands::Info { edit } => {
             commands::handle_info(opts, edit)?;

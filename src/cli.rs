@@ -23,7 +23,27 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Initialises the repository for Trunk-Based Development.
-    Init,
+    #[command(
+        after_help = "NON-INTERACTIVE USAGE:\n  \
+    tbdflow init --yes                              # Use all defaults\n  \
+    tbdflow init --yes --main-branch trunk          # Custom trunk name\n  \
+    tbdflow init --yes --remote git@github.com:org/repo.git\n\n\
+    FLAGS:\n  \
+    --yes / -y          Accept defaults, skip all interactive prompts\n  \
+    --main-branch       Set the main branch name (default: main)\n  \
+    --remote            Link and push to a remote repository URL"
+    )]
+    Init {
+        /// Accept defaults and skip all interactive prompts (non-interactive mode).
+        #[arg(short = 'y', long = "yes", alias = "defaults", alias = "non-interactive")]
+        non_interactive: bool,
+        /// Set the main branch name (default: main).
+        #[arg(long)]
+        main_branch: Option<String>,
+        /// Link a remote repository URL and push the initial commit.
+        #[arg(long)]
+        remote: Option<String>,
+    },
     /// Shows the current tbdflow configuration.
     #[command(alias = "show")]
     Info {

@@ -28,23 +28,40 @@ pub fn handle_update_command() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-pub fn handle_init_command(opts: RunOpts) -> Result<()> {
+/// Options for the init command, allowing non-interactive usage.
+#[derive(Debug, Clone, Default)]
+pub struct InitOptions {
+    /// When true, skip all interactive prompts and use defaults.
+    pub non_interactive: bool,
+    /// Override the main branch name (defaults to "main").
+    pub main_branch: Option<String>,
+    /// Remote URL to link after initialising.
+    pub remote: Option<String>,
+}
+
+pub fn handle_init_command(opts: RunOpts, init_opts: InitOptions) -> Result<()> {
     println!("--- Initialising tbdflow configuration ---");
 
     if git::is_git_repository(opts).is_err() {
-        let current_dir = env::current_dir()?.to_string_lossy().to_string();
-        if Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt(format!(
-                "Currently not in a git repository ({}). Would you like to initialise one?",
-                current_dir
-            ))
-            .interact()?
-        {
+        if init_opts.non_interactive {
+            // In non-interactive mode, automatically initialise the git repository.
             git::init_git_repository(opts)?;
             println!("{}", "New git repository initialised.".green());
         } else {
-            println!("Aborted. Please run `tbdflow init` from within a git repository.");
-            return Ok(());
+            let current_dir = env::current_dir()?.to_string_lossy().to_string();
+            if Confirm::with_theme(&ColorfulTheme::default())
+                .with_prompt(format!(
+                    "Currently not in a git repository ({}). Would you like to initialise one?",
+                    current_dir
+                ))
+                .interact()?
+            {
+                git::init_git_repository(opts)?;
+                println!("{}", "New git repository initialised.".green());
+            } else {
+                println!("Aborted. Please run `tbdflow init` from within a git repository.");
+                return Ok(());
+            }
         }
     }
 
@@ -59,7 +76,7 @@ pub fn handle_init_command(opts: RunOpts) -> Result<()> {
         if !project_config_path.exists() {
             let project_config = config::Config {
                 project_root: Some(".".to_string()),
-                ..Default::default()
+                ..build_init_config(&init_opts)
             };
             let yaml_string = yaml_serde::to_string(&project_config)?;
             fs::write(&project_config_path, yaml_string)?;
@@ -75,8 +92,8 @@ pub fn handle_init_command(opts: RunOpts) -> Result<()> {
         }
     } else {
         if !tbdflow_path.exists() {
-            let default_config = config::Config::default();
-            let yaml_string = yaml_serde::to_string(&default_config)?;
+            let init_config = build_init_config(&init_opts);
+            let yaml_string = yaml_serde::to_string(&init_config)?;
             fs::write(&tbdflow_path, yaml_string)?;
             println!(
                 "{}",
@@ -115,39 +132,63 @@ checklist:
         git::commit("chore: Initialise tbdflow configuration", opts)?;
         println!("{}", "Initial commit created.".green());
 
-        if Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt(
-                "\nDo you want to link a remote repository and push the initial commit now?",
-            )
-            .interact()?
-        {
-            let remote_url: String = Input::with_theme(&ColorfulTheme::default())
-                .with_prompt("Please enter the remote repository URL (e.g. from GitHub)")
-                .interact_text()?;
+        // Determine remote URL: from flag, interactive prompt, or skip.
+        let remote_url = if let Some(ref url) = init_opts.remote {
+            Some(url.clone())
+        } else if init_opts.non_interactive {
+            None // No remote linking in non-interactive mode unless explicitly provided.
+        } else {
+            if Confirm::with_theme(&ColorfulTheme::default())
+                .with_prompt(
+                    "\nDo you want to link a remote repository and push the initial commit now?",
+                )
+                .interact()?
+            {
+                let url: String = Input::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Please enter the remote repository URL (e.g. from GitHub)")
+                    .interact_text()?;
+                if url.is_empty() { None } else { Some(url) }
+            } else {
+                None
+            }
+        };
 
-            if !remote_url.is_empty() {
-                git::add_remote("origin", &remote_url, opts)?;
-                git::fetch_origin(opts)?;
+        if let Some(url) = remote_url {
+            let main_branch = init_opts
+                .main_branch
+                .as_deref()
+                .unwrap_or("main");
 
-                if git::remote_branch_exists("main", opts).is_ok() {
-                    println!(
-                        "{}",
-                        "Remote 'main' branch found. Reconciling histories...".yellow()
-                    );
-                    git::rebase_onto_main("main", opts)?;
-                }
+            git::add_remote("origin", &url, opts)?;
+            git::fetch_origin(opts)?;
 
-                git::push_set_upstream("main", opts)?;
+            if git::remote_branch_exists(main_branch, opts).is_ok() {
                 println!(
                     "{}",
-                    "Successfully linked remote and pushed initial commit.".green()
+                    "Remote branch found. Reconciling histories...".yellow()
                 );
-            } else {
-                println!("{}", "No URL provided. Skipping remote setup.".yellow());
+                git::rebase_onto_main(main_branch, opts)?;
             }
+
+            git::push_set_upstream(main_branch, opts)?;
+            println!(
+                "{}",
+                "Successfully linked remote and pushed initial commit.".green()
+            );
         }
     }
     Ok(())
+}
+
+/// Build a Config based on init options, falling back to defaults.
+fn build_init_config(init_opts: &InitOptions) -> config::Config {
+    let mut cfg = config::Config::default();
+
+    if let Some(ref branch) = init_opts.main_branch {
+        cfg.main_branch_name = branch.clone();
+    }
+
+    cfg
 }
 
 pub fn handle_info(opts: RunOpts, edit: bool) -> Result<()> {
