@@ -321,18 +321,28 @@ fn print_info_json(opts: RunOpts, config: &config::Config, git_root: &str) -> Re
         mode,
         main_branch_name: config.main_branch_name.clone(),
         stale_branch_threshold_days: config.stale_branch_threshold_days,
-        issue_handling_strategy: issue_strategy.to_lowercase().replace("name", "-name").replace("scope", "-scope"),
+        issue_handling_strategy: issue_strategy
+            .to_lowercase()
+            .replace("name", "-name")
+            .replace("scope", "-scope"),
         allowed_branch_types,
         commit_linting_enabled: config.lint.is_some(),
         dod_configured,
         review: ReviewInfoResponse {
             enabled: config.review.enabled,
             strategy: if config.review.enabled {
-                Some(format!("{:?}", config.review.strategy).to_lowercase().replace("issue", "-issue").replace("workflow", "-workflow"))
+                Some(
+                    format!("{:?}", config.review.strategy)
+                        .to_lowercase()
+                        .replace("issue", "-issue")
+                        .replace("workflow", "-workflow"),
+                )
             } else {
                 None
             },
-            default_reviewers: if config.review.enabled && !config.review.default_reviewers.is_empty() {
+            default_reviewers: if config.review.enabled
+                && !config.review.default_reviewers.is_empty()
+            {
                 Some(config.review.default_reviewers.clone())
             } else {
                 None
