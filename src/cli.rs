@@ -18,6 +18,9 @@ pub struct Cli {
     /// Simulate the command without making any changes.
     #[arg(long)]
     pub dry_run: bool,
+    /// Emit machine-readable JSON output instead of human-readable text.
+    #[arg(long, global = true)]
+    pub json: bool,
 }
 
 #[derive(Subcommand, Debug)]

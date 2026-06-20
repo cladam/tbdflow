@@ -15,6 +15,7 @@ fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
     let verbose = cli.verbose;
     let dry_run = cli.dry_run;
+    let json = cli.json;
     let opts = RunOpts::new(verbose, dry_run);
 
     if !matches!(
@@ -46,7 +47,7 @@ fn main() -> anyhow::Result<()> {
             commands::handle_init_command(opts, init_opts)?;
         }
         Commands::Info { edit } => {
-            commands::handle_info(opts, edit)?;
+            commands::handle_info(opts, edit, json)?;
         }
         Commands::Config { get_dod } => {
             if get_dod {

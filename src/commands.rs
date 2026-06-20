@@ -4,9 +4,82 @@ use anyhow::Result;
 use clap::Command as Commands;
 use colored::*;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
+use serde::Serialize;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+
+/// Unified JSON response envelope for machine-readable output.
+#[derive(Serialize)]
+pub struct TbdResponse<T: Serialize> {
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<T>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+impl<T: Serialize> TbdResponse<T> {
+    pub fn ok(data: T) -> Self {
+        Self {
+            success: true,
+            data: Some(data),
+            error: None,
+        }
+    }
+
+    pub fn err(message: impl Into<String>) -> Self {
+        Self {
+            success: false,
+            data: None,
+            error: Some(message.into()),
+        }
+    }
+}
+
+/// JSON payload for `tbdflow info --json`.
+#[derive(Serialize)]
+pub struct InfoResponse {
+    pub mode: String,
+    pub main_branch_name: String,
+    pub stale_branch_threshold_days: i64,
+    pub issue_handling_strategy: String,
+    pub allowed_branch_types: Vec<String>,
+    pub commit_linting_enabled: bool,
+    pub dod_configured: bool,
+    pub review: ReviewInfoResponse,
+    pub radar: RadarInfoResponse,
+    pub ci_check_enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub git: Option<GitInfoResponse>,
+}
+
+#[derive(Serialize)]
+pub struct ReviewInfoResponse {
+    pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub strategy: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_reviewers: Option<Vec<String>>,
+}
+
+#[derive(Serialize)]
+pub struct RadarInfoResponse {
+    pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub level: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub on_sync: Option<bool>,
+}
+
+#[derive(Serialize)]
+pub struct GitInfoResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remote_url: Option<String>,
+    pub current_branch: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latest_tag: Option<String>,
+}
 
 pub fn handle_update_command() -> Result<(), anyhow::Error> {
     println!("{}", "--- Checking for updates ---".blue());
@@ -189,7 +262,7 @@ fn build_init_config(init_opts: &InitOptions) -> config::Config {
     cfg
 }
 
-pub fn handle_info(opts: RunOpts, edit: bool) -> Result<()> {
+pub fn handle_info(opts: RunOpts, edit: bool, json: bool) -> Result<()> {
     let git_root = git::get_git_root(RunOpts::new(false, false))?;
     let root_config_path = PathBuf::from(&git_root).join(".tbdflow.yml");
 
@@ -202,8 +275,6 @@ pub fn handle_info(opts: RunOpts, edit: bool) -> Result<()> {
         return Ok(());
     }
 
-    println!("{}", "--- tbdflow Configuration ---".blue());
-
     let root_config: config::Config = if root_config_path.exists() {
         let yaml_str = fs::read_to_string(&root_config_path)?;
         yaml_serde::from_str(&yaml_str)?
@@ -213,6 +284,11 @@ pub fn handle_info(opts: RunOpts, edit: bool) -> Result<()> {
 
     let final_config = config::load_tbdflow_config()?;
 
+    if json {
+        return print_info_json(opts, &final_config, &git_root);
+    }
+
+    println!("{}", "--- tbdflow Configuration ---".blue());
     print_mode_and_settings(&root_config, &root_config_path, &final_config)?;
     print_review_config(&final_config.review);
     print_radar_config(&final_config.radar);
@@ -220,6 +296,80 @@ pub fn handle_info(opts: RunOpts, edit: bool) -> Result<()> {
     print_git_info(opts)?;
 
     Ok(())
+}
+
+fn print_info_json(opts: RunOpts, config: &config::Config, git_root: &str) -> Result<()> {
+    let mode = if config.monorepo.enabled && !config.monorepo.project_dirs.is_empty() {
+        "monorepo".to_string()
+    } else if config.project_root.is_some() {
+        "monorepo-project".to_string()
+    } else {
+        "standalone".to_string()
+    };
+
+    let mut allowed_branch_types: Vec<String> = config.branch_types.keys().cloned().collect();
+    allowed_branch_types.sort();
+
+    let dod_path = std::path::Path::new(git_root).join(".dod.yml");
+    let dod_configured = dod_path.exists();
+
+    let git_info = build_git_info(opts).ok();
+
+    let issue_strategy = format!("{:?}", config.issue_handling.strategy);
+
+    let response = InfoResponse {
+        mode,
+        main_branch_name: config.main_branch_name.clone(),
+        stale_branch_threshold_days: config.stale_branch_threshold_days,
+        issue_handling_strategy: issue_strategy.to_lowercase().replace("name", "-name").replace("scope", "-scope"),
+        allowed_branch_types,
+        commit_linting_enabled: config.lint.is_some(),
+        dod_configured,
+        review: ReviewInfoResponse {
+            enabled: config.review.enabled,
+            strategy: if config.review.enabled {
+                Some(format!("{:?}", config.review.strategy).to_lowercase().replace("issue", "-issue").replace("workflow", "-workflow"))
+            } else {
+                None
+            },
+            default_reviewers: if config.review.enabled && !config.review.default_reviewers.is_empty() {
+                Some(config.review.default_reviewers.clone())
+            } else {
+                None
+            },
+        },
+        radar: RadarInfoResponse {
+            enabled: config.radar.enabled,
+            level: if config.radar.enabled {
+                Some(format!("{:?}", config.radar.level).to_lowercase())
+            } else {
+                None
+            },
+            on_sync: if config.radar.enabled {
+                Some(config.radar.on_sync)
+            } else {
+                None
+            },
+        },
+        ci_check_enabled: config.ci_check.enabled,
+        git: git_info,
+    };
+
+    let json_output = serde_json::to_string_pretty(&TbdResponse::ok(response))?;
+    println!("{}", json_output);
+    Ok(())
+}
+
+fn build_git_info(opts: RunOpts) -> Result<GitInfoResponse> {
+    let current_branch = git::get_current_branch(opts)?;
+    let remote_url = git::get_remote_url(opts).ok();
+    let latest_tag = git::get_latest_tag(opts).ok();
+
+    Ok(GitInfoResponse {
+        remote_url,
+        current_branch,
+        latest_tag,
+    })
 }
 
 fn print_mode_and_settings(
