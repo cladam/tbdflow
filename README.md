@@ -149,6 +149,28 @@ For power users, the original flag-based interface is still available for a fast
 `tbdflow` is configurable via two optional files in the root of your repository. To get started quickly, run
 `tbdflow init` to generate default versions of these files.
 
+#### Non-interactive Init
+
+For automated environments (CI/CD pipelines, repository scaffolding scripts, AI agents), `init` supports
+a fully non-interactive mode:
+
+```bash
+# Use all defaults (main branch, standard branch types, default DoD)
+tbdflow init --yes
+
+# Custom main branch name
+tbdflow init --yes --main-branch trunk
+
+# Initialise and link a remote repository in one step
+tbdflow init --yes --remote git@github.com:org/repo.git
+```
+
+| Flag           | Description                                              |
+|----------------|----------------------------------------------------------|
+| -y, --yes      | Accept defaults, skip all interactive prompts.           |
+| --main-branch  | Set the main branch name (default: `main`).              |
+| --remote       | Link a remote repository URL and push the initial commit.|
+
 `.tbdflow.yml`
 This file controls the core workflow of the tool. You can customise:
 
@@ -331,6 +353,7 @@ the safety net.
 |-----------|----------------------------------------------------------|----------|
 | --verbose | Prints the underlying Git commands as they are executed. | No       |
 | --dry-run | Simulate the command without making any changes.         | No       |
+| --json    | Emit machine-readable JSON output instead of human-readable text. Supported by `info` and `status`. | No |
 
 ## Commands
 
@@ -864,6 +887,28 @@ tbdflow check-branches
 
 # Checks for a new version of tbdflow and updates it if available.
 tbdflow update
+```
+
+#### JSON output for `info` and `status`
+
+Both `info` and `status` support the global `--json` flag for machine-readable output. This is useful for
+integrations, scripting, and GUI frontends.
+
+```bash
+# Get configuration as structured JSON
+tbdflow --json info
+
+# Get working directory status as structured JSON
+tbdflow --json status
+```
+
+The output is wrapped in a standard envelope:
+
+```json
+{
+  "success": true,
+  "data": { ... }
+}
 ```
 
 #### `undo`

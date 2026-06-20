@@ -338,10 +338,6 @@ pub fn get_scoped_status(config: &Config, opts: RunOpts) -> Result<String> {
             status_for_path(path_str, opts)
         }
     } else if crate::config::is_monorepo_root(config, &current_dir, &git_root) {
-        println!(
-            "{}",
-            "Monorepo root detected. Showing status for root-level files only.".yellow()
-        );
         status_excluding_projects(&config.monorepo.project_dirs, opts)
     } else {
         get_status_short(opts)

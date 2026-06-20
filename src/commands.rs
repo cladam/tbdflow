@@ -81,6 +81,22 @@ pub struct GitInfoResponse {
     pub latest_tag: Option<String>,
 }
 
+/// JSON payload for `tbdflow status --json`.
+#[derive(Serialize)]
+pub struct StatusResponse {
+    pub current_branch: String,
+    pub is_main: bool,
+    pub is_clean: bool,
+    pub changed_files: Vec<String>,
+    pub monorepo: MonorepoStatusResponse,
+}
+
+#[derive(Serialize)]
+pub struct MonorepoStatusResponse {
+    pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_project: Option<String>,
+}
 pub fn handle_update_command() -> Result<(), anyhow::Error> {
     println!("{}", "--- Checking for updates ---".blue());
     let status = self_update::backends::github::Update::configure()
@@ -553,6 +569,55 @@ fn print_git_info(opts: RunOpts) -> Result<()> {
         println!("Latest tag: Not found.");
     }
 
+    Ok(())
+}
+
+pub fn handle_status(opts: RunOpts, config: &config::Config, json: bool) -> Result<()> {
+    let current_branch = git::get_current_branch(opts)?;
+    let status_output = git::get_scoped_status(config, opts)?;
+
+    if json {
+        let changed_files: Vec<String> = if status_output.is_empty() {
+            vec![]
+        } else {
+            status_output
+                .lines()
+                .map(|l| l.trim().to_string())
+                .filter(|l| !l.is_empty())
+                .collect()
+        };
+
+        let current_project = config::find_project_root()?
+            .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()));
+
+        let response = StatusResponse {
+            is_main: current_branch == config.main_branch_name,
+            is_clean: changed_files.is_empty(),
+            current_branch,
+            changed_files,
+            monorepo: MonorepoStatusResponse {
+                enabled: config.monorepo.enabled,
+                current_project,
+            },
+        };
+        let json_output = serde_json::to_string_pretty(&TbdResponse::ok(response))?;
+        println!("{}", json_output);
+    } else {
+        println!("--- Checking status ---");
+        let git_root = std::path::PathBuf::from(git::get_git_root(opts)?);
+        let current_dir = env::current_dir()?;
+        if config::is_monorepo_root(config, &current_dir, &git_root) {
+            println!(
+                "{}",
+                "Monorepo root detected. Showing status for root-level files only.".yellow()
+            );
+        }
+        if status_output.is_empty() {
+            println!("{}", "Working directory is clean.".green());
+        } else {
+            println!("{}", status_output.yellow());
+        }
+    }
     Ok(())
 }
 

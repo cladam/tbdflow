@@ -151,14 +151,7 @@ fn main() -> anyhow::Result<()> {
             radar::handle_radar(opts, &config)?;
         }
         Commands::Status => {
-            println!("--- Checking status ---");
-            let status_output = git::get_scoped_status(&config, opts)?;
-
-            if status_output.is_empty() {
-                println!("{}", "Working directory is clean.".green());
-            } else {
-                println!("{}", status_output.yellow());
-            }
+            commands::handle_status(opts, &config, json)?;
         }
         Commands::CurrentBranch => {
             println!("{}", "--- Current branch ---".to_string().blue());
