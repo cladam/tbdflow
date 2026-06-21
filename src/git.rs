@@ -826,8 +826,10 @@ pub fn is_working_directory_dirty(opts: RunOpts) -> Result<bool> {
 /// Returns (ahead, behind) commit counts relative to the upstream tracking branch.
 /// Returns (0, 0) if there is no upstream or the query fails.
 pub fn get_ahead_behind(branch: &str, opts: RunOpts) -> Result<(u64, u64)> {
-    let upstream = format!("{}@{{u}}", branch);
-    let range = format!("{}...{}", branch, upstream);
+    // Use full ref path to avoid ambiguity with tags sharing the branch name.
+    let local_ref = format!("refs/heads/{}", branch);
+    let upstream = format!("{}@{{u}}", local_ref);
+    let range = format!("{}...{}", local_ref, upstream);
     let output = run_git_command("rev-list", &["--left-right", "--count", &range], opts);
     match output {
         Ok(text) => {
