@@ -673,3 +673,111 @@ automatic_tags:
         .stdout(contains("README.md"))
         .stdout(contains("feat/other-work"));
 }
+
+/// Tests that --message-file reads the commit subject from a file.
+#[test]
+#[serial]
+fn test_commit_with_message_file() {
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    // Create a file to commit
+    std::fs::write(repo_path.join("FEATURE.md"), "new feature").unwrap();
+
+    // Write the commit subject to a file
+    let msg_file = repo_path.join("commit-msg.txt");
+    std::fs::write(&msg_file, "add feature file\n").unwrap();
+
+    let mut cmd = Command::cargo_bin("tbdflow").unwrap();
+    cmd.arg("commit")
+        .arg("--type")
+        .arg("feat")
+        .arg("--message-file")
+        .arg(msg_file.to_str().unwrap())
+        .arg("--no-verify");
+    cmd.assert()
+        .success()
+        .stdout(contains("feat: add feature file"))
+        .stdout(is_match(r"Successfully (?:committed and )?pushed changes").unwrap());
+}
+
+/// Tests that --body-file reads the commit body from a file.
+#[test]
+#[serial]
+fn test_commit_with_body_file() {
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    // Create a file to commit
+    std::fs::write(repo_path.join("DOCS.md"), "documentation").unwrap();
+
+    // Write the commit body to a file
+    let body_file = repo_path.join("commit-body.txt");
+    std::fs::write(
+        &body_file,
+        "This adds comprehensive documentation\nfor the new API endpoints.",
+    )
+    .unwrap();
+
+    let mut cmd = Command::cargo_bin("tbdflow").unwrap();
+    cmd.arg("commit")
+        .arg("--type")
+        .arg("docs")
+        .arg("--message")
+        .arg("add api docs")
+        .arg("--body-file")
+        .arg(body_file.to_str().unwrap())
+        .arg("--no-verify");
+    cmd.assert()
+        .success()
+        .stdout(contains("This adds comprehensive documentation"))
+        .stdout(is_match(r"Successfully (?:committed and )?pushed changes").unwrap());
+}
+
+/// Tests that --message-file and --message conflict.
+#[test]
+#[serial]
+fn test_commit_message_file_conflicts_with_message() {
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    let msg_file = repo_path.join("msg.txt");
+    std::fs::write(&msg_file, "subject").unwrap();
+
+    let mut cmd = Command::cargo_bin("tbdflow").unwrap();
+    cmd.arg("commit")
+        .arg("--type")
+        .arg("feat")
+        .arg("--message")
+        .arg("inline subject")
+        .arg("--message-file")
+        .arg(msg_file.to_str().unwrap());
+    cmd.assert()
+        .failure()
+        .stderr(contains("cannot be used with"));
+}
+
+/// Tests that --body-file and --body conflict.
+#[test]
+#[serial]
+fn test_commit_body_file_conflicts_with_body() {
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    let body_file = repo_path.join("body.txt");
+    std::fs::write(&body_file, "file body").unwrap();
+
+    let mut cmd = Command::cargo_bin("tbdflow").unwrap();
+    cmd.arg("commit")
+        .arg("--type")
+        .arg("feat")
+        .arg("--message")
+        .arg("subject")
+        .arg("--body")
+        .arg("inline body")
+        .arg("--body-file")
+        .arg(body_file.to_str().unwrap());
+    cmd.assert()
+        .failure()
+        .stderr(contains("cannot be used with"));
+}

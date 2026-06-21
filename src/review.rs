@@ -433,11 +433,7 @@ fn ensure_review_labels_exist(labels: &ReviewLabelsConfig, opts: RunOpts) {
 }
 
 fn is_gh_cli_available() -> bool {
-    Command::new("gh")
-        .arg("--version")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    git::is_gh_cli_available()
 }
 
 pub fn handle_review_trigger(

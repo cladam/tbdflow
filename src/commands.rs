@@ -17,6 +17,36 @@ pub struct TbdResponse<T: Serialize> {
     pub data: Option<T>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// Stable, machine-readable error code for programmatic consumers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<ErrorCode>,
+}
+
+/// Stable error codes for machine-readable output.
+/// Consumers should branch on these codes, not on error prose.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ErrorCode {
+    /// Required arguments were not provided.
+    MissingArgs,
+    /// The working tree has uncommitted changes that block the operation.
+    DirtyWorktree,
+    /// Trunk CI is failing.
+    CiFailing,
+    /// Not inside a git repository.
+    NotARepo,
+    /// The branch has no commits yet.
+    UnbornNoCommits,
+    /// The referenced branch was not found.
+    BranchNotFound,
+    /// The tag already exists.
+    TagExists,
+    /// Not on the main/trunk branch.
+    NotOnMain,
+    /// Cannot complete the main branch.
+    CannotCompleteMain,
+    /// A git command failed unexpectedly.
+    GitFailed,
 }
 
 impl<T: Serialize> TbdResponse<T> {
@@ -25,6 +55,7 @@ impl<T: Serialize> TbdResponse<T> {
             success: true,
             data: Some(data),
             error: None,
+            code: None,
         }
     }
 
@@ -33,6 +64,16 @@ impl<T: Serialize> TbdResponse<T> {
             success: false,
             data: None,
             error: Some(message.into()),
+            code: None,
+        }
+    }
+
+    pub fn err_with_code(message: impl Into<String>, code: ErrorCode) -> Self {
+        Self {
+            success: false,
+            data: None,
+            error: Some(message.into()),
+            code: Some(code),
         }
     }
 }
@@ -87,6 +128,9 @@ pub struct StatusResponse {
     pub current_branch: String,
     pub is_main: bool,
     pub is_clean: bool,
+    pub ahead: u64,
+    pub behind: u64,
+    pub trunk_ci: String,
     pub changed_files: Vec<String>,
     pub monorepo: MonorepoStatusResponse,
 }
@@ -97,6 +141,7 @@ pub struct MonorepoStatusResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub current_project: Option<String>,
 }
+
 pub fn handle_update_command() -> Result<(), anyhow::Error> {
     println!("{}", "--- Checking for updates ---".blue());
     let status = self_update::backends::github::Update::configure()
@@ -574,6 +619,17 @@ fn print_git_info(opts: RunOpts) -> Result<()> {
 pub fn handle_status(opts: RunOpts, config: &config::Config, json: bool) -> Result<()> {
     let current_branch = git::get_current_branch(opts)?;
     let status_output = git::get_scoped_status(config, opts)?;
+    let (ahead, behind) = git::get_ahead_behind(&current_branch, opts).unwrap_or((0, 0));
+    let trunk_ci = if config.ci_check.enabled {
+        match git::check_ci_status(&config.main_branch_name, opts) {
+            git::CiStatus::Green => "green".to_string(),
+            git::CiStatus::Failed => "failed".to_string(),
+            git::CiStatus::Pending => "pending".to_string(),
+            git::CiStatus::Unknown(reason) => format!("unknown: {}", reason),
+        }
+    } else {
+        "disabled".to_string()
+    };
 
     if json {
         let changed_files: Vec<String> = if status_output.is_empty() {
@@ -592,6 +648,9 @@ pub fn handle_status(opts: RunOpts, config: &config::Config, json: bool) -> Resu
         let response = StatusResponse {
             is_main: current_branch == config.main_branch_name,
             is_clean: changed_files.is_empty(),
+            ahead,
+            behind,
+            trunk_ci,
             current_branch,
             changed_files,
             monorepo: MonorepoStatusResponse {
@@ -616,6 +675,14 @@ pub fn handle_status(opts: RunOpts, config: &config::Config, json: bool) -> Resu
         } else {
             println!("{}", status_output.yellow());
         }
+        println!(
+            "{}",
+            format!(
+                "Ahead: {} / Behind: {} | Trunk CI: {}",
+                ahead, behind, trunk_ci
+            )
+            .dimmed()
+        );
     }
     Ok(())
 }

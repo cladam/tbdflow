@@ -709,6 +709,17 @@ pub enum CiStatus {
     Unknown(String),
 }
 
+/// Returns true if the GitHub CLI (`gh`) is installed and executable.
+pub fn is_gh_cli_available() -> bool {
+    Command::new("gh")
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
 /// Check the CI status of the latest commit on the given branch using the `gh` CLI.
 ///
 /// Uses `gh api` to query the combined commit status and check-runs for the
@@ -723,13 +734,7 @@ pub fn check_ci_status(branch: &str, opts: RunOpts) -> CiStatus {
     }
 
     // First, check if `gh` CLI is available
-    if Command::new("gh")
-        .arg("--version")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .is_err()
-    {
+    if !is_gh_cli_available() {
         return CiStatus::Unknown("gh CLI is not installed".to_string());
     }
 
@@ -816,6 +821,27 @@ pub fn stash_apply(hash: &str, opts: RunOpts) -> Result<String> {
 pub fn is_working_directory_dirty(opts: RunOpts) -> Result<bool> {
     let output = run_git_command("status", &["--porcelain"], opts)?;
     Ok(!output.is_empty())
+}
+
+/// Returns (ahead, behind) commit counts relative to the upstream tracking branch.
+/// Returns (0, 0) if there is no upstream or the query fails.
+pub fn get_ahead_behind(branch: &str, opts: RunOpts) -> Result<(u64, u64)> {
+    let upstream = format!("{}@{{u}}", branch);
+    let range = format!("{}...{}", branch, upstream);
+    let output = run_git_command("rev-list", &["--left-right", "--count", &range], opts);
+    match output {
+        Ok(text) => {
+            let parts: Vec<&str> = text.split_whitespace().collect();
+            if parts.len() == 2 {
+                let ahead = parts[0].parse::<u64>().unwrap_or(0);
+                let behind = parts[1].parse::<u64>().unwrap_or(0);
+                Ok((ahead, behind))
+            } else {
+                Ok((0, 0))
+            }
+        }
+        Err(_) => Ok((0, 0)),
+    }
 }
 
 pub fn check_git_operation_in_progress(opts: RunOpts) -> Result<Option<String>> {

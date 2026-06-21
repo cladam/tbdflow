@@ -11,6 +11,19 @@ use tbdflow::{
     branch, changelog, cli, commands, commit, config, git, intent, radar, recover, review, wizard,
 };
 
+/// Read content from a file path, or from stdin if the path is "-".
+fn read_file_or_stdin(path: &str) -> anyhow::Result<String> {
+    if path == "-" {
+        let mut buf = String::new();
+        io::Read::read_to_string(&mut io::stdin(), &mut buf)?;
+        Ok(buf.trim_end().to_string())
+    } else {
+        let content = std::fs::read_to_string(path)
+            .map_err(|e| anyhow::anyhow!("Failed to read '{}': {}", path, e))?;
+        Ok(content.trim_end().to_string())
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
     let verbose = cli.verbose;
@@ -20,7 +33,10 @@ fn main() -> anyhow::Result<()> {
 
     if !matches!(
         cli.command,
-        Commands::Init { .. } | Commands::Update | Commands::Completion { .. }
+        Commands::Init { .. }
+            | Commands::Update
+            | Commands::Completion { .. }
+            | Commands::GenerateManPage
     ) && git::is_git_repository(opts).is_err()
     {
         println!(
@@ -70,6 +86,8 @@ fn main() -> anyhow::Result<()> {
             scope,
             message,
             body,
+            message_file,
+            body_file,
             breaking,
             breaking_description,
             tag,
@@ -77,12 +95,26 @@ fn main() -> anyhow::Result<()> {
             issue,
             include_projects,
         } => {
-            let params = match (r#type, message) {
+            // Resolve message from --message or --message-file
+            let resolved_message = match (message, message_file) {
+                (Some(m), _) => Some(m),
+                (None, Some(path)) => Some(read_file_or_stdin(&path)?),
+                (None, None) => None,
+            };
+
+            // Resolve body from --body or --body-file
+            let resolved_body = match (body, body_file) {
+                (Some(b), _) => Some(b),
+                (None, Some(path)) => Some(read_file_or_stdin(&path)?),
+                (None, None) => None,
+            };
+
+            let params = match (r#type, resolved_message) {
                 (Some(t), Some(m)) => CommitParams {
                     r#type: t,
                     scope,
                     message: m,
-                    body,
+                    body: resolved_body,
                     breaking,
                     breaking_description,
                     tag,

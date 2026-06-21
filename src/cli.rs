@@ -104,6 +104,14 @@ pub enum Commands {
         /// Optional multi-line body for the commit message.
         #[arg(long)]
         body: Option<String>,
+        /// Read the commit subject from a file ('-' for stdin). Avoids shell
+        /// escaping. Conflicts with --message.
+        #[arg(long, conflicts_with = "message")]
+        message_file: Option<String>,
+        /// Read the commit body from a file ('-' for stdin). Avoids multi-line
+        /// shell escaping. Conflicts with --body.
+        #[arg(long, conflicts_with = "body")]
+        body_file: Option<String>,
         #[arg(long, default_value_t = false, hide = true)]
         /// Internal flag to do a global commit bypassing monorepo safety
         include_projects: bool,
