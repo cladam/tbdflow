@@ -379,7 +379,9 @@ tbdflow commit [options]
 | -t   | --type                 | The type of commit (e.g., feat, fix, chore).             | Yes      |
 | -s   | --scope                | The scope of the changes (e.g., api, ui).                | No       |
 | -m   | --message              | The descriptive commit message (subject line).           | Yes      |
+|      | --message-file         | Read the subject from a file (`-` for stdin). Conflicts with --message. | No |
 |      | --body                 | Optional multi-line body for the commit message.         | No       |
+|      | --body-file            | Read the body from a file (`-` for stdin). Conflicts with --body. | No |
 | -b   | --breaking             | Mark the commit as a breaking change.                    | No       |
 |      | --breaking-description | Provide a description for the 'BREAKING CHANGE:' footer. | No       |
 |      | --tag                  | Optionally add and push an annotated tag to this commit. | No       |
@@ -398,6 +400,10 @@ tbdflow commit -t refactor -m "rename internal API" --breaking --breaking-descri
 
 # A bug fix with a new tag
 tbdflow commit -t fix -m "correct user permission logic" --tag "v1.1.1"
+
+# Read subject/body from files (useful for scripts and automation)
+tbdflow commit -t feat --message-file subject.txt --body-file body.txt
+echo "fix typo in docs" | tbdflow commit -t docs --message-file -
 ```
 
 ### 2. `branch`
@@ -908,6 +914,40 @@ The output is wrapped in a standard envelope:
 {
   "success": true,
   "data": { ... }
+}
+```
+
+On failure, the envelope includes a stable `code` field for programmatic error handling:
+
+```json
+{
+  "success": false,
+  "error": "Working directory is not clean",
+  "code": "dirty_worktree"
+}
+```
+
+Available error codes: `missing_args`, `dirty_worktree`, `ci_failing`, `not_a_repo`,
+`unborn_no_commits`, `branch_not_found`, `tag_exists`, `not_on_main`, `cannot_complete_main`, `git_failed`.
+
+**Status enrichment:**
+
+The `status` command now includes ahead/behind counts relative to the upstream tracking branch and the
+trunk CI status (when `ci_check` is enabled):
+
+```json
+{
+  "success": true,
+  "data": {
+    "current_branch": "main",
+    "is_main": true,
+    "is_clean": true,
+    "ahead": 0,
+    "behind": 2,
+    "trunk_ci": "green",
+    "changed_files": [],
+    "monorepo": { "enabled": false }
+  }
 }
 ```
 
