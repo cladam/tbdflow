@@ -5,8 +5,8 @@ use std::io::Write;
 use tbdflow::cli::Commands;
 use tbdflow::cli::TaskAction;
 use tbdflow::commit::CommitParams;
-use tbdflow::git::get_current_branch;
 use tbdflow::git::RunOpts;
+use tbdflow::git::get_current_branch;
 use tbdflow::{
     branch, changelog, cli, commands, commit, config, git, intent, radar, recover, review, wizard,
 };
@@ -168,7 +168,10 @@ fn main() -> anyhow::Result<()> {
             // Render the main command sections
             let man = clap_mangen::Man::new(cmd.clone());
             man.render(&mut buffer)?;
-            writeln!(buffer, "\n--------------------------------------------------------------------------------\n")?;
+            writeln!(
+                buffer,
+                "\n--------------------------------------------------------------------------------\n"
+            )?;
 
             // Manually render each subcommand's details into the same buffer
             for sub in cmd.get_subcommands_mut() {

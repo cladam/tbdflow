@@ -3,7 +3,7 @@ use crate::{config, git, intent, radar};
 use anyhow::Result;
 use clap::Command as Commands;
 use colored::*;
-use dialoguer::{theme::ColorfulTheme, Confirm, Input};
+use dialoguer::{Confirm, Input, theme::ColorfulTheme};
 use serde::Serialize;
 use std::env;
 use std::fs;
@@ -222,13 +222,12 @@ checklist:
         println!("{}", "Initial commit created.".green());
 
         // Determine remote URL: from flag, interactive prompt, or skip.
-        let remote_url =
-            if let Some(ref url) = init_opts.remote {
-                Some(url.clone())
-            } else if init_opts.non_interactive {
-                None // No remote linking in non-interactive mode unless explicitly provided.
-            } else {
-                if Confirm::with_theme(&ColorfulTheme::default())
+        let remote_url = if let Some(ref url) = init_opts.remote {
+            Some(url.clone())
+        } else if init_opts.non_interactive {
+            None // No remote linking in non-interactive mode unless explicitly provided.
+        } else {
+            if Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt(
                     "\nDo you want to link a remote repository and push the initial commit now?",
                 )
@@ -241,7 +240,7 @@ checklist:
             } else {
                 None
             }
-            };
+        };
 
         if let Some(url) = remote_url {
             let main_branch = init_opts.main_branch.as_deref().unwrap_or("main");

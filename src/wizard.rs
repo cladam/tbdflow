@@ -1,6 +1,6 @@
 use crate::config::Config;
 use anyhow::Result;
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 
 #[derive(Debug, Clone)]
 pub struct CommitWizardResult {
@@ -71,11 +71,7 @@ pub fn run_commit_wizard(config: &Config) -> Result<CommitWizardResult> {
 
     // Helper function to convert empty strings from dialoguer to None
     fn to_option(s: String) -> Option<String> {
-        if s.is_empty() {
-            None
-        } else {
-            Some(s)
-        }
+        if s.is_empty() { None } else { Some(s) }
     }
 
     let scope: Option<String> = to_option(
@@ -160,11 +156,7 @@ pub fn run_branch_wizard(config: &Config) -> Result<BranchWizardResult> {
             .with_prompt("Enter an issue reference to include in the branch name (optional)")
             .allow_empty(true)
             .interact_text()?;
-        if input.is_empty() {
-            None
-        } else {
-            Some(input)
-        }
+        if input.is_empty() { None } else { Some(input) }
     };
 
     let from_commit: Option<String> = {
@@ -172,11 +164,7 @@ pub fn run_branch_wizard(config: &Config) -> Result<BranchWizardResult> {
             .with_prompt("Enter a commit hash on 'main' to branch from (optional)")
             .allow_empty(true)
             .interact_text()?;
-        if input.is_empty() {
-            None
-        } else {
-            Some(input)
-        }
+        if input.is_empty() { None } else { Some(input) }
     };
 
     Ok(BranchWizardResult {

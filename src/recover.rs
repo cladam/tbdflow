@@ -2,7 +2,7 @@ use crate::git::RunOpts;
 use crate::{git, intent};
 use anyhow::{Context, Result};
 use colored::Colorize;
-use dialoguer::{theme::ColorfulTheme, Confirm};
+use dialoguer::{Confirm, theme::ColorfulTheme};
 use std::path::Path;
 
 /// A single recoverable snapshot entry.

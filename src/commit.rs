@@ -3,7 +3,7 @@ use crate::git::RunOpts;
 use crate::{config, git, intent, radar, review};
 use anyhow::Result;
 use colored::Colorize;
-use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect};
+use dialoguer::{Confirm, MultiSelect, theme::ColorfulTheme};
 use std::path::PathBuf;
 
 pub struct CommitParams {

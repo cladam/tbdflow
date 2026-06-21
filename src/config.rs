@@ -1,5 +1,5 @@
 use crate::git::{self, RunOpts};
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;

@@ -1,6 +1,6 @@
 use std::fs::write;
 use std::process::Command;
-use tempfile::{tempdir, TempDir};
+use tempfile::{TempDir, tempdir};
 
 /// Sets up a temporary Git repository for testing purposes.
 pub fn setup_temp_git_repo() -> (TempDir, TempDir, std::path::PathBuf) {
