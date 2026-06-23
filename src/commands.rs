@@ -142,6 +142,44 @@ pub struct MonorepoStatusResponse {
     pub current_project: Option<String>,
 }
 
+/// JSON payload for `tbdflow radar --json`.
+#[derive(Serialize)]
+pub struct RadarResponse {
+    pub trunk: TrunkStatusResponse,
+    pub hotspots: Vec<HotspotResponse>,
+    pub overlaps: Vec<OverlapResponse>,
+    pub branches_scanned: usize,
+    pub local_files_count: usize,
+}
+
+#[derive(Serialize)]
+pub struct TrunkStatusResponse {
+    pub branch_name: String,
+    pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_integrated_minutes_ago: Option<i64>,
+}
+
+#[derive(Serialize)]
+pub struct HotspotResponse {
+    pub file: String,
+    pub changes_count: usize,
+}
+
+#[derive(Serialize)]
+pub struct OverlapResponse {
+    pub branch: String,
+    pub author: String,
+    pub commits_ahead: u32,
+    pub files: Vec<OverlapFileResponse>,
+}
+
+#[derive(Serialize)]
+pub struct OverlapFileResponse {
+    pub file: String,
+    pub level: String,
+}
+
 pub fn handle_update_command() -> Result<(), anyhow::Error> {
     println!("{}", "--- Checking for updates ---".blue());
     let status = self_update::backends::github::Update::configure()

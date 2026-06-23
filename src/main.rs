@@ -180,7 +180,7 @@ fn main() -> anyhow::Result<()> {
             commands::handle_sync(opts, &config)?;
         }
         Commands::Radar => {
-            radar::handle_radar(opts, &config)?;
+            radar::handle_radar(opts, &config, json)?;
         }
         Commands::Status => {
             commands::handle_status(opts, &config, json)?;

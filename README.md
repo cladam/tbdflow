@@ -165,11 +165,11 @@ tbdflow init --yes --main-branch trunk
 tbdflow init --yes --remote git@github.com:org/repo.git
 ```
 
-| Flag           | Description                                              |
-|----------------|----------------------------------------------------------|
-| -y, --yes      | Accept defaults, skip all interactive prompts.           |
-| --main-branch  | Set the main branch name (default: `main`).              |
-| --remote       | Link a remote repository URL and push the initial commit.|
+| Flag          | Description                                               |
+|---------------|-----------------------------------------------------------|
+| -y, --yes     | Accept defaults, skip all interactive prompts.            |
+| --main-branch | Set the main branch name (default: `main`).               |
+| --remote      | Link a remote repository URL and push the initial commit. |
 
 `.tbdflow.yml`
 This file controls the core workflow of the tool. You can customise:
@@ -349,11 +349,11 @@ the safety net.
 
 ## Global options
 
-| Flag      | Description                                              | Required |
-|-----------|----------------------------------------------------------|----------|
-| --verbose | Prints the underlying Git commands as they are executed. | No       |
-| --dry-run | Simulate the command without making any changes.         | No       |
-| --json    | Emit machine-readable JSON output instead of human-readable text. Supported by `info` and `status`. | No |
+| Flag      | Description                                                                                                   | Required |
+|-----------|---------------------------------------------------------------------------------------------------------------|----------|
+| --verbose | Prints the underlying Git commands as they are executed.                                                      | No       |
+| --dry-run | Simulate the command without making any changes.                                                              | No       |
+| --json    | Emit machine-readable JSON output instead of human-readable text. Supported by `info`, `status`, and `radar`. | No       |
 
 ## Commands
 
@@ -374,19 +374,19 @@ tbdflow commit [options]
 
 **Options:**
 
-| Flag | Option                 | Description                                              | Required |
-|------|------------------------|----------------------------------------------------------|----------|
-| -t   | --type                 | The type of commit (e.g., feat, fix, chore).             | Yes      |
-| -s   | --scope                | The scope of the changes (e.g., api, ui).                | No       |
-| -m   | --message              | The descriptive commit message (subject line).           | Yes      |
-|      | --message-file         | Read the subject from a file (`-` for stdin). Conflicts with --message. | No |
-|      | --body                 | Optional multi-line body for the commit message.         | No       |
-|      | --body-file            | Read the body from a file (`-` for stdin). Conflicts with --body. | No |
-| -b   | --breaking             | Mark the commit as a breaking change.                    | No       |
-|      | --breaking-description | Provide a description for the 'BREAKING CHANGE:' footer. | No       |
-|      | --tag                  | Optionally add and push an annotated tag to this commit. | No       |
-|      | --issue                | Optionally add an issue reference to the footer.         | No       |
-|      | --no-verify            | Bypass the interactive DoD checklist.                    | No       |
+| Flag | Option                 | Description                                                             | Required |
+|------|------------------------|-------------------------------------------------------------------------|----------|
+| -t   | --type                 | The type of commit (e.g., feat, fix, chore).                            | Yes      |
+| -s   | --scope                | The scope of the changes (e.g., api, ui).                               | No       |
+| -m   | --message              | The descriptive commit message (subject line).                          | Yes      |
+|      | --message-file         | Read the subject from a file (`-` for stdin). Conflicts with --message. | No       |
+|      | --body                 | Optional multi-line body for the commit message.                        | No       |
+|      | --body-file            | Read the body from a file (`-` for stdin). Conflicts with --body.       | No       |
+| -b   | --breaking             | Mark the commit as a breaking change.                                   | No       |
+|      | --breaking-description | Provide a description for the 'BREAKING CHANGE:' footer.                | No       |
+|      | --tag                  | Optionally add and push an annotated tag to this commit.                | No       |
+|      | --issue                | Optionally add an issue reference to the footer.                        | No       |
+|      | --no-verify            | Bypass the interactive DoD checklist.                                   | No       |
 
 **Example:**
 
@@ -947,6 +947,40 @@ trunk CI status (when `ci_check` is enabled):
     "trunk_ci": "green",
     "changed_files": [],
     "monorepo": { "enabled": false }
+  }
+}
+```
+
+**Radar data:**
+
+The `radar` command returns trunk health, file churn hotspots, and overlap detection in a single payload:
+
+```json
+{
+  "success": true,
+  "data": {
+    "trunk": {
+      "branch_name": "main",
+      "status": "green",
+      "last_integrated_minutes_ago": 12
+    },
+    "hotspots": [
+      { "file": "src/auth/logic.rs", "changes_count": 14 },
+      { "file": "src/db/schema.sql", "changes_count": 8 }
+    ],
+    "overlaps": [
+      {
+        "branch": "feat/API-42-user-auth",
+        "author": "@alicia",
+        "commits_ahead": 2,
+        "files": [
+          { "file": "src/auth/handler.rs", "level": "line" },
+          { "file": "src/auth/middleware.rs", "level": "file" }
+        ]
+      }
+    ],
+    "branches_scanned": 4,
+    "local_files_count": 3
   }
 }
 ```

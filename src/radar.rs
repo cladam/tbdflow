@@ -1,3 +1,7 @@
+use crate::commands::{
+    HotspotResponse, OverlapFileResponse, OverlapResponse, RadarResponse, TbdResponse,
+    TrunkStatusResponse,
+};
 use crate::config::{Config, RadarLevel, RadarOnCommit};
 use crate::git::RunOpts;
 use crate::{git, intent};
@@ -247,7 +251,11 @@ fn should_ignore(file: &str, patterns: &[String]) -> bool {
     false
 }
 
-pub fn handle_radar(opts: RunOpts, config: &Config) -> Result<()> {
+pub fn handle_radar(opts: RunOpts, config: &Config, json: bool) -> Result<()> {
+    if json {
+        return handle_radar_json(opts, config);
+    }
+
     println!("{}", "--- Trunk Status ---".blue());
     let trunk = get_trunk_status(config, opts);
     print_trunk_status(&trunk, &config.main_branch_name);
@@ -333,6 +341,74 @@ pub fn handle_radar(opts: RunOpts, config: &Config) -> Result<()> {
 
     radar_snapshot(opts);
 
+    Ok(())
+}
+
+fn handle_radar_json(opts: RunOpts, config: &Config) -> Result<()> {
+    let trunk = get_trunk_status(config, opts);
+
+    let trunk_status_str = match &trunk.ci {
+        git::CiStatus::Green => "green",
+        git::CiStatus::Failed => "failed",
+        git::CiStatus::Pending => "pending",
+        git::CiStatus::Unknown(_) => "unknown",
+    };
+
+    let last_integrated_minutes_ago = git::get_latest_commit_time(&config.main_branch_name, opts)
+        .ok()
+        .flatten()
+        .map(|dt| Utc::now().signed_duration_since(dt).num_minutes());
+
+    git::fetch_origin(opts)?;
+    let hotspots = get_hotspots(config, opts)?;
+
+    let (overlaps, branches_scanned, local_files_count) = if config.radar.enabled {
+        let result = scan(config, opts)?;
+        let overlaps: Vec<OverlapResponse> = result
+            .overlaps
+            .iter()
+            .map(|o| OverlapResponse {
+                branch: o.branch_name.clone(),
+                author: format!("@{}", o.author),
+                commits_ahead: o.commits_ahead,
+                files: o
+                    .overlapping_files
+                    .iter()
+                    .map(|f| OverlapFileResponse {
+                        file: f.file_path.clone(),
+                        level: match &f.overlap_kind {
+                            OverlapKind::LineOverlap { .. } => "line".to_string(),
+                            OverlapKind::SameFile => "file".to_string(),
+                        },
+                    })
+                    .collect(),
+            })
+            .collect();
+        (overlaps, result.branches_scanned, result.local_files_count)
+    } else {
+        (vec![], 0, 0)
+    };
+
+    let response = RadarResponse {
+        trunk: TrunkStatusResponse {
+            branch_name: config.main_branch_name.clone(),
+            status: trunk_status_str.to_string(),
+            last_integrated_minutes_ago,
+        },
+        hotspots: hotspots
+            .into_iter()
+            .map(|(file, changes_count)| HotspotResponse {
+                file,
+                changes_count,
+            })
+            .collect(),
+        overlaps,
+        branches_scanned,
+        local_files_count,
+    };
+
+    let json_output = serde_json::to_string_pretty(&TbdResponse::ok(response))?;
+    println!("{}", json_output);
     Ok(())
 }
 
