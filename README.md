@@ -353,7 +353,7 @@ the safety net.
 |-----------|----------------------------------------------------------|----------|
 | --verbose | Prints the underlying Git commands as they are executed. | No       |
 | --dry-run | Simulate the command without making any changes.         | No       |
-| --json    | Emit machine-readable JSON output instead of human-readable text. Supported by `info`, `status`, `radar`, `task show`, and `note --show`. | No |
+| --json    | Emit machine-readable JSON output instead of human-readable text. Supported by `info`, `status`, `radar`, `sync`, `task show`, and `note --show`. | No |
 
 ## Commands
 
@@ -897,7 +897,7 @@ tbdflow update
 
 #### JSON output for `info`, `status`, `radar`, `task show`, and `note`
 
-The commands `info`, `status`, `radar`, `task show`, and `note --show` support the global `--json` flag for
+The commands `info`, `status`, `radar`, `sync`, `task show`, and `note --show` support the global `--json` flag for
 machine-readable output. This is useful for integrations, scripting, and GUI frontends.
 
 ```bash
@@ -909,6 +909,9 @@ tbdflow --json status
 
 # Get radar situational awareness as structured JSON
 tbdflow --json radar
+
+# Sync with remote and get structured result
+tbdflow --json sync
 
 # Get the current task and intent log as structured JSON
 tbdflow --json task show
@@ -989,6 +992,40 @@ The `radar` command returns trunk health, file churn hotspots, and overlap detec
     "branches_scanned": 4,
     "local_files_count": 3
   }
+}
+```
+
+**Sync data:**
+
+The `sync` command pulls/rebases and returns the full workspace state including recent commits, CI status,
+radar overlaps, and stale branches. If CI is failing or pending, it returns a blocked response instead of
+prompting — letting the UI handle the decision:
+
+```json
+{
+  "success": true,
+  "data": {
+    "current_branch": "main",
+    "is_main": true,
+    "is_clean": true,
+    "changed_files": [],
+    "trunk_ci": "green",
+    "commits": [
+      { "hash": "acbf299", "subject": "chore: bump version", "author": "cladam", "relative_time": "2 hours ago" },
+      { "hash": "554cbb1", "subject": "feat: add JSON info output", "author": "cladam", "relative_time": "6 days ago" }
+    ],
+    "stale_branches": []
+  }
+}
+```
+
+When CI is failing, sync returns a blocked response:
+
+```json
+{
+  "success": false,
+  "error": "Trunk CI status is Red.",
+  "code": "ci_failing"
 }
 ```
 

@@ -378,6 +378,29 @@ pub fn log_graph(opts: RunOpts, count: usize) -> Result<String> {
     run_git_command("log", &["--graph", "--format=%h %s (%an, %ar)", &n], opts)
 }
 
+/// Returns structured log entries: (hash, subject, author, relative_time).
+pub fn log_structured(
+    opts: RunOpts,
+    count: usize,
+) -> Result<Vec<(String, String, String, String)>> {
+    let n = format!("-{}", count);
+    let output = run_git_command("log", &["--pretty=format:%h|%s|%an|%ar", &n], opts)?;
+    let entries = output
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(|line| {
+            let parts: Vec<&str> = line.splitn(4, '|').collect();
+            (
+                parts.first().unwrap_or(&"").to_string(),
+                parts.get(1).unwrap_or(&"").to_string(),
+                parts.get(2).unwrap_or(&"").to_string(),
+                parts.get(3).unwrap_or(&"").to_string(),
+            )
+        })
+        .collect();
+    Ok(entries)
+}
+
 pub fn get_commit_count_ahead(branch: &str, main_branch: &str, opts: RunOpts) -> Result<String> {
     let range = format!("origin/{}..{}", main_branch, branch);
     run_git_command("rev-list", &["--count", &range], opts)

@@ -202,6 +202,34 @@ pub struct OverlapFileResponse {
     pub level: String,
 }
 
+/// JSON payload for `tbdflow sync --json`.
+#[derive(Serialize)]
+pub struct SyncResponse {
+    pub current_branch: String,
+    pub is_main: bool,
+    pub is_clean: bool,
+    pub changed_files: Vec<String>,
+    pub trunk_ci: String,
+    pub commits: Vec<SyncCommitResponse>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub radar_overlaps: Option<Vec<String>>,
+    pub stale_branches: Vec<StaleBranchResponse>,
+}
+
+#[derive(Serialize)]
+pub struct SyncCommitResponse {
+    pub hash: String,
+    pub subject: String,
+    pub author: String,
+    pub relative_time: String,
+}
+
+#[derive(Serialize)]
+pub struct StaleBranchResponse {
+    pub branch: String,
+    pub days_inactive: i64,
+}
+
 pub fn handle_update_command() -> Result<(), anyhow::Error> {
     println!("{}", "--- Checking for updates ---".blue());
     let status = self_update::backends::github::Update::configure()
@@ -748,17 +776,26 @@ pub fn handle_status(opts: RunOpts, config: &config::Config, json: bool) -> Resu
     Ok(())
 }
 
-pub fn handle_sync(opts: RunOpts, config: &config::Config) -> Result<()> {
-    println!(
-        "{}",
-        "--- Syncing with remote and showing status ---"
-            .to_string()
-            .blue()
-    );
+pub fn handle_sync(opts: RunOpts, config: &config::Config, json: bool) -> Result<()> {
+    if !json {
+        println!(
+            "{}",
+            "--- Syncing with remote and showing status ---"
+                .to_string()
+                .blue()
+        );
+    }
     let current_branch = git::get_current_branch(opts)?;
 
     // Anti-collision pre-flight: abort if a git operation is already in progress
     if let Some(msg) = git::check_git_operation_in_progress(opts)? {
+        if json {
+            let json_output = serde_json::to_string_pretty(
+                &TbdResponse::<SyncResponse>::err_with_code(&msg, ErrorCode::GitFailed),
+            )?;
+            println!("{}", json_output);
+            return Ok(());
+        }
         println!(
             "{}",
             format!("Error: {} Please resolve it before using tbdflow.", msg).red()
@@ -774,7 +811,7 @@ pub fn handle_sync(opts: RunOpts, config: &config::Config) -> Result<()> {
             &current_branch,
             "Pre-sync safety snapshot",
         )?;
-        if opts.verbose {
+        if opts.verbose && !json {
             println!(
                 "{}",
                 format!(
@@ -786,14 +823,39 @@ pub fn handle_sync(opts: RunOpts, config: &config::Config) -> Result<()> {
         }
     }
 
-    // Check trunk CI status before pulling to avoid importing a broken build
-    if config.ci_check.enabled {
-        let ci_status = git::check_ci_status(&config.main_branch_name, opts);
-        match ci_status {
-            git::CiStatus::Green => {
+    // Determine trunk CI status
+    let trunk_ci = if config.ci_check.enabled {
+        match git::check_ci_status(&config.main_branch_name, opts) {
+            git::CiStatus::Green => "green".to_string(),
+            git::CiStatus::Failed => "failed".to_string(),
+            git::CiStatus::Pending => "pending".to_string(),
+            git::CiStatus::Unknown(_) => "unknown".to_string(),
+        }
+    } else {
+        "disabled".to_string()
+    };
+
+    // In JSON mode, return a blocked response for failed/pending CI instead of prompting.
+    if json && (trunk_ci == "failed" || trunk_ci == "pending") {
+        let msg = if trunk_ci == "failed" {
+            "Trunk CI status is Red."
+        } else {
+            "Trunk CI is still running."
+        };
+        let json_output = serde_json::to_string_pretty(
+            &TbdResponse::<SyncResponse>::err_with_code(msg, ErrorCode::CiFailing),
+        )?;
+        println!("{}", json_output);
+        return Ok(());
+    }
+
+    // In interactive mode, prompt for failed/pending CI
+    if !json && config.ci_check.enabled {
+        match trunk_ci.as_str() {
+            "green" => {
                 println!("{}", "Pre-flight CI check: trunk is green.".green());
             }
-            git::CiStatus::Failed => {
+            "failed" => {
                 println!(
                     "\n{}",
                     "The trunk is currently failing CI. Pulling now might break your local build."
@@ -809,7 +871,7 @@ pub fn handle_sync(opts: RunOpts, config: &config::Config) -> Result<()> {
                     return Ok(());
                 }
             }
-            git::CiStatus::Pending => {
+            "pending" => {
                 println!("\n{}", "⏳ Trunk CI is still running.".bold().yellow());
                 let should_continue = Confirm::with_theme(&ColorfulTheme::default())
                     .with_prompt("Pull anyway?")
@@ -820,34 +882,96 @@ pub fn handle_sync(opts: RunOpts, config: &config::Config) -> Result<()> {
                     return Ok(());
                 }
             }
-            git::CiStatus::Unknown(reason) => {
+            _ => {
                 if opts.verbose {
-                    println!(
-                        "{} {}",
-                        "Pre-flight CI check skipped:".dimmed(),
-                        reason.dimmed()
-                    );
+                    println!("{}", "Pre-flight CI check skipped.".dimmed());
                 }
-                // Proceed silently — no CI info available is not a blocker
             }
         }
     }
 
     if current_branch == config.main_branch_name {
-        println!("On main branch, pulling latest changes...");
+        if !json {
+            println!("On main branch, pulling latest changes...");
+        }
         git::pull_latest_with_rebase(opts)?;
     } else {
-        println!(
-            "On feature branch '{}', rebasing onto latest '{}'...",
-            current_branch, config.main_branch_name
-        );
+        if !json {
+            println!(
+                "On feature branch '{}', rebasing onto latest '{}'...",
+                current_branch, config.main_branch_name
+            );
+        }
         git::fetch_origin(opts)?;
         git::rebase_onto_main(&config.main_branch_name, opts)?;
     }
 
-    println!("\n{}", "Current status:".bold());
-
     let status_output = git::get_scoped_status(config, opts)?;
+
+    if json {
+        let changed_files: Vec<String> = if status_output.is_empty() {
+            vec![]
+        } else {
+            status_output
+                .lines()
+                .map(|l| l.trim().to_string())
+                .filter(|l| !l.is_empty())
+                .collect()
+        };
+
+        let commits: Vec<SyncCommitResponse> = git::log_structured(opts, config.log_display_count)?
+            .into_iter()
+            .map(
+                |(hash, subject, author, relative_time)| SyncCommitResponse {
+                    hash,
+                    subject,
+                    author,
+                    relative_time,
+                },
+            )
+            .collect();
+
+        let radar_overlaps = if config.radar.enabled && config.radar.on_sync {
+            radar::quick_scan_for_sync(config, opts)
+                .ok()
+                .flatten()
+                .map(|summary| {
+                    summary
+                        .lines()
+                        .map(|l| l.trim().to_string())
+                        .filter(|l| !l.is_empty())
+                        .collect()
+                })
+        } else {
+            None
+        };
+
+        let stale_branches =
+            git::get_stale_branches(opts, &current_branch, config.stale_branch_threshold_days)?
+                .into_iter()
+                .map(|(branch, days)| StaleBranchResponse {
+                    branch,
+                    days_inactive: days,
+                })
+                .collect();
+
+        let response = SyncResponse {
+            is_main: current_branch == config.main_branch_name,
+            is_clean: changed_files.is_empty(),
+            current_branch,
+            changed_files,
+            trunk_ci,
+            commits,
+            radar_overlaps,
+            stale_branches,
+        };
+
+        let json_output = serde_json::to_string_pretty(&TbdResponse::ok(response))?;
+        println!("{}", json_output);
+        return Ok(());
+    }
+
+    println!("\n{}", "Current status:".bold());
 
     if status_output.is_empty() {
         println!("{}", "Working directory is clean.".green());

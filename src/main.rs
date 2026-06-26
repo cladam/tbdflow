@@ -177,7 +177,7 @@ fn main() -> anyhow::Result<()> {
             }
         },
         Commands::Sync => {
-            commands::handle_sync(opts, &config)?;
+            commands::handle_sync(opts, &config, json)?;
         }
         Commands::Radar => {
             radar::handle_radar(opts, &config, json)?;
