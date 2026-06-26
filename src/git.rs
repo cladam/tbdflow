@@ -375,7 +375,7 @@ pub fn stage_scoped_changes(config: &Config, include_projects: bool, opts: RunOp
 
 pub fn log_graph(opts: RunOpts, count: usize) -> Result<String> {
     let n = format!("-n{}", count);
-    run_git_command("log", &["--graph", "--oneline", &n], opts)
+    run_git_command("log", &["--graph", "--format=%h %s (%an, %ar)", &n], opts)
 }
 
 pub fn get_commit_count_ahead(branch: &str, main_branch: &str, opts: RunOpts) -> Result<String> {
