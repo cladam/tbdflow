@@ -232,6 +232,8 @@ pub struct Config {
     pub project_root: Option<String>,
     pub release_url_template: Option<String>,
     pub stale_branch_threshold_days: i64,
+    #[serde(default = "default_log_display_count")]
+    pub log_display_count: usize,
     #[serde(default)]
     pub monorepo: MonorepoConfig,
     #[serde(default)]
@@ -245,6 +247,10 @@ pub struct Config {
     pub branch_types: HashMap<String, String>,
     pub automatic_tags: AutomaticTags,
     pub lint: Option<LintConfig>,
+}
+
+fn default_log_display_count() -> usize {
+    15
 }
 
 impl Default for Config {
@@ -266,6 +272,7 @@ impl Default for Config {
                 "https://github.com/owner/repository/releases/tag/{{version}}".to_string(),
             ),
             stale_branch_threshold_days: 1,
+            log_display_count: 15,
             monorepo: MonorepoConfig::default(),
             issue_handling: IssueHandling::default(),
             review: ReviewConfig::default(),

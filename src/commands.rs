@@ -84,6 +84,7 @@ pub struct InfoResponse {
     pub mode: String,
     pub main_branch_name: String,
     pub stale_branch_threshold_days: i64,
+    pub log_display_count: usize,
     pub issue_handling_strategy: String,
     pub allowed_branch_types: Vec<String>,
     pub commit_linting_enabled: bool,
@@ -440,6 +441,7 @@ fn print_info_json(opts: RunOpts, config: &config::Config, git_root: &str) -> Re
         mode,
         main_branch_name: config.main_branch_name.clone(),
         stale_branch_threshold_days: config.stale_branch_threshold_days,
+        log_display_count: config.log_display_count,
         issue_handling_strategy: issue_strategy
             .to_lowercase()
             .replace("name", "-name")
@@ -853,7 +855,7 @@ pub fn handle_sync(opts: RunOpts, config: &config::Config) -> Result<()> {
         println!("{}", status_output.yellow());
     }
 
-    let log_output = git::log_graph(opts)?;
+    let log_output = git::log_graph(opts, config.log_display_count)?;
     println!("\n{}", "Recent activity:".bold());
     println!("{}", log_output.cyan());
 
@@ -1021,7 +1023,7 @@ pub fn handle_undo(sha: &str, no_push: bool, opts: RunOpts, config: &config::Con
         );
     }
 
-    let log_output = git::log_graph(opts)?;
+    let log_output = git::log_graph(opts, config.log_display_count)?;
     println!("\n{}", "Recent activity:".bold());
     println!("{}", log_output.cyan());
 
