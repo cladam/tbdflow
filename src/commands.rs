@@ -142,6 +142,27 @@ pub struct MonorepoStatusResponse {
     pub current_project: Option<String>,
 }
 
+/// JSON payload for `tbdflow task show --json` / `tbdflow note --show --json`.
+#[derive(Serialize)]
+pub struct TaskShowResponse {
+    pub has_active_task: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub task_description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub branch_context: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<String>,
+    pub notes: Vec<TaskNoteResponse>,
+}
+
+#[derive(Serialize)]
+pub struct TaskNoteResponse {
+    pub timestamp: String,
+    pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub snapshot_hash: Option<String>,
+}
+
 /// JSON payload for `tbdflow radar --json`.
 #[derive(Serialize)]
 pub struct RadarResponse {

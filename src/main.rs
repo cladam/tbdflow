@@ -258,7 +258,11 @@ fn main() -> anyhow::Result<()> {
             let git_root = std::path::PathBuf::from(git::get_git_root(opts)?);
             let current_branch = get_current_branch(opts)?;
             if show {
-                intent::show_intent_log(&git_root, Some(&current_branch))?;
+                if json {
+                    intent::show_intent_log_json(&git_root)?;
+                } else {
+                    intent::show_intent_log(&git_root, Some(&current_branch))?;
+                }
             } else if let Some(msg) = message {
                 // Capture WIP state alongside the note
                 let snapshot_hash = git::stash_create(opts)?;
@@ -277,7 +281,11 @@ fn main() -> anyhow::Result<()> {
                     );
                 }
             } else {
-                intent::show_intent_log(&git_root, Some(&current_branch))?;
+                if json {
+                    intent::show_intent_log_json(&git_root)?;
+                } else {
+                    intent::show_intent_log(&git_root, Some(&current_branch))?;
+                }
             }
         }
         Commands::Task(action) => {
@@ -294,7 +302,11 @@ fn main() -> anyhow::Result<()> {
                     );
                 }
                 TaskAction::Show => {
-                    intent::show_intent_log(&git_root, Some(&current_branch))?;
+                    if json {
+                        intent::show_intent_log_json(&git_root)?;
+                    } else {
+                        intent::show_intent_log(&git_root, Some(&current_branch))?;
+                    }
                 }
                 TaskAction::Clear => {
                     intent::cleanup_intent_log(&git_root)?;

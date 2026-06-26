@@ -165,11 +165,11 @@ tbdflow init --yes --main-branch trunk
 tbdflow init --yes --remote git@github.com:org/repo.git
 ```
 
-| Flag          | Description                                               |
-|---------------|-----------------------------------------------------------|
-| -y, --yes     | Accept defaults, skip all interactive prompts.            |
-| --main-branch | Set the main branch name (default: `main`).               |
-| --remote      | Link a remote repository URL and push the initial commit. |
+| Flag           | Description                                              |
+|----------------|----------------------------------------------------------|
+| -y, --yes      | Accept defaults, skip all interactive prompts.           |
+| --main-branch  | Set the main branch name (default: `main`).              |
+| --remote       | Link a remote repository URL and push the initial commit.|
 
 `.tbdflow.yml`
 This file controls the core workflow of the tool. You can customise:
@@ -349,11 +349,11 @@ the safety net.
 
 ## Global options
 
-| Flag      | Description                                                                                                   | Required |
-|-----------|---------------------------------------------------------------------------------------------------------------|----------|
-| --verbose | Prints the underlying Git commands as they are executed.                                                      | No       |
-| --dry-run | Simulate the command without making any changes.                                                              | No       |
-| --json    | Emit machine-readable JSON output instead of human-readable text. Supported by `info`, `status`, and `radar`. | No       |
+| Flag      | Description                                              | Required |
+|-----------|----------------------------------------------------------|----------|
+| --verbose | Prints the underlying Git commands as they are executed. | No       |
+| --dry-run | Simulate the command without making any changes.         | No       |
+| --json    | Emit machine-readable JSON output instead of human-readable text. Supported by `info`, `status`, `radar`, `task show`, and `note --show`. | No |
 
 ## Commands
 
@@ -374,19 +374,19 @@ tbdflow commit [options]
 
 **Options:**
 
-| Flag | Option                 | Description                                                             | Required |
-|------|------------------------|-------------------------------------------------------------------------|----------|
-| -t   | --type                 | The type of commit (e.g., feat, fix, chore).                            | Yes      |
-| -s   | --scope                | The scope of the changes (e.g., api, ui).                               | No       |
-| -m   | --message              | The descriptive commit message (subject line).                          | Yes      |
-|      | --message-file         | Read the subject from a file (`-` for stdin). Conflicts with --message. | No       |
-|      | --body                 | Optional multi-line body for the commit message.                        | No       |
-|      | --body-file            | Read the body from a file (`-` for stdin). Conflicts with --body.       | No       |
-| -b   | --breaking             | Mark the commit as a breaking change.                                   | No       |
-|      | --breaking-description | Provide a description for the 'BREAKING CHANGE:' footer.                | No       |
-|      | --tag                  | Optionally add and push an annotated tag to this commit.                | No       |
-|      | --issue                | Optionally add an issue reference to the footer.                        | No       |
-|      | --no-verify            | Bypass the interactive DoD checklist.                                   | No       |
+| Flag | Option                 | Description                                              | Required |
+|------|------------------------|----------------------------------------------------------|----------|
+| -t   | --type                 | The type of commit (e.g., feat, fix, chore).             | Yes      |
+| -s   | --scope                | The scope of the changes (e.g., api, ui).                | No       |
+| -m   | --message              | The descriptive commit message (subject line).           | Yes      |
+|      | --message-file         | Read the subject from a file (`-` for stdin). Conflicts with --message. | No |
+|      | --body                 | Optional multi-line body for the commit message.         | No       |
+|      | --body-file            | Read the body from a file (`-` for stdin). Conflicts with --body. | No |
+| -b   | --breaking             | Mark the commit as a breaking change.                    | No       |
+|      | --breaking-description | Provide a description for the 'BREAKING CHANGE:' footer. | No       |
+|      | --tag                  | Optionally add and push an annotated tag to this commit. | No       |
+|      | --issue                | Optionally add an issue reference to the footer.         | No       |
+|      | --no-verify            | Bypass the interactive DoD checklist.                    | No       |
 
 **Example:**
 
@@ -895,10 +895,10 @@ tbdflow check-branches
 tbdflow update
 ```
 
-#### JSON output for `info` and `status`
+#### JSON output for `info`, `status`, `radar`, `task show`, and `note`
 
-Both `info` and `status` support the global `--json` flag for machine-readable output. This is useful for
-integrations, scripting, and GUI frontends.
+The commands `info`, `status`, `radar`, `task show`, and `note --show` support the global `--json` flag for
+machine-readable output. This is useful for integrations, scripting, and GUI frontends.
 
 ```bash
 # Get configuration as structured JSON
@@ -906,6 +906,13 @@ tbdflow --json info
 
 # Get working directory status as structured JSON
 tbdflow --json status
+
+# Get radar situational awareness as structured JSON
+tbdflow --json radar
+
+# Get the current task and intent log as structured JSON
+tbdflow --json task show
+tbdflow --json note --show
 ```
 
 The output is wrapped in a standard envelope:
@@ -981,6 +988,26 @@ The `radar` command returns trunk health, file churn hotspots, and overlap detec
     ],
     "branches_scanned": 4,
     "local_files_count": 3
+  }
+}
+```
+
+**Task / Intent Log:**
+
+The `task show` and `note --show` commands return the current task context and all captured breadcrumb notes:
+
+```json
+{
+  "success": true,
+  "data": {
+    "has_active_task": true,
+    "task_description": "Refactor auth module",
+    "branch_context": "feat/auth-fix",
+    "started_at": "2026-06-19T22:10:00+00:00",
+    "notes": [
+      { "timestamp": "2026-06-19T22:15:00+00:00", "text": "tried factory pattern, felt too verbose" },
+      { "timestamp": "2026-06-19T22:42:00+00:00", "text": "switching to simple trait implementation", "snapshot_hash": "a7b8c9d0e1" }
+    ]
   }
 }
 ```

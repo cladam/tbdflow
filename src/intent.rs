@@ -1,3 +1,4 @@
+use crate::commands::{TaskNoteResponse, TaskShowResponse, TbdResponse};
 use anyhow::{Context, Result};
 use chrono::Utc;
 use colored::Colorize;
@@ -287,6 +288,42 @@ pub fn show_intent_log(git_root: &Path, current_branch: Option<&str>) -> Result<
             );
         }
     }
+    Ok(())
+}
+
+/// Prints the current intent log as structured JSON to stdout.
+pub fn show_intent_log_json(git_root: &Path) -> Result<()> {
+    let response = match load_intent_log(git_root)? {
+        Some(log) => {
+            let notes = log
+                .notes
+                .iter()
+                .map(|n| TaskNoteResponse {
+                    timestamp: n.timestamp.clone(),
+                    text: n.message.clone(),
+                    snapshot_hash: n.snapshot_hash.clone(),
+                })
+                .collect();
+
+            TaskShowResponse {
+                has_active_task: log.task.is_some(),
+                task_description: log.task,
+                branch_context: log.branch,
+                started_at: Some(log.started_at),
+                notes,
+            }
+        }
+        None => TaskShowResponse {
+            has_active_task: false,
+            task_description: None,
+            branch_context: None,
+            started_at: None,
+            notes: vec![],
+        },
+    };
+
+    let json_output = serde_json::to_string_pretty(&TbdResponse::ok(response))?;
+    println!("{}", json_output);
     Ok(())
 }
 
