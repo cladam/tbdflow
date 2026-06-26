@@ -374,19 +374,19 @@ tbdflow commit [options]
 
 **Options:**
 
-| Flag | Option                 | Description                                              | Required |
-|------|------------------------|----------------------------------------------------------|----------|
-| -t   | --type                 | The type of commit (e.g., feat, fix, chore).             | Yes      |
-| -s   | --scope                | The scope of the changes (e.g., api, ui).                | No       |
-| -m   | --message              | The descriptive commit message (subject line).           | Yes      |
-|      | --message-file         | Read the subject from a file (`-` for stdin). Conflicts with --message. | No |
-|      | --body                 | Optional multi-line body for the commit message.         | No       |
-|      | --body-file            | Read the body from a file (`-` for stdin). Conflicts with --body. | No |
-| -b   | --breaking             | Mark the commit as a breaking change.                    | No       |
-|      | --breaking-description | Provide a description for the 'BREAKING CHANGE:' footer. | No       |
-|      | --tag                  | Optionally add and push an annotated tag to this commit. | No       |
-|      | --issue                | Optionally add an issue reference to the footer.         | No       |
-|      | --no-verify            | Bypass the interactive DoD checklist.                    | No       |
+| Flag | Option                 | Description                                                             | Required |
+|------|------------------------|-------------------------------------------------------------------------|----------|
+| -t   | --type                 | The type of commit (e.g., feat, fix, chore).                            | Yes      |
+| -s   | --scope                | The scope of the changes (e.g., api, ui).                               | No       |
+| -m   | --message              | The descriptive commit message (subject line).                          | Yes      |
+|      | --message-file         | Read the subject from a file (`-` for stdin). Conflicts with --message. | No       |
+|      | --body                 | Optional multi-line body for the commit message.                        | No       |
+|      | --body-file            | Read the body from a file (`-` for stdin). Conflicts with --body.       | No       |
+| -b   | --breaking             | Mark the commit as a breaking change.                                   | No       |
+|      | --breaking-description | Provide a description for the 'BREAKING CHANGE:' footer.                | No       |
+|      | --tag                  | Optionally add and push an annotated tag to this commit.                | No       |
+|      | --issue                | Optionally add an issue reference to the footer.                        | No       |
+|      | --no-verify            | Bypass the interactive DoD checklist.                                   | No       |
 
 **Example:**
 
