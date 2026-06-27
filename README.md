@@ -349,11 +349,11 @@ the safety net.
 
 ## Global options
 
-| Flag      | Description                                              | Required |
-|-----------|----------------------------------------------------------|----------|
-| --verbose | Prints the underlying Git commands as they are executed. | No       |
-| --dry-run | Simulate the command without making any changes.         | No       |
-| --json    | Emit machine-readable JSON output instead of human-readable text. Supported by `info`, `status`, `radar`, `sync`, `recover --list`, `task show`, and `note --show`. | No |
+| Flag      | Description                                                                                                                                                         | Required |
+|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
+| --verbose | Prints the underlying Git commands as they are executed.                                                                                                            | No       |
+| --dry-run | Simulate the command without making any changes.                                                                                                                    | No       |
+| --json    | Emit machine-readable JSON output instead of human-readable text. Supported by `info`, `status`, `radar`, `sync`, `recover --list`, `task show`, and `note --show`. | No       |
 
 ## Commands
 
