@@ -1,5 +1,5 @@
 use crate::git::RunOpts;
-use crate::{git, intent};
+use crate::{commands, git, intent};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use dialoguer::{Confirm, theme::ColorfulTheme};
@@ -93,6 +93,26 @@ pub fn handle_recover_list(git_root: &Path, current_branch: &str) -> Result<()> 
         "\n{}",
         "Use 'tbdflow recover <index>' to restore a snapshot.".dimmed()
     );
+    Ok(())
+}
+
+/// Prints the snapshot list as structured JSON.
+pub fn handle_recover_list_json(git_root: &Path) -> Result<()> {
+    let (_log, entries) = collect_snapshots(git_root)?;
+
+    let snapshots: Vec<commands::SnapshotResponse> = entries
+        .iter()
+        .map(|e| commands::SnapshotResponse {
+            index: e.index,
+            timestamp: e.timestamp.clone(),
+            note: e.note.clone(),
+            hash: e.hash.clone(),
+        })
+        .collect();
+
+    let response = commands::RecoverResponse { snapshots };
+    let json_output = serde_json::to_string_pretty(&commands::TbdResponse::ok(response))?;
+    println!("{}", json_output);
     Ok(())
 }
 

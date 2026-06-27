@@ -353,7 +353,7 @@ the safety net.
 |-----------|----------------------------------------------------------|----------|
 | --verbose | Prints the underlying Git commands as they are executed. | No       |
 | --dry-run | Simulate the command without making any changes.         | No       |
-| --json    | Emit machine-readable JSON output instead of human-readable text. Supported by `info`, `status`, `radar`, `sync`, `task show`, and `note --show`. | No |
+| --json    | Emit machine-readable JSON output instead of human-readable text. Supported by `info`, `status`, `radar`, `sync`, `recover --list`, `task show`, and `note --show`. | No |
 
 ## Commands
 
@@ -897,7 +897,7 @@ tbdflow update
 
 #### JSON output for `info`, `status`, `radar`, `task show`, and `note`
 
-The commands `info`, `status`, `radar`, `sync`, `task show`, and `note --show` support the global `--json` flag for
+The commands `info`, `status`, `radar`, `sync`, `recover --list`, `task show`, and `note --show` support the global `--json` flag for
 machine-readable output. This is useful for integrations, scripting, and GUI frontends.
 
 ```bash
@@ -912,6 +912,9 @@ tbdflow --json radar
 
 # Sync with remote and get structured result
 tbdflow --json sync
+
+# List WIP snapshots as structured JSON
+tbdflow --json recover --list
 
 # Get the current task and intent log as structured JSON
 tbdflow --json task show
@@ -1044,6 +1047,22 @@ The `task show` and `note --show` commands return the current task context and a
     "notes": [
       { "timestamp": "2026-06-19T22:15:00+00:00", "text": "tried factory pattern, felt too verbose" },
       { "timestamp": "2026-06-19T22:42:00+00:00", "text": "switching to simple trait implementation", "snapshot_hash": "a7b8c9d0e1" }
+    ]
+  }
+}
+```
+
+**WIP Snapshots:**
+
+The `recover --list` command returns all available WIP snapshots for the timeline view:
+
+```json
+{
+  "success": true,
+  "data": {
+    "snapshots": [
+      { "index": 1, "timestamp": "2026-04-18T14:15:00+00:00", "note": "trying trait-based approach", "hash": "a7b8c9d0e1f2" },
+      { "index": 2, "timestamp": "2026-04-18T15:01:00+00:00", "note": "Pre-sync safety snapshot", "hash": "e1f2g3h4i5j6" }
     ]
   }
 }

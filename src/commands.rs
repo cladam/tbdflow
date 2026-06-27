@@ -164,6 +164,20 @@ pub struct TaskNoteResponse {
     pub snapshot_hash: Option<String>,
 }
 
+/// JSON payload for `tbdflow recover --list --json`.
+#[derive(Serialize)]
+pub struct RecoverResponse {
+    pub snapshots: Vec<SnapshotResponse>,
+}
+
+#[derive(Serialize)]
+pub struct SnapshotResponse {
+    pub index: usize,
+    pub timestamp: String,
+    pub note: String,
+    pub hash: String,
+}
+
 /// JSON payload for `tbdflow radar --json`.
 #[derive(Serialize)]
 pub struct RadarResponse {

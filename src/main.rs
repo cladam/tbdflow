@@ -318,7 +318,11 @@ fn main() -> anyhow::Result<()> {
             let git_root = std::path::PathBuf::from(git::get_git_root(opts)?);
             let current_branch = get_current_branch(opts)?;
             if list || selector.is_none() {
-                recover::handle_recover_list(&git_root, &current_branch)?;
+                if json {
+                    recover::handle_recover_list_json(&git_root)?;
+                } else {
+                    recover::handle_recover_list(&git_root, &current_branch)?;
+                }
             } else if let Some(sel) = selector {
                 recover::handle_recover_apply(&git_root, &sel, opts)?;
             }
