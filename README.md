@@ -1136,6 +1136,10 @@ tbdflow generate-man-page > tbdflow.1 && man tbdflow.1
 - [IntelliJ](https://github.com/cladam/tbdflow/tree/main/plugins/intellij)
 - [VS Code](https://github.com/hekonsek/tbdflow-vscode-extension)
 
+## Desktop UI
+
+[tbdflow-ui](https://github.com/cladam/tbdflow-ui) is a desktop dashboard that sits alongside your editor and surfaces the `tbdflow` workflow at a glance — trunk health, intent log, commit form, and radar — without leaving your flow. It delegates everything to the CLI via `--json` output mode.
+
 ## Contributing
 
 First off, thank you for considering contributing to `tbdflow`! ❤️
