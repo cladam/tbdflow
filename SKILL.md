@@ -1,7 +1,7 @@
 ---
 name: tbdflow
-description: Manage Trunk-Based Development workflows using the tbdflow CLI. Use this skill to create short-lived branches, make standardised commits, sync with trunk, merge completed work, and generate changelogs.
-version: 1.0.0
+description: Manage Trunk-Based Development workflows using the tbdflow CLI. Use this skill to create short-lived branches, make standardised commits, sync with trunk, merge completed work, generate changelogs, log intent notes, run non-blocking reviews, recover WIP snapshots, and emit machine-readable JSON output.
+version: 1.1.0
 author: Claes Adamsson
 tags:
   - git
@@ -14,7 +14,7 @@ tags:
 
 ## Overview
 
-This skill enables an AI agent to manage a **Trunk-Based Development (TBD)** workflow using the `tbdflow` CLI (v0.18.2).
+This skill enables an AI agent to manage a **Trunk-Based Development (TBD)** workflow using the `tbdflow` CLI (v0.34.0).
 
 The skill exists to:
 
@@ -22,6 +22,9 @@ The skill exists to:
 - Standardise commits
 - Reduce Git decision-making
 - Maintain a fast, safe path back to trunk (`main`)
+- Capture intent as low-friction breadcrumbs before it is lost
+- Never lose work-in-progress (WIP Guard snapshots + `recover`)
+- Emit machine-readable JSON (`--json`) for scripting, automation, and GUI frontends
 
 `tbdflow` is the **only interface** the agent should use for Git workflow actions covered by this skill.
 
@@ -37,6 +40,10 @@ Use this skill when the user wants to:
 - Merge completed work back to `main`
 - See what has changed since the last release
 - Log a design decision, failed attempt, or reasoning pivot
+- Start or inspect a task and its intent log
+- Request or manage a non-blocking post-commit review
+- Recover a lost work-in-progress snapshot
+- Get machine-readable JSON output for scripting or a GUI frontend
 
 Typical trigger phrases include:
 
@@ -46,6 +53,9 @@ Typical trigger phrases include:
 - "Sync me up"
 - "What's new?"
 - "Note that…" / "Log this decision"
+- "Request a review of…" / "Approve that commit"
+- "I lost my changes" / "Recover my work"
+- "Give me that as JSON"
 
 ---
 
@@ -151,8 +161,14 @@ Create a structured, conventional commit on trunk or a short-lived branch.
 **Command**
 
 ```bash
-tbdflow commit -t <type> [-s <scope>] -m "<message>" [--issue <issue>] [-b]
+tbdflow commit -t <type> [-s <scope>] -m "<message>" [--body "<body>"] [--issue <issue>] [-b] [--tag <tag>]
 ```
+
+**File-Based Input (automation-friendly)**
+
+* Use `--message-file <path>` to read the subject from a file (`-` for stdin). Conflicts with `-m`/`--message`.
+* Use `--body-file <path>` to read the body from a file (`-` for stdin). Conflicts with `--body`.
+* Prefer file-based input when the message/body contains characters that are awkward to escape on the shell.
 
 **Decision Rules**
 
@@ -165,8 +181,10 @@ tbdflow commit -t <type> [-s <scope>] -m "<message>" [--issue <issue>] [-b]
     * Default to `chore` unless behaviour changes
 * DoD Checklist: If a `.dod.yml` file exists in the project root and `--no-verify` is not passed, an interactive
   checklist will appear. Unchecked items will result in a `TODO:` footer being appended to the commit message.
-* Use `-b` / `--breaking` if the change introduces breaking behaviour
+* Use `-b` / `--breaking` if the change introduces breaking behaviour, and `--breaking-description` to describe it
 * Use `--issue` when the user references a ticket ID (JIRA, GitHub, etc.)
+* Use `--tag <tag>` to create and push an annotated tag on the commit
+* Any pending intent-log notes (see §7) are automatically appended to the commit body and then consumed
 
 **Use This When**
 
@@ -272,11 +290,12 @@ tbdflow status
 
 ---
 
-### 5. Radar — Overlap Detection
+### 5. Radar — Situational Awareness
 
 **Intent**
-Proactively detect potential merge conflicts by scanning active remote branches for overlapping work with local changes.
-The social coding safety net for TBD.
+Orient before typing. Radar is the situational-awareness dashboard for TBD, answering three questions at a glance:
+is the trunk healthy (Trunk Status), where is work concentrating (Hotspots / churn), and is anyone touching the same
+files as me (Overlap Scan). The social coding safety net for TBD.
 
 **Commands**
 
@@ -288,8 +307,9 @@ tbdflow radar
 
 * Use `radar` to:
 
-    * Scan all active (unmerged) remote branches
-    * Compare their diffs against local uncommitted/staged changes
+    * Show **trunk status** — CI health (Green/Red/Pending/Unknown) and how long ago the last commit landed
+    * Show **hotspots** — the top files churned on trunk in the last ~72 hours (avoid blind collisions)
+    * Scan all active (unmerged) remote branches and compare their diffs against local uncommitted/staged changes
     * Show who is working on overlapping files (and optionally overlapping lines)
     * Provide actionable social coordination hints
 
@@ -443,10 +463,23 @@ Capture architectural decisions, failed attempts, or logic pivots during the dev
 
 Breadcrumbs provide a lightweight way to document the *why* behind code changes — the reasoning that would otherwise be lost between keystrokes.
 
-**Command**
+**Commands**
 
 ```bash
-tbdflow + "<breadcrumb_message>"
+tbdflow note "<breadcrumb_message>"     # canonical form
+tbdflow + "<breadcrumb_message>"        # shorthand alias
+tbdflow n "<breadcrumb_message>"        # shorthand alias
+tbdflow note --show                     # show the current intent log
+```
+
+**Task context (optional but recommended)**
+
+Group breadcrumbs under a named task so the intent log tells a coherent story:
+
+```bash
+tbdflow task start "<task description>"  # begin a named task
+tbdflow task show                        # show current task and notes
+tbdflow task clear                       # discard the current intent log
 ```
 
 **Decision Rules**
@@ -527,6 +560,153 @@ tbdflow changelog [--unreleased] [--from <ref>]
 
 ---
 
+### 9. Non-Blocking Reviews
+
+**Intent**
+Facilitate Trunk-Based post-commit review. Code is already on trunk; reviews are for **course correction** and
+**knowledge sharing**, not gatekeeping. Reviewers focus on Intent, Impact, and Insight.
+
+**Preconditions**
+
+* The review system is enabled in `.tbdflow.yml` (`review.enabled: true`)
+* For `github-issue` / `github-workflow` strategies, the GitHub CLI (`gh`) is installed and authenticated
+
+**Commands**
+
+```bash
+tbdflow review <sha>                 # request a review for a specific commit
+tbdflow review --trigger             # request a review for the current HEAD
+tbdflow review --digest [--since <time>]   # list commits needing review
+tbdflow review --approve <hash>      # mark approved (closes issue, review-accepted)
+tbdflow review --concern <hash> -m "<message>"   # raise a concern (keeps issue open)
+tbdflow review --dismiss <hash> -m "<message>"    # dismiss (closes issue, review-dismissed)
+```
+
+**Decision Rules**
+
+* Concerns are **always non-blocking** — they add a `review-concern` label, a comment, and a checklist item, and
+  encourage fix-forward rather than blocking the trunk
+* `--approve` and `--dismiss` close the associated issue; `--concern` keeps it open
+* `-m`/`--message` is required with `--concern` and `--dismiss`
+* When review rules with glob patterns are configured, reviews auto-trigger after a matching commit and route to the
+  configured reviewers
+* Strategies: `github-issue` (direct issues), `github-workflow` (GitHub Actions, audit trails), `log-only` (offline)
+
+**Use This When**
+
+* The user says "request a review", "approve this commit", "flag a concern", or "who reviewed X?"
+* A commit needs asynchronous course-correction after landing on trunk
+
+---
+
+### 10. WIP Guard & Recovery
+
+**Intent**
+Never lose work-in-progress. WIP Guard automatically captures immutable snapshots of the working directory at key
+moments so uncommitted work can always be recovered.
+
+**How it works**
+
+* Snapshots use `git stash create` — they don't touch the stash reflog, can't interfere with manual stashes, and
+  persist in the object store until garbage collection (typically 14–30 days)
+* Snapshots are captured automatically during `tbdflow note`/`+`, `tbdflow sync`, `tbdflow radar` (if dirty), and
+  before the destructive part of `tbdflow undo`
+* Before `sync` or `undo`, tbdflow checks for an in-progress rebase/merge/cherry-pick and halts with a clear message
+  instead of creating a corrupt state
+
+**Commands**
+
+```bash
+tbdflow recover --list        # show available snapshots
+tbdflow recover <index>       # restore a snapshot by index
+tbdflow recover <hash>        # restore a snapshot by commit hash
+```
+
+**Decision Rules**
+
+* Snapshots are applied with `git stash apply` (not `pop`), so they remain available for repeated recovery
+* Snapshots are branch-aware — tbdflow warns before applying a snapshot from a different branch context
+* Snapshots are cleared once the work reaches trunk (the commit itself becomes the safety net)
+
+**Use This When**
+
+* The user says "I lost my changes", "recover my work", or "restore that snapshot"
+
+---
+
+### 11. Repository Initialisation
+
+**Intent**
+Set up a repository for Trunk-Based Development, generating `.tbdflow.yml` and `.dod.yml` defaults.
+
+**Command**
+
+```bash
+tbdflow init                          # interactive
+tbdflow init --yes                    # non-interactive, accept all defaults
+tbdflow init --yes --main-branch trunk
+tbdflow init --yes --remote git@github.com:org/repo.git
+```
+
+**Decision Rules**
+
+* **Prefer `--yes` (non-interactive) for automated environments, scaffolding scripts, and agent-driven setup**
+* `--main-branch` sets the trunk name (default: `main`)
+* `--remote` links a remote URL and pushes the initial commit
+* Run `init` in each subdirectory of a monorepo to enable per-project scoping
+
+**Use This When**
+
+* The user says "set up tbdflow", "initialise this repo", or is scaffolding a new project
+
+---
+
+### 12. Machine-Readable JSON Output
+
+**Intent**
+Emit structured JSON for scripting, automation, CI, and GUI frontends instead of human-readable text.
+
+**Command**
+
+```bash
+tbdflow --json <command>
+```
+
+**Supported commands**
+
+`info`, `status`, `radar`, `sync`, `recover --list`, `task show`, and `note --show`.
+
+**Output envelope**
+
+```json
+{ "success": true, "data": { ... } }
+```
+
+On failure the envelope includes a stable `code` for programmatic handling:
+
+```json
+{ "success": false, "error": "Working directory is not clean", "code": "dirty_worktree" }
+```
+
+**Stable error codes**
+
+`missing_args`, `dirty_worktree`, `ci_failing`, `not_a_repo`, `unborn_no_commits`, `branch_not_found`,
+`tag_exists`, `not_on_main`, `cannot_complete_main`, `git_failed`.
+
+**Decision Rules**
+
+* Use `--json` whenever the user asks for machine-readable output, or when driving an integration/GUI
+* `--json` is a **global** flag and must precede the subcommand (e.g. `tbdflow --json status`)
+* Parse the `success` field first; on `false`, branch on the `code` field rather than the human message
+* `status` output is enriched with `ahead`/`behind` counts and `trunk_ci`; `sync` returns a blocked response
+  (`success: false`, `code: ci_failing`) instead of prompting when CI is red
+
+**Use This When**
+
+* The user says "give me that as JSON", "output structured data", or is building tooling on top of `tbdflow`
+
+---
+
 ## Output Format
 
 * Commands should be executed directly
@@ -547,6 +727,12 @@ tbdflow changelog [--unreleased] [--from <ref>]
 | "Anyone else working on this file?"           | `tbdflow radar`                                                                                    |
 | "Revert commit abc1234, it broke the build."  | `tbdflow undo abc1234`                                                                             |
 | "I switched from Factory to Trait."           | `tbdflow + "switched from Factory to Trait: Factory felt over-engineered for this scope"`           |
+| "Start a task for the auth refactor."         | `tbdflow task start "Refactor auth module"`                                                        |
+| "Request a review of the latest commit."      | `tbdflow review --trigger`                                                                         |
+| "Approve commit abc1234."                     | `tbdflow review --approve abc1234`                                                                 |
+| "I lost my changes, recover them."            | `tbdflow recover --list` then `tbdflow recover <index>`                                            |
+| "Set up this repo for TBD non-interactively." | `tbdflow init --yes`                                                                               |
+| "Give me the status as JSON."                 | `tbdflow --json status`                                                                            |
 | "What changed since the last version?"        | `tbdflow changelog --unreleased`                                                                   |
 
 ---
