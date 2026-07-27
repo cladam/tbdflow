@@ -95,6 +95,8 @@ fn main() -> anyhow::Result<()> {
             issue,
             include_projects,
         } => {
+            let inferred_scope = config::get_current_project_name(&config)?;
+            
             // Resolve message from --message or --message-file
             let resolved_message = match (message, message_file) {
                 (Some(m), _) => Some(m),
@@ -112,7 +114,7 @@ fn main() -> anyhow::Result<()> {
             let params = match (r#type, resolved_message) {
                 (Some(t), Some(m)) => CommitParams {
                     r#type: t,
-                    scope,
+                    scope: scope.or(inferred_scope),
                     message: m,
                     body: resolved_body,
                     breaking,
@@ -123,7 +125,7 @@ fn main() -> anyhow::Result<()> {
                     no_verify,
                 },
                 _ => {
-                    let w = wizard::run_commit_wizard(&config)?;
+                    let w = wizard::run_commit_wizard(&config, inferred_scope)?;
                     CommitParams {
                         r#type: w.r#type,
                         scope: w.scope,

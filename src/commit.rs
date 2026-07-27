@@ -128,7 +128,7 @@ pub fn is_valid_scope(scope: &Option<String>, config: &Config) -> bool {
             if let Some(enforce_lowercase) = scope_config.enforce_lowercase {
                 if enforce_lowercase {
                     if let Some(s) = scope {
-                        return s.chars().all(|c| c.is_lowercase());
+                        return s.to_lowercase() == *s;
                     }
                 }
             }

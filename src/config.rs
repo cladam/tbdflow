@@ -386,6 +386,31 @@ pub fn is_monorepo_root(config: &Config, current_dir: &Path, git_root: &Path) ->
     current_dir == git_root && config.monorepo.enabled && !config.monorepo.project_dirs.is_empty()
 }
 
+pub fn get_current_project_name(config: &Config) -> Result<Option<String>, anyhow::Error> {
+    let current_dir = std::env::current_dir()?;
+    let git_root = PathBuf::from(git::get_git_root(git::RunOpts::new(false, false))?);
+
+    if let Some(project_root) = find_project_root()? {
+        if let Some(name) = project_root.file_name().map(|n| n.to_string_lossy().to_string()) {
+            return Ok(Some(name));
+        }
+    }
+
+    if config.monorepo.enabled {
+        for project_dir in &config.monorepo.project_dirs {
+            let project_path = git_root.join(project_dir);
+            if current_dir.starts_with(&project_path) {
+                if let Some(name) = project_path.file_name().map(|n| n.to_string_lossy().to_string()) {
+                    println!("{}", name);
+                    return Ok(Some(name));
+                }
+            }
+        }
+    }
+
+    Ok(None)
+}
+
 pub fn find_project_root() -> Result<Option<PathBuf>, anyhow::Error> {
     let mut current_dir = std::env::current_dir()?;
     let git_root = PathBuf::from(git::get_git_root(RunOpts::new(false, false))?);

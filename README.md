@@ -1138,7 +1138,7 @@ tbdflow generate-man-page > tbdflow.1 && man tbdflow.1
 
 ## Desktop UI
 
-[tbdflow-ui](https://github.com/cladam/tbdflow-ui) is a desktop dashboard that sits alongside your editor and surfaces the `tbdflow` workflow at a glance — trunk health, intent log, commit form, and radar — without leaving your flow. It delegates everything to the CLI via `--json` output mode.
+[tbdflow-ui](https://github.com/cladam/tbdflow-ui) is a desktop dashboard that sits alongside your editor and surfaces the `tbdflow` workflow at a glance (trunk health, intent log, commit form, and radar) without leaving your flow. It delegates everything to the CLI via `--json` output mode.
 
 ## Contributing
 
