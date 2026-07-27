@@ -35,7 +35,10 @@ pub struct ChangeLogWizardResult {
     pub unreleased: bool,
 }
 
-pub fn run_commit_wizard(config: &Config, default_scope: Option<String>) -> Result<CommitWizardResult> {
+pub fn run_commit_wizard(
+    config: &Config,
+    default_scope: Option<String>,
+) -> Result<CommitWizardResult> {
     let theme = ColorfulTheme::default();
 
     // Load commit types from config or use defaults
@@ -75,7 +78,9 @@ pub fn run_commit_wizard(config: &Config, default_scope: Option<String>) -> Resu
     }
 
     let mut scope_prompt = Input::<String>::with_theme(&theme);
-    scope_prompt = scope_prompt.with_prompt("Enter the scope of this change (optional)").allow_empty(true);
+    scope_prompt = scope_prompt
+        .with_prompt("Enter the scope of this change (optional)")
+        .allow_empty(true);
     if let Some(ds) = default_scope {
         scope_prompt = scope_prompt.with_initial_text(ds);
     }

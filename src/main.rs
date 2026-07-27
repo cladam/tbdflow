@@ -96,7 +96,7 @@ fn main() -> anyhow::Result<()> {
             include_projects,
         } => {
             let inferred_scope = config::get_current_project_name(&config)?;
-            
+
             // Resolve message from --message or --message-file
             let resolved_message = match (message, message_file) {
                 (Some(m), _) => Some(m),

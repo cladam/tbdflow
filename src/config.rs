@@ -391,7 +391,10 @@ pub fn get_current_project_name(config: &Config) -> Result<Option<String>, anyho
     let git_root = PathBuf::from(git::get_git_root(git::RunOpts::new(false, false))?);
 
     if let Some(project_root) = find_project_root()? {
-        if let Some(name) = project_root.file_name().map(|n| n.to_string_lossy().to_string()) {
+        if let Some(name) = project_root
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+        {
             return Ok(Some(name));
         }
     }
@@ -400,7 +403,10 @@ pub fn get_current_project_name(config: &Config) -> Result<Option<String>, anyho
         for project_dir in &config.monorepo.project_dirs {
             let project_path = git_root.join(project_dir);
             if current_dir.starts_with(&project_path) {
-                if let Some(name) = project_path.file_name().map(|n| n.to_string_lossy().to_string()) {
+                if let Some(name) = project_path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                {
                     println!("{}", name);
                     return Ok(Some(name));
                 }
