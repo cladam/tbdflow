@@ -11,16 +11,16 @@ categories = ["command-line-utilities", "development-tools"]
 edition = "2024"
 
 [dependencies]
-clap = { version = "4.6.4", features = ["derive"] }
-clap_mangen = "0.3.0"
-clap_complete = "4.6.7"
+clap = { version = "4.6.7", features = ["derive"] }
+clap_mangen = "0.3.3"
+clap_complete = "4.6.11"
 colored = "3.1.1"
-thiserror = "2.0.19"
+thiserror = "2.0.21"
 anyhow = "1.0.104"
 chrono = "0.4.45"
 glob = "0.3.4"
-yaml_serde = "0.10.4"
-serde_json = "1.0.151"
+yaml_serde = "0.10.7"
+serde_json = "1.0.154"
 serde = { version = "1.0.229", features = ["derive"] }
 dialoguer = "0.12.0"
 self_update = "0.44.0"
@@ -30,7 +30,7 @@ git-conventional = "1.1.0"
 openssl-sys = { version = "0.9.109", features = ["vendored"] }
 
 [dev-dependencies]
-serial_test = "3.5.0"
+serial_test = "4.0.1"
 tempfile = "3.27.0"
 assert_cmd = "2.2.2"
 predicates = "3.1.4"

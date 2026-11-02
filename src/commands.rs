@@ -134,6 +134,7 @@ pub struct StatusResponse {
     pub trunk_ci: String,
     pub changed_files: Vec<String>,
     pub monorepo: MonorepoStatusResponse,
+    pub local_intent: LocalIntentResponse,
 }
 
 #[derive(Serialize)]
@@ -141,6 +142,16 @@ pub struct MonorepoStatusResponse {
     pub enabled: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub current_project: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct LocalIntentResponse {
+    pub has_active_intent: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub task_description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub branch_context: Option<String>,
+    pub notes_count: usize,
 }
 
 /// JSON payload for `tbdflow task show --json` / `tbdflow note --show --json`.
@@ -228,6 +239,7 @@ pub struct SyncResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub radar_overlaps: Option<Vec<String>>,
     pub stale_branches: Vec<StaleBranchResponse>,
+    pub local_intent: LocalIntentResponse,
 }
 
 #[derive(Serialize)]
@@ -719,8 +731,60 @@ fn print_git_info(opts: RunOpts) -> Result<()> {
     Ok(())
 }
 
+fn get_local_intent(git_root: &std::path::Path) -> Result<LocalIntentResponse> {
+    let Some(log) = intent::load_intent_log(git_root)? else {
+        return Ok(LocalIntentResponse {
+            has_active_intent: false,
+            task_description: None,
+            branch_context: None,
+            notes_count: 0,
+        });
+    };
+
+    let notes_count = log
+        .notes
+        .iter()
+        .filter(|note| note.snapshot_hash.is_none())
+        .count();
+
+    Ok(LocalIntentResponse {
+        has_active_intent: log.task.is_some() || notes_count > 0,
+        task_description: log.task,
+        branch_context: log.branch,
+        notes_count,
+    })
+}
+
+fn print_local_intent(git_root: &std::path::Path) -> Result<()> {
+    let Some(log) = intent::load_intent_log(git_root)? else {
+        return Ok(());
+    };
+
+    if let Some(task) = log.task {
+        println!("\n{}", "Current task:".bold());
+        println!("{}", task.cyan());
+    } else {
+        let notes_count = log
+            .notes
+            .iter()
+            .filter(|note| note.snapshot_hash.is_none())
+            .count();
+        if notes_count > 0 {
+            println!("\n{}", "Local intent:".bold());
+            println!(
+                "{} note(s) recorded. Use 'tbdflow task show' to review.",
+                notes_count
+            );
+        }
+    }
+
+    Ok(())
+}
+
 pub fn handle_status(opts: RunOpts, config: &config::Config, json: bool) -> Result<()> {
     let current_branch = git::get_current_branch(opts)?;
+    let git_root = std::path::PathBuf::from(git::get_git_root(opts)?);
+    let local_intent = get_local_intent(&git_root)?;
     let status_output = git::get_scoped_status(config, opts)?;
     let (ahead, behind) = git::get_ahead_behind(&current_branch, opts).unwrap_or((0, 0));
     let trunk_ci = if config.ci_check.enabled {
@@ -760,12 +824,12 @@ pub fn handle_status(opts: RunOpts, config: &config::Config, json: bool) -> Resu
                 enabled: config.monorepo.enabled,
                 current_project,
             },
+            local_intent,
         };
         let json_output = serde_json::to_string_pretty(&TbdResponse::ok(response))?;
         println!("{}", json_output);
     } else {
         println!("--- Checking status ---");
-        let git_root = std::path::PathBuf::from(git::get_git_root(opts)?);
         let current_dir = env::current_dir()?;
         if config::is_monorepo_root(config, &current_dir, &git_root) {
             println!(
@@ -778,6 +842,7 @@ pub fn handle_status(opts: RunOpts, config: &config::Config, json: bool) -> Resu
         } else {
             println!("{}", status_output.yellow());
         }
+        print_local_intent(&git_root)?;
         println!(
             "{}",
             format!(
@@ -921,6 +986,8 @@ pub fn handle_sync(opts: RunOpts, config: &config::Config, json: bool) -> Result
     }
 
     let status_output = git::get_scoped_status(config, opts)?;
+    let git_root = std::path::PathBuf::from(git::get_git_root(opts)?);
+    let local_intent = get_local_intent(&git_root)?;
 
     if json {
         let changed_files: Vec<String> = if status_output.is_empty() {
@@ -978,6 +1045,7 @@ pub fn handle_sync(opts: RunOpts, config: &config::Config, json: bool) -> Result
             commits,
             radar_overlaps,
             stale_branches,
+            local_intent,
         };
 
         let json_output = serde_json::to_string_pretty(&TbdResponse::ok(response))?;
@@ -992,6 +1060,7 @@ pub fn handle_sync(opts: RunOpts, config: &config::Config, json: bool) -> Result
     } else {
         println!("{}", status_output.yellow());
     }
+    print_local_intent(&git_root)?;
 
     let log_output = git::log_graph(opts, config.log_display_count)?;
     println!("\n{}", "Recent activity:".bold());

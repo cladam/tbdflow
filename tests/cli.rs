@@ -20,6 +20,44 @@ fn test_status_command() {
     cmd.assert().success().stdout(contains("Checking status"));
 }
 
+#[test]
+#[serial]
+fn test_status_and_sync_show_active_local_task() {
+    let (_dir, _bare_dir, repo_path) = setup_temp_git_repo();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    let mut start = Command::cargo_bin("tbdflow").unwrap();
+    start
+        .args(["task", "start", "finish the status integration"])
+        .assert()
+        .success();
+
+    let mut status = Command::cargo_bin("tbdflow").unwrap();
+    status
+        .arg("status")
+        .assert()
+        .success()
+        .stdout(contains("Current task:"))
+        .stdout(contains("finish the status integration"));
+
+    let mut status_json = Command::cargo_bin("tbdflow").unwrap();
+    status_json
+        .args(["--json", "status"])
+        .assert()
+        .success()
+        .stdout(contains("\"local_intent\""))
+        .stdout(contains(
+            "\"task_description\": \"finish the status integration\"",
+        ));
+
+    let mut sync = Command::cargo_bin("tbdflow").unwrap();
+    sync.arg("sync")
+        .assert()
+        .success()
+        .stdout(contains("Current task:"))
+        .stdout(contains("finish the status integration"));
+}
+
 /// Tests that the current branch command outputs the expected branch name.
 #[test]
 #[serial]

@@ -293,6 +293,10 @@ tbdflow task show    # Show the current task and notes
 tbdflow task clear   # Discard the current intent log
 ```
 
+The active task is also shown under **Current task:** whenever you run `tbdflow status` or `tbdflow sync`.
+If only breadcrumb notes exist, those commands show a **Local intent:** summary so you can quickly return to
+unfinished work.
+
 **Branch awareness:**
 
 The intent log tracks which branch it belongs to. If you switch branches, tbdflow warns you about the stale log so
